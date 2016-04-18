@@ -1,5 +1,5 @@
 {-# LANGUAGE NoImplicitPrelude, DeriveGeneric #-}
-module Lamdu.Calc.TypeVars
+module Lamdu.Calc.Type.Vars
     ( TypeVars(..)
     , null
     , Free(..)

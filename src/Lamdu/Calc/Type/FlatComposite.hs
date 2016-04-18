@@ -1,5 +1,5 @@
 {-# LANGUAGE NoImplicitPrelude #-}
-module Lamdu.Calc.FlatComposite
+module Lamdu.Calc.Type.FlatComposite
     ( FlatComposite(..)
     , fromComposite
     , toComposite

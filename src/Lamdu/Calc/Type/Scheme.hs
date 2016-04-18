@@ -1,5 +1,5 @@
 {-# LANGUAGE NoImplicitPrelude, DeriveGeneric, OverloadedStrings, PatternGuards, RecordWildCards #-}
-module Lamdu.Calc.Scheme
+module Lamdu.Calc.Type.Scheme
     ( Scheme(..), schemeForAll, schemeConstraints, schemeType
     , make, mono, any
     , alphaEq
@@ -19,13 +19,13 @@ import qualified Data.Map as Map
 import qualified Data.Set as Set
 import qualified Data.Tuple as Tuple
 import           GHC.Generics (Generic)
-import           Lamdu.Calc.Constraints (Constraints(..), getTypeVarConstraints, getSumVarConstraints, getProductVarConstraints)
-import qualified Lamdu.Calc.Constraints as Constraints
 import           Lamdu.Calc.Type (Type)
 import qualified Lamdu.Calc.Type as T
+import           Lamdu.Calc.Type.Constraints (Constraints(..), getTypeVarConstraints, getSumVarConstraints, getProductVarConstraints)
+import qualified Lamdu.Calc.Type.Constraints as Constraints
 import qualified Lamdu.Calc.Type.Match as TypeMatch
-import           Lamdu.Calc.TypeVars (TypeVars(..))
-import qualified Lamdu.Calc.TypeVars as TV
+import           Lamdu.Calc.Type.Vars (TypeVars(..))
+import qualified Lamdu.Calc.Type.Vars as TV
 import           Text.PrettyPrint ((<+>), (<>))
 import qualified Text.PrettyPrint as PP
 import           Text.PrettyPrint.HughesPJClass (Pretty(..), maybeParens)

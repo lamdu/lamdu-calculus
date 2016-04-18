@@ -3,14 +3,14 @@ module Lamdu.Calc.Type.Match
     ( VarMatches, matchVars
     ) where
 
-import           Prelude.Compat
-
 import           Control.Lens.Operators
 import           Data.Map (Map)
 import qualified Data.Map as Map
-import           Lamdu.Calc.FlatComposite (FlatComposite(..))
-import qualified Lamdu.Calc.FlatComposite as Flat
 import           Lamdu.Calc.Type
+import           Lamdu.Calc.Type.FlatComposite (FlatComposite(..))
+import qualified Lamdu.Calc.Type.FlatComposite as Flat
+
+import           Prelude.Compat
 
 type VarMatches = ([(TypeVar, TypeVar)], [(ProductVar, ProductVar)], [(SumVar, SumVar)])
 

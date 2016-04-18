@@ -1,5 +1,5 @@
 {-# LANGUAGE NoImplicitPrelude, DeriveGeneric, GeneralizedNewtypeDeriving #-}
-module Lamdu.Calc.Constraints
+module Lamdu.Calc.Type.Constraints
     ( Constraints(..), null
     , ForbiddenFields
     , applyRenames
@@ -22,8 +22,8 @@ import           Data.Set (Set)
 import qualified Data.Set as Set
 import           GHC.Generics (Generic)
 import qualified Lamdu.Calc.Type as T
-import           Lamdu.Calc.TypeVars (TypeVars)
-import qualified Lamdu.Calc.TypeVars as TypeVars
+import           Lamdu.Calc.Type.Vars (TypeVars)
+import qualified Lamdu.Calc.Type.Vars as TypeVars
 import           Text.PrettyPrint ((<+>), (<>))
 import qualified Text.PrettyPrint as PP
 import           Text.PrettyPrint.HughesPJClass (Pretty(..))
