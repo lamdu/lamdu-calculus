@@ -17,7 +17,6 @@ library
   ghc-options:         -Wall -O2
   hs-source-dirs:      src
   exposed-modules:     Data.ByteString.Hex
-                     , Data.Map.Utils
                      , Lamdu.Calc.Constraints
                      , Lamdu.Calc.Identifier
                      , Lamdu.Calc.FlatComposite
