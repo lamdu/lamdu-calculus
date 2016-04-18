@@ -1,6 +1,7 @@
-{-# LANGUAGE NoImplicitPrelude, DeriveGeneric, EmptyDataDecls, GeneralizedNewtypeDeriving, OverloadedStrings #-}
+{-# LANGUAGE NoImplicitPrelude, DeriveGeneric, EmptyDataDecls, GeneralizedNewtypeDeriving, OverloadedStrings, TemplateHaskell #-}
 module Lamdu.Calc.Type
-    ( Type(..), Composite(..)
+    ( Type(..), _TVar, _TFun, _TInst, _TRecord, _TSum
+    , Composite(..), _CExtend, _CEmpty, _CVar
     , Product   , Sum
     , ProductTag, SumTag
     , ProductVar, SumVar, TypeVar
@@ -12,6 +13,7 @@ import           Prelude.Compat
 
 import           Control.DeepSeq (NFData(..))
 import           Control.DeepSeq.Generics (genericRnf)
+import qualified Control.Lens as Lens
 import           Data.Binary (Binary)
 import           Data.Hashable (Hashable)
 import qualified Data.List as List
@@ -63,6 +65,9 @@ data Type
     deriving (Generic, Show, Eq, Ord)
 instance NFData Type where rnf = genericRnf
 instance Binary Type
+
+Lens.makePrisms ''Composite
+Lens.makePrisms ''Type
 
 infixr 2 ~>
 (~>) :: Type -> Type -> Type
