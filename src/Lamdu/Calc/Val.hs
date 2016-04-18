@@ -1,9 +1,11 @@
 -- | Val AST
-{-# LANGUAGE NoImplicitPrelude, DeriveGeneric, DeriveFunctor, DeriveFoldable, DeriveTraversable, GeneralizedNewtypeDeriving, RecordWildCards #-}
+{-# LANGUAGE NoImplicitPrelude, DeriveGeneric, DeriveFunctor, DeriveFoldable, DeriveTraversable, GeneralizedNewtypeDeriving, RecordWildCards, TemplateHaskell #-}
 module Lamdu.Calc.Val
-    ( Leaf(..)
+    ( Leaf(..), _LVar, _LHole, _LLiteral, _LRecEmpty, _LAbsurd
     , PrimVal(..), primType, primData
     , Body(..)
+        , _BApp, _BLam, _BGetField, _BRecExtend
+        , _BInject, _BCase, _BToNom, _BFromNom, _BLeaf
     , Apply(..), applyFunc, applyArg
     , GetField(..), getFieldRecord, getFieldTag
     , Inject(..), injectVal, injectTag
@@ -18,8 +20,7 @@ module Lamdu.Calc.Val
 import           Prelude.Compat hiding (any)
 
 import           Control.DeepSeq (NFData(..))
-import           Control.Lens (Lens, Lens')
-import           Control.Lens.Operators
+import qualified Control.Lens as Lens
 import           Data.Binary (Binary)
 import           Data.ByteString (ByteString)
 import qualified Data.ByteString.Char8 as BS8
@@ -45,11 +46,7 @@ instance NFData PrimVal
 instance Binary PrimVal
 instance Hashable PrimVal
 
-primType :: Lens' PrimVal T.NominalId
-primType f PrimVal{..} = f _primType <&> \_primType -> PrimVal{..}
-
-primData :: Lens' PrimVal ByteString
-primData f PrimVal{..} = f _primData <&> \_primData -> PrimVal{..}
+Lens.makeLenses ''PrimVal
 
 data Leaf
     =  LVar {-# UNPACK #-}!Var
@@ -61,6 +58,8 @@ data Leaf
 instance NFData Leaf
 instance Binary Leaf
 instance Hashable Leaf
+
+Lens.makePrisms ''Leaf
 
 class Match f where
     match :: (a -> b -> c) -> f a -> f b -> Maybe (f c)
@@ -75,11 +74,7 @@ instance Hashable exp => Hashable (Apply exp)
 instance Match Apply where
     match f (Apply f0 a0) (Apply f1 a1) = Just $ Apply (f f0 f1) (f a0 a1)
 
-applyFunc :: Lens' (Apply exp) exp
-applyFunc f (Apply func arg) = (`Apply` arg) <$> f func
-
-applyArg :: Lens' (Apply exp) exp
-applyArg f (Apply func arg) = Apply func <$> f arg
+Lens.makeLenses ''Apply
 
 data GetField exp = GetField
     { _getFieldRecord :: exp
@@ -93,11 +88,7 @@ instance Match GetField where
         | t0 == t1 = Just $ GetField (f r0 r1) t0
         | otherwise = Nothing
 
-getFieldRecord :: Lens (GetField a) (GetField b) a b
-getFieldRecord f GetField {..} = f _getFieldRecord <&> \_getFieldRecord -> GetField {..}
-
-getFieldTag :: Lens' (GetField exp) T.Tag
-getFieldTag f GetField {..} = f _getFieldTag <&> \_getFieldTag -> GetField {..}
+Lens.makeLenses ''GetField
 
 data Inject exp = Inject
     { _injectTag :: T.Tag
@@ -111,11 +102,7 @@ instance Match Inject where
         | t0 == t1 = Just $ Inject t0 (f r0 r1)
         | otherwise = Nothing
 
-injectVal :: Lens (Inject a) (Inject b) a b
-injectVal f Inject {..} = f _injectVal <&> \_injectVal -> Inject {..}
-
-injectTag :: Lens' (Inject exp) T.Tag
-injectTag f Inject {..} = f _injectTag <&> \_injectTag -> Inject {..}
+Lens.makeLenses ''Inject
 
 data Case exp = Case
     { _caseTag :: T.Tag
@@ -130,14 +117,7 @@ instance Match Case where
         | t0 == t1 = Just $ Case t0 (f h0 h1) (f hr0 hr1)
         | otherwise = Nothing
 
-caseTag :: Lens' (Case exp) T.Tag
-caseTag f Case {..} = f _caseTag <&> \_caseTag -> Case {..}
-
-caseMatch :: Lens' (Case exp) exp
-caseMatch f Case {..} = f _caseMatch <&> \_caseMatch -> Case {..}
-
-caseMismatch :: Lens' (Case exp) exp
-caseMismatch f Case {..} = f _caseMismatch <&> \_caseMismatch -> Case {..}
+Lens.makeLenses ''Case
 
 data Lam exp = Lam
     { _lamParamId :: Var
@@ -147,11 +127,7 @@ instance NFData exp => NFData (Lam exp)
 instance Hashable exp => Hashable (Lam exp)
 instance Binary exp => Binary (Lam exp)
 
-lamParamId :: Lens' (Lam exp) Var
-lamParamId f Lam {..} = f _lamParamId <&> \_lamParamId -> Lam {..}
-
-lamResult :: Lens (Lam a) (Lam b) a b
-lamResult f Lam {..} = f _lamResult <&> \_lamResult -> Lam {..}
+Lens.makeLenses ''Lam
 
 data RecExtend exp = RecExtend
     { _recTag :: T.Tag
@@ -166,14 +142,7 @@ instance Match RecExtend where
         | t0 == t1 = Just $ RecExtend t0 (f f0 f1) (f r0 r1)
         | otherwise = Nothing
 
-recTag :: Lens' (RecExtend exp) T.Tag
-recTag f RecExtend {..} = f _recTag <&> \_recTag -> RecExtend {..}
-
-recFieldVal :: Lens' (RecExtend exp) exp
-recFieldVal f RecExtend {..} = f _recFieldVal <&> \_recFieldVal -> RecExtend {..}
-
-recRest :: Lens' (RecExtend exp) exp
-recRest f RecExtend {..} = f _recRest <&> \_recRest -> RecExtend {..}
+Lens.makeLenses ''RecExtend
 
 data Nom exp = Nom
     { _nomId :: T.NominalId
@@ -187,11 +156,7 @@ instance Match Nom where
         | i0 == i1 = Just $ Nom i0 (f v0 v1)
         | otherwise = Nothing
 
-nomId :: Lens' (Nom exp) T.NominalId
-nomId f Nom {..} = f _nomId <&> \_nomId -> Nom {..}
-
-nomVal :: Lens (Nom a) (Nom b) a b
-nomVal f Nom {..} = f _nomVal <&> \_nomVal -> Nom {..}
+Lens.makeLenses ''Nom
 
 data Body exp
     =  BApp {-# UNPACK #-}!(Apply exp)
@@ -210,6 +175,8 @@ data Body exp
 instance NFData exp => NFData (Body exp)
 instance Hashable exp => Hashable (Body exp)
 instance Binary exp => Binary (Body exp)
+
+Lens.makePrisms ''Body
 
 instance Pretty a => Pretty (Body a) where
     pPrintPrec lvl prec b =
