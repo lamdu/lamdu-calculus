@@ -10,7 +10,6 @@ module Lamdu.Calc.Val.Annotated
     ) where
 
 import           Control.DeepSeq (NFData(..))
-import           Control.DeepSeq.Generics (genericRnf)
 import           Control.Lens (Lens')
 import           Data.Binary (Binary)
 import qualified Data.Foldable as Foldable

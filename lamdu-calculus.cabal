@@ -17,10 +17,16 @@ library
   ghc-options:         -Wall -O2
   hs-source-dirs:      src
   exposed-modules:     Data.ByteString.Hex
+                     , Data.Map.Utils
+                     , Lamdu.Calc.Constraints
                      , Lamdu.Calc.Identifier
+                     , Lamdu.Calc.FlatComposite
                      , Lamdu.Calc.Val
                      , Lamdu.Calc.Val.Annotated
+                     , Lamdu.Calc.Scheme
                      , Lamdu.Calc.Type
+                     , Lamdu.Calc.Type.Match
+                     , Lamdu.Calc.TypeVars
   build-depends:       base >= 4.7
                      , base-compat >= 0.8.2
                      , binary
@@ -31,7 +37,7 @@ library
                      , hashable
                      , lens >= 4.1
                      , pretty >=1.1.2
-
+                     , transformers >=0.3
   default-language:    Haskell2010
 
 source-repository head

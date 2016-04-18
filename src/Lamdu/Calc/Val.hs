@@ -18,7 +18,6 @@ module Lamdu.Calc.Val
 import           Prelude.Compat hiding (any)
 
 import           Control.DeepSeq (NFData(..))
-import           Control.DeepSeq.Generics (genericRnf)
 import           Control.Lens (Lens, Lens')
 import           Control.Lens.Operators
 import           Data.Binary (Binary)
