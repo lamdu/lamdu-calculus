@@ -24,6 +24,7 @@ library
                      , Lamdu.Calc.Type.Constraints
                      , Lamdu.Calc.Type.FlatComposite
                      , Lamdu.Calc.Type.Match
+                     , Lamdu.Calc.Type.Nominal
                      , Lamdu.Calc.Type.Scheme
                      , Lamdu.Calc.Type.Vars
   build-depends:       base >= 4.7
