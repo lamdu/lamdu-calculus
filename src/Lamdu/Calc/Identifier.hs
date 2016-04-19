@@ -7,8 +7,8 @@ import           Control.DeepSeq (NFData(..))
 import           Control.Lens.Operators
 import           Data.Binary (Binary)
 import           Data.ByteString (ByteString)
+import qualified Data.ByteString.Base16 as Hex
 import qualified Data.ByteString.Char8 as BS
-import           Data.ByteString.Hex (showHexBytes, parseHexBytes)
 import           Data.Hashable (Hashable)
 import           Data.String (IsString(..))
 import           GHC.Generics (Generic)
@@ -24,7 +24,11 @@ instance IsString Identifier  where fromString = Identifier . fromString
 instance Pretty Identifier    where pPrint (Identifier x) = PP.text $ BS.unpack x
 
 identHex :: Identifier -> String
-identHex (Identifier bs) = showHexBytes bs
+identHex (Identifier bs) = Hex.encode bs & BS.unpack
 
 identFromHex :: String -> Either String Identifier
-identFromHex str = parseHexBytes str <&> Identifier
+identFromHex str
+    | BS.null remain = Identifier result & Right
+    | otherwise = "Hex doesnt parse: " ++ show str & Left
+    where
+        (result, remain) = BS.pack str & Hex.decode

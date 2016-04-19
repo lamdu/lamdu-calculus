@@ -16,8 +16,7 @@ cabal-version:       >=1.10
 library
   ghc-options:         -Wall -O2
   hs-source-dirs:      src
-  exposed-modules:     Data.ByteString.Hex
-                     , Lamdu.Calc.Identifier
+  exposed-modules:     Lamdu.Calc.Identifier
                      , Lamdu.Calc.Val
                      , Lamdu.Calc.Val.Annotated
                      , Lamdu.Calc.Type
@@ -29,6 +28,7 @@ library
                      , Lamdu.Calc.Type.Vars
   build-depends:       base >= 4.7
                      , base-compat >= 0.8.2
+                     , base16-bytestring
                      , binary
                      , bytestring
                      , containers
