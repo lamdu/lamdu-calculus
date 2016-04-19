@@ -4,7 +4,6 @@ module Lamdu.Calc.Identifier
     ) where
 
 import           Control.DeepSeq (NFData(..))
-import           Control.DeepSeq.Generics (genericRnf)
 import           Control.Lens.Operators
 import           Data.Binary (Binary)
 import           Data.ByteString (ByteString)
@@ -20,7 +19,7 @@ import           Prelude.Compat
 
 newtype Identifier = Identifier ByteString
     deriving (Eq, Ord, Generic, Show, Binary, Hashable)
-instance NFData Identifier    where rnf = genericRnf
+instance NFData Identifier
 instance IsString Identifier  where fromString = Identifier . fromString
 instance Pretty Identifier    where pPrint (Identifier x) = PP.text $ BS.unpack x
 

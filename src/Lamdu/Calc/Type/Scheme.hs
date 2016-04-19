@@ -8,7 +8,6 @@ module Lamdu.Calc.Type.Scheme
 import           Prelude.Compat hiding (any)
 
 import           Control.DeepSeq (NFData(..))
-import           Control.DeepSeq.Generics (genericRnf)
 import           Control.Lens (Lens')
 import           Control.Lens.Operators
 import           Control.Lens.Tuple
@@ -107,7 +106,6 @@ any =
         a = "a"
 
 instance NFData Scheme where
-    rnf = genericRnf
 
 instance Pretty Scheme where
     pPrintPrec lvl prec (Scheme vars@(TypeVars tv rv sv) constraints t)  =

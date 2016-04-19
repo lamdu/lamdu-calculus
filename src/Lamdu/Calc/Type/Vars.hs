@@ -12,7 +12,6 @@ module Lamdu.Calc.Type.Vars
 import           Prelude.Compat hiding (null)
 
 import           Control.DeepSeq (NFData(..))
-import           Control.DeepSeq.Generics (genericRnf)
 import           Data.Binary (Binary)
 import           Data.Map (Map)
 import qualified Data.Map as Map
@@ -32,7 +31,6 @@ data TypeVars = TypeVars
     , sumTypeVars :: !(Set T.SumVar)
     } deriving (Eq, Generic, Show)
 instance NFData TypeVars where
-    rnf = genericRnf
 instance Monoid TypeVars where
     mempty = TypeVars mempty mempty mempty
     mappend (TypeVars t0 r0 s0) (TypeVars t1 r1 s1) =

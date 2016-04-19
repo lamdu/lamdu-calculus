@@ -12,7 +12,6 @@ module Lamdu.Calc.Type
 import           Prelude.Compat
 
 import           Control.DeepSeq (NFData(..))
-import           Control.DeepSeq.Generics (genericRnf)
 import qualified Control.Lens as Lens
 import           Data.Binary (Binary)
 import           Data.Hashable (Hashable)
@@ -53,7 +52,7 @@ data Composite p
     | CEmpty
     | CVar (Var (Composite p))
     deriving (Generic, Show, Eq, Ord)
-instance NFData (Composite p) where rnf = genericRnf
+instance NFData (Composite p)
 instance Binary (Composite p)
 
 data Type
@@ -63,7 +62,7 @@ data Type
     | TRecord Product
     | TSum Sum
     deriving (Generic, Show, Eq, Ord)
-instance NFData Type where rnf = genericRnf
+instance NFData Type
 instance Binary Type
 
 Lens.makePrisms ''Composite

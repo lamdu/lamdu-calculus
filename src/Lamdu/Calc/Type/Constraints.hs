@@ -13,7 +13,6 @@ module Lamdu.Calc.Type.Constraints
 
 import           Prelude.Compat hiding (null)
 import           Control.DeepSeq (NFData(..))
-import           Control.DeepSeq.Generics (genericRnf)
 import           Data.Binary (Binary)
 import           Data.Map (Map)
 import qualified Data.Map as Map
@@ -44,7 +43,7 @@ instance Monoid (CompositeVarConstraints t) where
     mappend (CompositeVarConstraints x) (CompositeVarConstraints y) =
         CompositeVarConstraints $ Map.unionWith mappend x y
 
-instance NFData (CompositeVarConstraints t) where rnf = genericRnf
+instance NFData (CompositeVarConstraints t) where
 
 instance Pretty (CompositeVarConstraints t) where
     pPrint (CompositeVarConstraints m)
@@ -79,7 +78,7 @@ instance Monoid Constraints where
         Constraints (mappend p0 p1) (mappend s0 s1)
 
 instance Binary Constraints
-instance NFData Constraints where rnf = genericRnf
+instance NFData Constraints where
 instance Pretty Constraints where
     pPrint (Constraints p s) =
         PP.text "{" <> pPrint p <> PP.text "}" <>
