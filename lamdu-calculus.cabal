@@ -1,6 +1,6 @@
 name:                lamdu-calculus
 version:             0.1.0.0
-synopsis:            Initial project template from stack
+synopsis:            The Lamdu Calculus programming language
 description:         Please see README.md
 homepage:            https://github.com/lamdu/lamdu-calculus.git#readme
 license:             BSD3
