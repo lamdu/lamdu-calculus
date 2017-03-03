@@ -1,12 +1,11 @@
-{-# LANGUAGE NoImplicitPrelude #-}
+{-# LANGUAGE NoImplicitPrelude, TemplateHaskell #-}
 module Lamdu.Calc.Type.FlatComposite
-    ( FlatComposite(..)
+    ( FlatComposite(..), fields, extension
     , fromComposite
     , toComposite
-    , fields
     ) where
 
-import           Control.Lens (Lens')
+import qualified Control.Lens as Lens
 import           Control.Lens.Operators
 import           Data.Map (Map)
 import qualified Data.Map as Map
@@ -20,8 +19,7 @@ data FlatComposite p = FlatComposite
     , _extension :: Maybe (T.Var (T.Composite p)) -- TyVar of more possible fields
     } deriving (Show)
 
-fields :: Lens' (FlatComposite p) (Map T.Tag Type)
-fields f (FlatComposite fs ext) = (`FlatComposite` ext) <$> f fs
+Lens.makeLenses ''FlatComposite
 
 -- From a record type to a sorted list of fields
 fromComposite :: T.Composite p -> FlatComposite p
