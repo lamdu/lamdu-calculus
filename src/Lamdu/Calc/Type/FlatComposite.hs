@@ -29,4 +29,4 @@ fromComposite (T.CVar name)             = FlatComposite Map.empty (Just name)
 
 toComposite :: FlatComposite p -> T.Composite p
 toComposite (FlatComposite fs ext) =
-    Map.foldWithKey T.CExtend (maybe T.CEmpty T.CVar ext) fs
+    Map.foldrWithKey T.CExtend (maybe T.CEmpty T.CVar ext) fs
