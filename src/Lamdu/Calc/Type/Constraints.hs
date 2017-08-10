@@ -125,7 +125,6 @@ intersect tvs (Constraints p s) =
     Constraints (compositeIntersect tvs p) (compositeIntersect tvs s)
 
 compositeDifference ::
-    TypeVars.CompositeVarKind t =>
     CompositeVarConstraints t ->
     CompositeVarConstraints t ->
     CompositeVarConstraints t
