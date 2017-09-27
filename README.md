@@ -49,35 +49,42 @@ In the term language, records are constructed using these AST constructions:
 `BLeaf LRecEmpty` denotes the empty record (denote in pseudo-syntax as `()`).
 Its type is `TRecord CEmpty`.
 
-
-`BRecExtend ident (value : T) (rest : R)` denotes a record extension
+`BRecExtend (RecExtend tag (value : T) (rest : R))`<sup>1</sup> denotes a record extension
 of an existing record `rest`.
-Its type is `TRecord (CExtend ident T R)`.
+
+Its type is `TRecord (CExtend tag T R)`.
 
 A sequence of `BRecExtend` followed by a `BLeaf LRecEmpty` is denoted
-in pseudo-syntax as { x : T, y : U, ... }.
+in pseudo-syntax as `{ x : T, y : U, ... }`.
 
 To deconstruct a record, we use the `GetField` operation (denoted in
 pseudo-syntax as `.`).
+
+<sup>1. The `(value : Type)` notation is used to denote values' types</sup>
 
 ### Row types
 
 Row types are denoted using a record type variable.
 
-For example, lets examine a lambda abstraction. Assume `(+) : Int ->
-Int -> Int`.
+For example, lets examine a lambda abstraction. Assume `(+) : Int →
+Int → Int`.
 
 ```
-\vector -> vector.x + vector.y
+vector → vector.x + vector.y
 ```
 
 We can infer the type:
 
-`{ x : Int, y : Int } -> Int`
+```Haskell
+{ x : Int, y : Int } → Int
+```
 
 But the most general type is:
 
-`forall r1. {x, y} ∉ r1 => { x : Int, y : Int | r1 } -> Int`<sup>1</sup>
+```Haskell
+forall r1. {x, y} ∉ r1 => { x : Int, y : Int | r1 } → Int
+```
+<sup>2</sup>
 
 The lambda may be applied with a record that contains more fields
 besides `x` and `y`, and that is what the `| r1` denotes. Note that to
@@ -85,7 +92,7 @@ enforce the no-duplication requirement Lamdu Calculus uses a
 constraint on composite type variables, for each field that they may
 not duplicate.
 
-<sup>1. The `|` symbol in the pseudo-syntax is used to indicate
+<sup>2. The `|` symbol in the pseudo-syntax is used to indicate
 that some set of fields denoted by the variable that follows (in this
 case, `r1`) is concatenated to the set)</sup>
 
@@ -93,25 +100,23 @@ case, `r1`) is concatenated to the set)</sup>
 
 In the term language, variants are constructed using value *injection*.
 
-Injection means *lifting* a value into a variant type - thereby
-throwing away type information to make the type compliant with a
-larger variant type.
-
 For example, let's look at the type:
 
-`+{ Nothing : (), Just : Int }`
+```Haskell
++{ Nothing : (), Just : Int }
+```
 
 This pseudo syntax means the structural sum type isomorphic to
 Haskell's `Maybe Int`.
 
 The value `5 : Int` is not of the type: `+{ Nothing : (), Just : Int }`.
 
-In Haskell, we use `Just` to lift 5 from `Int` to `Maybe Int`.  In
+In Haskell, we use `Just` to "lift" 5 from `Int` to `Maybe Int`.  In
 Lamdu Calculus, we inject via `BInject (Inject "Just" 5)`, which we denote in
-pseudo-syntax as `#Just 5`.
+pseudo-syntax as `Just: 5`.
 
-`BInject (Inject ident (value : T))` *injects* a given value into a
-sum type. Its type is `forall alts. ident ∉ alts => TSum (CExtend ident T alts)`.
+`BInject (Inject tag (value : T))` *injects* a given value into a
+sum type. Its type is `forall alts. tag ∉ alts => TSum (CExtend tag T alts)`.
 
 This type means that the injected value allows any set of typed
 alternatives to exist in the larger variant.
@@ -122,53 +127,51 @@ Deconstructing a variant requires a case statement. Lamdu Calculus
 case statements *peel* one alternate case at a time, so need to be
 composed to create an ordinary full case.
 
-`BCase (Case tag handler default)` denoted in pseudo syntax as
-```
+`BCase (Case tag handler rest)` denoted in pseudo syntax as
+```Haskell
 \case
-  #tag -> handler
-  _ -> default
+  tag: handler
+  rest
 ```
 
 The above case expression creates a function with a variant
-parameter. It analyzes its argument, and if it is a `#tag`, the given
-`handler` is invoked with the typed content of the `#tag`.
+parameter. It analyzes its argument, and if it is a `tag`, the given
+`handler` is invoked with the typed content of the `tag`.
 
-If the argument is not a `#tag`, then the `default` handler is
-invoked. The `default` handler is given a smaller sum type as an
-argument. A sum type which no longer has the `#tag` case inside it, as
+If the argument is not a `tag`, then the `rest` handler is
+invoked. The `rest` handler is given a smaller sum type as an
+argument. A sum type which no longer has the `tag` case inside it, as
 that was ruled out.
 
-Let's examine an example:
-
-```
+```Haskell
 \case
-  #Just -> (+1)
-  _ -> \case
-         #Nothing -> \() -> 0
-         _ -> ?
+  Just: x → x + 1
+  \case
+    Nothing: () → 0
+    ?
 ```
 
-The above composed case expression will match against `#Just`:
+The above composed case expression will match against `Just`:
 
- * Match: it will evaluate to the content of the `#Just` added to 1.
+ * Match: it will evaluate to the content of the `Just` added to 1.
 
- * Mismatch: it will match against `#Nothing`:
+ * Mismatch: it will match against `Nothing`:
 
    * Match: it will ignore the empty record contained in the
-     `#Nothing` case, and evaluate to 0
+     `Nothing` case, and evaluate to 0
 
    * Mismatch: Evaluate to a hole (denoted by `?`) which is like
      Haskell's `undefined`, and takes on any type.
 
 The type of the above case statement would be inferred to:
 
-```
+```Haskell
 forall v1. (Just, Nothing) ∉ v1 =>
-+{ #Just : Int , #Nothing : () | v1 } -> Int
++{ Just : Int , Nothing : () | v1 } → Int
 ```
 
 Note that the case statement allows *any* structural variant type that
-has the proper `Nothing` and `Just` cases (and it would crash if the
+has the proper `Nothing` and `Just` cases (and it would reach a hole if the
 value happens to be neither `Nothing` nor `Just`). This is not
 typically what we want. We'd like to *close* the sum type so it is *not* extensible.
 
@@ -178,52 +181,54 @@ empty case statement AST construction is:
 
 BLeaf LAbsurd, and is denoted as `absurd` (as it is the analogue of
 the `absurd` function in Haskell and Agda). The type of `absurd` is:
-`forall r. +{} -> r` (`+{}` is the empty sum type, aka `Void`).
+`forall r. +{} → r` (`+{}` is the empty sum type, aka `Void`).
 
 We can now close the above case expression:
 
-```
+```Haskell
 \case
-  #Just -> (+1)
-  _ -> \case
-         #Nothing -> \() -> 0
-         _ -> absurd
+  Just: x → x + 1
+  \case
+    Nothing: () → 0
+    absurd
 ```
 
 And now our inferred type will be simpler:
 
-`+{ #Just : Int, #Nothing : () } -> Int`
+```Haskell
++{ Just : Int, Nothing : () } → Int
+```
 
 As a short-hand for nested/composed cases, we'll use Haskell-like
-syntax for cases as well, meaning the expanded, composed case. We'll
-also bind variables in left hand of `->` to avoid some more clutter.
+syntax for cases as well, meaning the expanded, composed case.
 
-```\case
-#Just x -> x+1
-#Nothing () -> 0
+```Haskell
+\case
+Just: x → x + 1
+Nothing: () → 0
 ```
 
 ### Example use-case: Composing interpreters
 
 We can define single-command interpreters:
 
-```
+```Haskell
 interpretAdd default =
   \case
-    #Add {x, y} -> x + y
-    _ -> default
+  Add: {x, y} → x + y
+  default
 ```
 
-```
+```Haskell
 interpretMul default =
   \case
-    #Mul {x, y} -> x * y
-    _ -> default
+  Mul {x, y} → x * y
+  default
 ```
 
 And then we can compose them:
 
-```
+```Haskell
 interpreterArithmetic = interpretAdd . interpretMul
 
 interpreter = (interpreterArithmetic . interpreterConditionals) absurd
