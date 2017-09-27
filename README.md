@@ -242,7 +242,30 @@ its composition.
 See the [Exception Monad](ExceptionMonad.md) use-case for a more
 compelling example use-case of extensible variants.
 
-# Nominal types
+## Nominal types
+
+### Purposes
+
+#### Recursive Types
+
+Infinite structural types are not allowed, so you can use a nominal type to “tie the knot”.
+For example:
+
+```Haskell
+Stream a = +{ Empty : (), NonEmpty : { head: a, tail: () -> Stream a } }
+```
+
+A `Stream a` may contain a `Stream a` within, therefore the type is recursive.
+
+#### Safety
+
+Often one wants to distinguish types whose representations/structure are the same, but their meanings are very different
+
+#### Rank-N types
+
+Nominal types may bind type variables (i.e: the structural type within a nominal type is wrapped in “forall”s)
+
+This is being used by the `Mut` type (equivalent to Haskell's `ST`)
 
 # Future plans
 
