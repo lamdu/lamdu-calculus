@@ -19,6 +19,7 @@ import           Data.Binary (Binary)
 import           Data.ByteString (ByteString)
 import qualified Data.ByteString.Base16 as Hex
 import qualified Data.ByteString.Char8 as BS
+import qualified Data.Char as Char
 import           Data.Hashable (Hashable)
 import           Data.String (IsString(..))
 import           GHC.Generics (Generic)
@@ -32,7 +33,10 @@ import           Prelude.Compat
 newtype Identifier = Identifier ByteString
     deriving (Eq, Ord, Generic, Show, Binary, Hashable)
 instance NFData Identifier
-instance Pretty Identifier    where pPrint (Identifier x) = PP.text $ BS.unpack x
+instance Pretty Identifier    where
+    pPrint (Identifier x)
+        | all Char.isPrint (BS.unpack x) = PP.text $ BS.unpack x
+        | otherwise = PP.text $ identHex $ Identifier x
 instance IsString Identifier  where fromString = Identifier . fromString
 -- ^ IsString uses the underlying `ByteString.Char8` instance, use
 -- only with Latin1 strings
