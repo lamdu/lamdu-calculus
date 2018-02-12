@@ -17,13 +17,14 @@ import           Data.Binary (Binary)
 import           Data.Map (Map)
 import qualified Data.Map as Map
 import           Data.Maybe (fromMaybe)
+import           Data.Semigroup ((<>))
 import           Data.Set (Set)
 import qualified Data.Set as Set
 import           GHC.Generics (Generic)
 import qualified Lamdu.Calc.Type as T
 import           Lamdu.Calc.Type.Vars (TypeVars)
 import qualified Lamdu.Calc.Type.Vars as TypeVars
-import           Text.PrettyPrint ((<+>), (<>))
+import           Text.PrettyPrint ((<+>))
 import qualified Text.PrettyPrint as PP
 import           Text.PrettyPrint.HughesPJClass (Pretty(..))
 
@@ -98,8 +99,8 @@ getTypeVarConstraints _ _ = ()
 
 pPrintConstraint :: T.Var t -> Set T.Tag -> PP.Doc
 pPrintConstraint tv forbiddenFields =
-    PP.text "{" <>
-    (PP.hsep . map pPrint . Set.toList) forbiddenFields <>
+    PP.text "{" PP.<>
+    (PP.hsep . map pPrint . Set.toList) forbiddenFields PP.<>
     PP.text "}" <+>
     PP.text "∉" <+> pPrint tv
 

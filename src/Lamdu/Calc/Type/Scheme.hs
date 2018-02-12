@@ -25,7 +25,7 @@ import qualified Lamdu.Calc.Type.Constraints as Constraints
 import qualified Lamdu.Calc.Type.Match as TypeMatch
 import           Lamdu.Calc.Type.Vars (TypeVars(..))
 import qualified Lamdu.Calc.Type.Vars as TV
-import           Text.PrettyPrint ((<+>), (<>))
+import           Text.PrettyPrint ((<+>))
 import qualified Text.PrettyPrint as PP
 import           Text.PrettyPrint.HughesPJClass (Pretty(..), maybeParens)
 
@@ -116,7 +116,7 @@ instance Pretty Scheme where
                 | mempty == vars = mempty
                 | otherwise =
                     PP.text "forall" <+>
-                    PP.hsep (map pPrint (Set.toList tv) ++ map pPrint (Set.toList rv) ++ map pPrint (Set.toList sv)) <>
+                    PP.hsep (map pPrint (Set.toList tv) ++ map pPrint (Set.toList rv) ++ map pPrint (Set.toList sv)) PP.<>
                     PP.text "."
             constraintsStr
                 | mempty == constraints = mempty

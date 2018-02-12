@@ -25,11 +25,12 @@ import           Data.Binary (Binary)
 import           Data.ByteString (ByteString)
 import qualified Data.ByteString.Char8 as BS8
 import           Data.Hashable (Hashable(..))
+import           Data.Semigroup ((<>))
 import           Data.String (IsString(..))
 import           GHC.Generics (Generic)
 import           Lamdu.Calc.Identifier (Identifier)
 import qualified Lamdu.Calc.Type as T
-import           Text.PrettyPrint ((<+>), (<>))
+import           Text.PrettyPrint ((<+>))
 import qualified Text.PrettyPrint as PP
 import           Text.PrettyPrint.HughesPJClass (Pretty(..), maybeParens)
 
@@ -188,7 +189,7 @@ instance Pretty a => Pretty (Body a) where
         BApp (Apply e1 e2)        -> maybeParens (10 < prec) $
                                      pPrintPrec lvl 10 e1 <+> pPrintPrec lvl 11 e2
         BLam (Lam n e)            -> maybeParens (0 < prec) $
-                                     PP.char '\\' <> pPrint n <+>
+                                     PP.char '\\' PP.<> pPrint n <+>
                                      PP.text "->" <+>
                                      pPrint e
         BGetField (GetField e n)  -> maybeParens (12 < prec) $
@@ -206,7 +207,7 @@ instance Pretty a => Pretty (Body a) where
         BLeaf LRecEmpty           -> PP.text "{}"
         BRecExtend (RecExtend tag val rest) ->
                                      PP.text "{" <+>
-                                     prField <>
+                                     prField PP.<>
                                      PP.comma <+>
                                      pPrint rest <+>
                                      PP.text "}"

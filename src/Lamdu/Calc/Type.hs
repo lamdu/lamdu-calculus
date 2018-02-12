@@ -37,10 +37,11 @@ import           Data.Hashable (Hashable)
 import qualified Data.List as List
 import           Data.Map (Map)
 import qualified Data.Map as Map
+import           Data.Semigroup ((<>))
 import           Data.String (IsString(..))
 import           GHC.Generics (Generic)
 import           Lamdu.Calc.Identifier (Identifier)
-import           Text.PrettyPrint ((<+>), (<>))
+import           Text.PrettyPrint ((<+>))
 import qualified Text.PrettyPrint as PP
 import           Text.PrettyPrint.HughesPJClass (Pretty(..), maybeParens)
 
@@ -159,4 +160,4 @@ instance Pretty (Composite p) where
         where
             go _   CEmpty          = PP.empty
             go sep (CVar tv)       = sep <> pPrint tv <> PP.text "..."
-            go sep (CExtend f t r) = sep <> pPrint f <+> PP.text ":" <+> pPrint t <> go (PP.text ", ") r
+            go sep (CExtend f t r) = sep PP.<> pPrint f <+> PP.text ":" <+> pPrint t PP.<> go (PP.text ", ") r
