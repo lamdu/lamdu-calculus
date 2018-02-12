@@ -16,7 +16,7 @@ import           Data.Binary (Binary)
 import           Data.Map (Map)
 import qualified Data.Map as Map
 import           Data.Maybe (fromMaybe)
-import           Data.Monoid ((<>))
+import           Data.Semigroup (Semigroup(..))
 import           Data.Set (Set)
 import qualified Data.Set as Set
 import           GHC.Generics (Generic)
@@ -31,10 +31,11 @@ data TypeVars = TypeVars
     , sumTypeVars :: !(Set T.SumVar)
     } deriving (Eq, Generic, Show)
 instance NFData TypeVars where
+instance Semigroup TypeVars where
+    TypeVars t0 r0 s0 <> TypeVars t1 r1 s1 = TypeVars (t0 <> t1) (r0 <> r1) (s0 <> s1)
 instance Monoid TypeVars where
     mempty = TypeVars mempty mempty mempty
-    mappend (TypeVars t0 r0 s0) (TypeVars t1 r1 s1) =
-        TypeVars (mappend t0 t1) (mappend r0 r1) (mappend s0 s1)
+    mappend = (<>)
 
 instance Pretty TypeVars where
     pPrint (TypeVars tvs rtvs stvs) =

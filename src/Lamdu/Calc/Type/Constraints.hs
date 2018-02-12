@@ -17,7 +17,7 @@ import           Data.Binary (Binary)
 import           Data.Map (Map)
 import qualified Data.Map as Map
 import           Data.Maybe (fromMaybe)
-import           Data.Semigroup ((<>))
+import           Data.Semigroup (Semigroup(..))
 import           Data.Set (Set)
 import qualified Data.Set as Set
 import           GHC.Generics (Generic)
@@ -39,10 +39,12 @@ newtype CompositeVarConstraints t = CompositeVarConstraints
 nullCompositeConstraints :: CompositeVarConstraints t -> Bool
 nullCompositeConstraints (CompositeVarConstraints m) = Map.null m
 
+instance Semigroup (CompositeVarConstraints t) where
+    CompositeVarConstraints x <> CompositeVarConstraints y =
+        CompositeVarConstraints (Map.unionWith (<>) x y)
 instance Monoid (CompositeVarConstraints t) where
     mempty = CompositeVarConstraints Map.empty
-    mappend (CompositeVarConstraints x) (CompositeVarConstraints y) =
-        CompositeVarConstraints $ Map.unionWith mappend x y
+    mappend = (<>)
 
 instance NFData (CompositeVarConstraints t) where
 
@@ -73,10 +75,11 @@ null (Constraints rtvs stvs) =
     nullCompositeConstraints rtvs
     && nullCompositeConstraints stvs
 
+instance Semigroup Constraints where
+    Constraints p0 s0 <> Constraints p1 s1 = Constraints (p0 <> p1) (s0 <> s1)
 instance Monoid Constraints where
     mempty = Constraints mempty mempty
-    mappend (Constraints p0 s0) (Constraints p1 s1) =
-        Constraints (mappend p0 p1) (mappend s0 s1)
+    mappend = (<>)
 
 instance Binary Constraints
 instance NFData Constraints where
