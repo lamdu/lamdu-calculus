@@ -5,7 +5,7 @@
 {-# LANGUAGE DeriveFoldable #-}
 {-# LANGUAGE DeriveTraversable #-}
 module Lamdu.Calc.Val.Annotated
-    ( Val(..), body, payload, alphaEq
+    ( Val(..), body, payload, alphaEq, couldEq
     , pPrintUnannotated
     ) where
 
@@ -54,14 +54,16 @@ instance Pretty EmptyDoc where
 pPrintUnannotated :: Val a -> PP.Doc
 pPrintUnannotated = pPrint . (EmptyDoc <$)
 
-alphaEq :: Val () -> Val () -> Bool
-alphaEq =
+eqCommon :: Bool -> Val () -> Val () -> Bool
+eqCommon holeIsJoker =
     go Map.empty
     where
         xToYConv xToY x =
             fromMaybe x $ Map.lookup x xToY
         go xToY (Val _ xBody) (Val _ yBody) =
             case (xBody, yBody) of
+            (BLeaf Val.LHole, _) | holeIsJoker -> True
+            (_, BLeaf Val.LHole) | holeIsJoker -> True
             (BLam (Val.Lam xvar xresult),
               BLam (Val.Lam yvar yresult)) ->
                 go (Map.insert xvar yvar xToY) xresult yresult
@@ -80,3 +82,10 @@ alphaEq =
             (_, _) -> False
             where
                 goRecurse x y = maybe False Foldable.and $ Val.match (go xToY) x y
+
+alphaEq :: Val () -> Val () -> Bool
+alphaEq = eqCommon False
+
+-- could be equal if holes will be filled the same
+couldEq :: Val () -> Val () -> Bool
+couldEq = eqCommon True
