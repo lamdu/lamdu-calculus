@@ -10,7 +10,7 @@
 --
 -- * The AST for types: Nominal types, structural composite types,
 --   function types.
-{-# LANGUAGE NoImplicitPrelude, DeriveGeneric, EmptyDataDecls, GeneralizedNewtypeDeriving, OverloadedStrings, TemplateHaskell #-}
+{-# LANGUAGE NoImplicitPrelude, DeriveGeneric, GeneralizedNewtypeDeriving, TemplateHaskell #-}
 module Lamdu.Calc.Type
     (
     -- * Type Variable kinds

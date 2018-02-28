@@ -1,4 +1,4 @@
-{-# LANGUAGE NoImplicitPrelude, DeriveGeneric, GeneralizedNewtypeDeriving #-}
+{-# LANGUAGE NoImplicitPrelude, DeriveGeneric #-}
 module Lamdu.Calc.Type.Constraints
     ( Constraints(..), null
     , ForbiddenFields

@@ -1,4 +1,4 @@
-{-# LANGUAGE NoImplicitPrelude, DeriveGeneric, OverloadedStrings, PatternGuards, RecordWildCards #-}
+{-# LANGUAGE NoImplicitPrelude, DeriveGeneric, OverloadedStrings, RecordWildCards #-}
 module Lamdu.Calc.Type.Scheme
     ( Scheme(..), schemeForAll, schemeConstraints, schemeType
     , make, mono, any

@@ -1,9 +1,5 @@
 -- | Annotated (cofree) Expr.Val ASTs
-{-# LANGUAGE NoImplicitPrelude #-}
-{-# LANGUAGE DeriveGeneric #-}
-{-# LANGUAGE DeriveFunctor #-}
-{-# LANGUAGE DeriveFoldable #-}
-{-# LANGUAGE DeriveTraversable #-}
+{-# LANGUAGE NoImplicitPrelude, DeriveGeneric, DeriveTraversable #-}
 module Lamdu.Calc.Val.Annotated
     ( Val(..), body, payload, alphaEq, couldEq
     , pPrintUnannotated

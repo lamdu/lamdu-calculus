@@ -1,5 +1,5 @@
 -- | Val AST
-{-# LANGUAGE NoImplicitPrelude, DeriveGeneric, DeriveFunctor, DeriveFoldable, DeriveTraversable, GeneralizedNewtypeDeriving, RecordWildCards, TemplateHaskell #-}
+{-# LANGUAGE NoImplicitPrelude, DeriveGeneric, DeriveTraversable, GeneralizedNewtypeDeriving, TemplateHaskell #-}
 module Lamdu.Calc.Val
     ( Leaf(..), _LVar, _LHole, _LLiteral, _LRecEmpty, _LAbsurd
     , PrimVal(..), primType, primData
@@ -17,7 +17,7 @@ module Lamdu.Calc.Val
     , Match(..)
     ) where
 
-import           Prelude.Compat hiding (any)
+import           Prelude.Compat
 
 import           Control.DeepSeq (NFData(..))
 import qualified Control.Lens as Lens
