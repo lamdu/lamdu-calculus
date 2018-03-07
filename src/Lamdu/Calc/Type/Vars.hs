@@ -27,7 +27,7 @@ import           Text.PrettyPrint.HughesPJClass (Pretty(..))
 
 data TypeVars = TypeVars
     { typeVars :: !(Set T.TypeVar)
-    , productTypeVars :: !(Set T.ProductVar)
+    , recordTypeVars :: !(Set T.RecordVar)
     , variantTypeVars :: !(Set T.VariantVar)
     } deriving (Eq, Generic, Show)
 instance NFData TypeVars where
@@ -95,9 +95,9 @@ class CompositeVarKind p where
     compositeMember :: T.Var (T.Composite p) -> TypeVars -> Bool
     compositeSingleton :: T.Var (T.Composite p) -> TypeVars
 
-instance CompositeVarKind T.ProductTag where
-    compositeMember v tvs = v `Set.member` productTypeVars tvs
-    compositeSingleton v = mempty { productTypeVars = Set.singleton v }
+instance CompositeVarKind T.RecordTag where
+    compositeMember v tvs = v `Set.member` recordTypeVars tvs
+    compositeSingleton v = mempty { recordTypeVars = Set.singleton v }
 
 instance CompositeVarKind T.VariantTag where
     compositeMember v tvs = v `Set.member` variantTypeVars tvs
@@ -116,7 +116,7 @@ instance CompositeVarKind p => VarKind (T.Composite p) where
 
 data Renames = Renames
     { renamesTv :: Map T.TypeVar T.TypeVar
-    , renamesProd :: Map T.ProductVar T.ProductVar
+    , renamesProd :: Map T.RecordVar T.RecordVar
     , renamesVariant :: Map T.VariantVar T.VariantVar
     } deriving (Eq, Ord, Show)
 

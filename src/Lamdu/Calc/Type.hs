@@ -14,9 +14,9 @@
 module Lamdu.Calc.Type
     (
     -- * Type Variable kinds
-      ProductTag, VariantTag
-    , ProductVar, VariantVar, TypeVar
-    , Product   , Variant
+      RecordTag, VariantTag
+    , RecordVar, VariantVar, TypeVar
+    , Record   , Variant
     -- * Typed identifiers of the Type AST
     , Var(..), NominalId(..), Tag(..), ParamId(..)
     -- * Composites
@@ -47,7 +47,7 @@ import           Text.PrettyPrint.HughesPJClass (Pretty(..), maybeParens)
 
 import           Prelude.Compat
 
--- | A type varible of some kind ('Var' 'Type', 'Var' 'Variant', or 'Var' 'Product')
+-- | A type varible of some kind ('Var' 'Type', 'Var' 'Variant', or 'Var' 'Record')
 newtype Var t = Var { tvName :: Identifier }
     deriving (Eq, Ord, Show, NFData, IsString, Pretty, Binary, Hashable)
 
@@ -56,7 +56,7 @@ newtype NominalId = NominalId { nomId :: Identifier }
     deriving (Eq, Ord, Show, NFData, IsString, Pretty, Binary, Hashable)
 
 -- | An identifier for a component in a variant type (aka data
--- constructor) or a component in a product type (aka record field)
+-- constructor) or a component(field) in a record
 newtype Tag = Tag { tagName :: Identifier }
     deriving (Eq, Ord, Show, NFData, IsString, Pretty, Binary, Hashable)
 
@@ -65,23 +65,23 @@ newtype Tag = Tag { tagName :: Identifier }
 newtype ParamId = ParamId { typeParamId :: Identifier }
     deriving (Eq, Ord, Show, NFData, IsString, Pretty, Binary, Hashable)
 
--- | This is a type-level tag used to tag composites as products
--- (records) in the type-level. It is not used as the type of values.
-data ProductTag
+-- | This is a type-level tag used to tag composites as records in the
+-- type-level. It is not used as the type of values.
+data RecordTag
 
 -- | This is a type-level tag used to tag composites as variants
 -- (variants) in the type-level. It is not used as the type of values.
 data VariantTag
 
--- | The AST type for product types (records)
-type Product = Composite ProductTag
+-- | The AST type for record types
+type Record = Composite RecordTag
 
--- | The AST type for variant types (variants)
+-- | The AST type for variant types
 type Variant = Composite VariantTag
 
--- | A row type variable (of kind 'Product') that represents a set of
+-- | A row type variable (of kind 'Record') that represents a set of
 -- typed fields in a record
-type ProductVar = Var Product
+type RecordVar = Var Record
 
 -- | A column type variable (of kind 'Variant') that represents a set of
 -- typed data constructors in a variant
@@ -95,7 +95,7 @@ type TypeVar = Var Type
 -- the composite type:
 -- > { a : int, b : bool | c }
 -- This composite type can be a record or variant, depending on the
--- phantom type tag ('ProductTag' or 'VariantTag')
+-- phantom type tag ('RecordTag' or 'VariantTag')
 data Composite p
     = CExtend Tag Type (Composite p)
       -- ^ Extend a composite type with an extra component (field /
@@ -118,7 +118,7 @@ data Type
     | TInst NominalId (Map ParamId Type)
       -- ^ An instantiation of a nominal type of the given id with the
       -- given keyword type arguments
-    | TRecord Product
+    | TRecord Record
       -- ^ Lifts a composite record type
     | TVariant Variant
       -- ^ Lifts a composite variant type

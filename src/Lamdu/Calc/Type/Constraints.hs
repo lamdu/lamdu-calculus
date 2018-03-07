@@ -5,7 +5,7 @@ module Lamdu.Calc.Type.Constraints
     , applyRenames
     , intersect, difference
     , CompositeVarConstraints(..), nullCompositeConstraints
-    , getProductVarConstraints
+    , getRecordVarConstraints
     , getVariantVarConstraints
     , TypeVarConstraints
     , getTypeVarConstraints
@@ -66,7 +66,7 @@ renameApply renames (CompositeVarConstraints m) =
         rename x = fromMaybe x $ Map.lookup x renames
 
 data Constraints = Constraints
-    { productVarConstraints :: CompositeVarConstraints T.ProductTag
+    { recordVarConstraints :: CompositeVarConstraints T.RecordTag
     , variantVarConstraints :: CompositeVarConstraints T.VariantTag
     } deriving (Generic, Eq, Show)
 
@@ -91,8 +91,8 @@ instance Pretty Constraints where
 getTVCompositeConstraints :: T.Var (T.Composite t) -> CompositeVarConstraints t -> Set T.Tag
 getTVCompositeConstraints tv = fromMaybe Set.empty . Map.lookup tv . compositeVarConstraints
 
-getProductVarConstraints :: T.ProductVar -> Constraints -> ForbiddenFields
-getProductVarConstraints tv c = getTVCompositeConstraints tv $ productVarConstraints c
+getRecordVarConstraints :: T.RecordVar -> Constraints -> ForbiddenFields
+getRecordVarConstraints tv c = getTVCompositeConstraints tv $ recordVarConstraints c
 
 getVariantVarConstraints :: T.VariantVar -> Constraints -> ForbiddenFields
 getVariantVarConstraints tv c = getTVCompositeConstraints tv $ variantVarConstraints c

@@ -12,7 +12,7 @@ import qualified Lamdu.Calc.Type.FlatComposite as Flat
 
 import           Prelude.Compat
 
-type VarMatches = ([(TypeVar, TypeVar)], [(ProductVar, ProductVar)], [(VariantVar, VariantVar)])
+type VarMatches = ([(TypeVar, TypeVar)], [(RecordVar, RecordVar)], [(VariantVar, VariantVar)])
 
 matchMap :: Ord k => (a -> b -> c) -> Map k a -> Map k b -> Maybe (Map k c)
 matchMap valMatch m0 m1
