@@ -28,7 +28,7 @@ import           Text.PrettyPrint.HughesPJClass (Pretty(..))
 data TypeVars = TypeVars
     { typeVars :: !(Set T.TypeVar)
     , productTypeVars :: !(Set T.ProductVar)
-    , sumTypeVars :: !(Set T.SumVar)
+    , variantTypeVars :: !(Set T.VariantVar)
     } deriving (Eq, Generic, Show)
 instance NFData TypeVars where
 instance Semigroup TypeVars where
@@ -69,7 +69,7 @@ instance Free Type where
     free (T.TInst _ p)   =  mconcat $ map free $ Map.elems p
     free (T.TFun t1 t2)  =  free t1 <> free t2
     free (T.TRecord r)   =  free r
-    free (T.TSum s)      =  free s
+    free (T.TVariant s)      =  free s
 
 instance CompositeVarKind p => Free (T.Composite p) where
     free T.CEmpty          = mempty
@@ -99,9 +99,9 @@ instance CompositeVarKind T.ProductTag where
     compositeMember v tvs = v `Set.member` productTypeVars tvs
     compositeSingleton v = mempty { productTypeVars = Set.singleton v }
 
-instance CompositeVarKind T.SumTag where
-    compositeMember v tvs = v `Set.member` sumTypeVars tvs
-    compositeSingleton v = mempty { sumTypeVars = Set.singleton v }
+instance CompositeVarKind T.VariantTag where
+    compositeMember v tvs = v `Set.member` variantTypeVars tvs
+    compositeSingleton v = mempty { variantTypeVars = Set.singleton v }
 
 instance CompositeVarKind p => VarKind (T.Composite p) where
     lift = T.CVar
@@ -117,26 +117,26 @@ instance CompositeVarKind p => VarKind (T.Composite p) where
 data Renames = Renames
     { renamesTv :: Map T.TypeVar T.TypeVar
     , renamesProd :: Map T.ProductVar T.ProductVar
-    , renamesSum :: Map T.SumVar T.SumVar
+    , renamesVariant :: Map T.VariantVar T.VariantVar
     } deriving (Eq, Ord, Show)
 
 nullRenames :: Renames -> Bool
 nullRenames (Renames tv rtv stv) = Map.null tv && Map.null rtv && Map.null stv
 
 renameDest :: Renames -> TypeVars
-renameDest (Renames tvRenames prodRenames sumRenames) =
+renameDest (Renames tvRenames prodRenames variantRenames) =
     TypeVars
     (Set.fromList (Map.elems tvRenames))
     (Set.fromList (Map.elems prodRenames))
-    (Set.fromList (Map.elems sumRenames))
+    (Set.fromList (Map.elems variantRenames))
 
 {-# INLINE applyRenames #-}
 applyRenames :: Renames -> TypeVars -> TypeVars
-applyRenames (Renames tvRenames prodRenames sumRenames) (TypeVars tvs rtvs stvs) =
+applyRenames (Renames tvRenames prodRenames variantRenames) (TypeVars tvs rtvs stvs) =
     TypeVars
     (apply tvRenames tvs)
     (apply prodRenames rtvs)
-    (apply sumRenames stvs)
+    (apply variantRenames stvs)
     where
         apply renames = Set.map (applyRename renames)
         applyRename m k = fromMaybe k (Map.lookup k m)

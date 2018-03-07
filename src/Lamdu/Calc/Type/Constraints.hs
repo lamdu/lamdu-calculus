@@ -6,7 +6,7 @@ module Lamdu.Calc.Type.Constraints
     , intersect, difference
     , CompositeVarConstraints(..), nullCompositeConstraints
     , getProductVarConstraints
-    , getSumVarConstraints
+    , getVariantVarConstraints
     , TypeVarConstraints
     , getTypeVarConstraints
     ) where
@@ -67,7 +67,7 @@ renameApply renames (CompositeVarConstraints m) =
 
 data Constraints = Constraints
     { productVarConstraints :: CompositeVarConstraints T.ProductTag
-    , sumVarConstraints :: CompositeVarConstraints T.SumTag
+    , variantVarConstraints :: CompositeVarConstraints T.VariantTag
     } deriving (Generic, Eq, Show)
 
 null :: Constraints -> Bool
@@ -94,8 +94,8 @@ getTVCompositeConstraints tv = fromMaybe Set.empty . Map.lookup tv . compositeVa
 getProductVarConstraints :: T.ProductVar -> Constraints -> ForbiddenFields
 getProductVarConstraints tv c = getTVCompositeConstraints tv $ productVarConstraints c
 
-getSumVarConstraints :: T.SumVar -> Constraints -> ForbiddenFields
-getSumVarConstraints tv c = getTVCompositeConstraints tv $ sumVarConstraints c
+getVariantVarConstraints :: T.VariantVar -> Constraints -> ForbiddenFields
+getVariantVarConstraints tv c = getTVCompositeConstraints tv $ variantVarConstraints c
 
 getTypeVarConstraints :: T.TypeVar -> Constraints -> TypeVarConstraints
 getTypeVarConstraints _ _ = ()
@@ -110,11 +110,11 @@ pPrintConstraint tv forbiddenFields =
 {-# INLINE applyRenames #-}
 applyRenames :: TypeVars.Renames -> Constraints -> Constraints
 applyRenames
-    (TypeVars.Renames _ prodRenames sumRenames)
-    (Constraints prodConstraints sumConstraints) =
+    (TypeVars.Renames _ prodRenames variantRenames)
+    (Constraints prodConstraints variantConstraints) =
         Constraints
         (renameApply prodRenames prodConstraints)
-        (renameApply sumRenames sumConstraints)
+        (renameApply variantRenames variantConstraints)
 
 compositeIntersect ::
     TypeVars.CompositeVarKind t =>

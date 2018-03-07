@@ -106,7 +106,7 @@ For example, let's look at the type:
 +{ Nothing : (), Just : Int }
 ```
 
-This pseudo syntax means the structural sum type isomorphic to
+This pseudo syntax means the structural variant type isomorphic to
 Haskell's `Maybe Int`.
 
 The value `5 : Int` is not of the type: `+{ Nothing : (), Just : Int }`.
@@ -116,7 +116,7 @@ Lamdu Calculus, we inject via `BInject (Inject "Just" 5)`, which we denote in
 pseudo-syntax as `Just: 5`.
 
 `BInject (Inject tag (value : T))` *injects* a given value into a
-sum type. Its type is `forall alts. tag ∉ alts => TSum (CExtend tag T alts)`.
+variant type. Its type is `forall alts. tag ∉ alts => TVariant (CExtend tag T alts)`.
 
 This type means that the injected value allows any set of typed
 alternatives to exist in the larger variant.
@@ -139,8 +139,8 @@ parameter. It analyzes its argument, and if it is a `tag`, the given
 `handler` is invoked with the typed content of the `tag`.
 
 If the argument is not a `tag`, then the `rest` handler is
-invoked. The `rest` handler is given a smaller sum type as an
-argument. A sum type which no longer has the `tag` case inside it, as
+invoked. The `rest` handler is given a smaller variant type as an
+argument. A variant type which no longer has the `tag` case inside it, as
 that was ruled out.
 
 ```Haskell
@@ -173,7 +173,7 @@ forall v1. (Just, Nothing) ∉ v1 =>
 Note that the case statement allows *any* structural variant type that
 has the proper `Nothing` and `Just` cases (and it would reach a hole if the
 value happens to be neither `Nothing` nor `Just`). This is not
-typically what we want. We'd like to *close* the sum type so it is *not* extensible.
+typically what we want. We'd like to *close* the variant type so it is *not* extensible.
 
 To do that, we must also support the empty case statement that matches
 no possible alternatives, allowing us to *close* the composition. The
@@ -181,7 +181,7 @@ empty case statement AST construction is:
 
 BLeaf LAbsurd, and is denoted as `absurd` (as it is the analogue of
 the `absurd` function in Haskell and Agda). The type of `absurd` is:
-`forall r. +{} → r` (`+{}` is the empty sum type, aka `Void`).
+`forall r. +{} → r` (`+{}` is the empty variant type, aka `Void`).
 
 We can now close the above case expression:
 

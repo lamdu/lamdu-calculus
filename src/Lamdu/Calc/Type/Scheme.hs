@@ -20,7 +20,7 @@ import qualified Data.Tuple as Tuple
 import           GHC.Generics (Generic)
 import           Lamdu.Calc.Type (Type)
 import qualified Lamdu.Calc.Type as T
-import           Lamdu.Calc.Type.Constraints (Constraints(..), getTypeVarConstraints, getSumVarConstraints, getProductVarConstraints)
+import           Lamdu.Calc.Type.Constraints (Constraints(..), getTypeVarConstraints, getVariantVarConstraints, getProductVarConstraints)
 import qualified Lamdu.Calc.Type.Constraints as Constraints
 import qualified Lamdu.Calc.Type.Match as TypeMatch
 import           Lamdu.Calc.Type.Vars (TypeVars(..))
@@ -71,7 +71,7 @@ alphaEq
             | Just tvMap <- fromDoublyConsistentList tvPairs
             , Just ctvMap <- fromDoublyConsistentList ctvPairs
             , Just stvMap <- fromDoublyConsistentList stvPairs
-            -> all (checkVarsMatch getSumVarConstraints) (Map.toList stvMap) &&
+            -> all (checkVarsMatch getVariantVarConstraints) (Map.toList stvMap) &&
                all (checkVarsMatch getProductVarConstraints) (Map.toList ctvMap) &&
                all (checkVarsMatch getTypeVarConstraints) (Map.toList tvMap)
         _ -> False

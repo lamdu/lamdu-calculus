@@ -14,9 +14,9 @@
 module Lamdu.Calc.Type
     (
     -- * Type Variable kinds
-      ProductTag, SumTag
-    , ProductVar, SumVar, TypeVar
-    , Product   , Sum
+      ProductTag, VariantTag
+    , ProductVar, VariantVar, TypeVar
+    , Product   , Variant
     -- * Typed identifiers of the Type AST
     , Var(..), NominalId(..), Tag(..), ParamId(..)
     -- * Composites
@@ -27,7 +27,7 @@ module Lamdu.Calc.Type
     , Type(..)
     , (~>)
     -- * Type Prisms
-    , _TVar, _TFun, _TInst, _TRecord, _TSum
+    , _TVar, _TFun, _TInst, _TRecord, _TVariant
     ) where
 
 import           Control.DeepSeq (NFData(..))
@@ -47,7 +47,7 @@ import           Text.PrettyPrint.HughesPJClass (Pretty(..), maybeParens)
 
 import           Prelude.Compat
 
--- | A type varible of some kind ('Var' 'Type', 'Var' 'Sum', or 'Var' 'Product')
+-- | A type varible of some kind ('Var' 'Type', 'Var' 'Variant', or 'Var' 'Product')
 newtype Var t = Var { tvName :: Identifier }
     deriving (Eq, Ord, Show, NFData, IsString, Pretty, Binary, Hashable)
 
@@ -55,7 +55,7 @@ newtype Var t = Var { tvName :: Identifier }
 newtype NominalId = NominalId { nomId :: Identifier }
     deriving (Eq, Ord, Show, NFData, IsString, Pretty, Binary, Hashable)
 
--- | An identifier for a component in a sum type (aka data
+-- | An identifier for a component in a variant type (aka data
 -- constructor) or a component in a product type (aka record field)
 newtype Tag = Tag { tagName :: Identifier }
     deriving (Eq, Ord, Show, NFData, IsString, Pretty, Binary, Hashable)
@@ -69,23 +69,23 @@ newtype ParamId = ParamId { typeParamId :: Identifier }
 -- (records) in the type-level. It is not used as the type of values.
 data ProductTag
 
--- | This is a type-level tag used to tag composites as sums
+-- | This is a type-level tag used to tag composites as variants
 -- (variants) in the type-level. It is not used as the type of values.
-data SumTag
+data VariantTag
 
 -- | The AST type for product types (records)
 type Product = Composite ProductTag
 
--- | The AST type for sum types (variants)
-type Sum = Composite SumTag
+-- | The AST type for variant types (variants)
+type Variant = Composite VariantTag
 
 -- | A row type variable (of kind 'Product') that represents a set of
 -- typed fields in a record
 type ProductVar = Var Product
 
--- | A column type variable (of kind 'Sum') that represents a set of
+-- | A column type variable (of kind 'Variant') that represents a set of
 -- typed data constructors in a variant
-type SumVar = Var Sum
+type VariantVar = Var Variant
 
 -- | A type variable that represents a type
 type TypeVar = Var Type
@@ -95,7 +95,7 @@ type TypeVar = Var Type
 -- the composite type:
 -- > { a : int, b : bool | c }
 -- This composite type can be a record or variant, depending on the
--- phantom type tag ('ProductTag' or 'SumTag')
+-- phantom type tag ('ProductTag' or 'VariantTag')
 data Composite p
     = CExtend Tag Type (Composite p)
       -- ^ Extend a composite type with an extra component (field /
@@ -120,7 +120,7 @@ data Type
       -- given keyword type arguments
     | TRecord Product
       -- ^ Lifts a composite record type
-    | TSum Sum
+    | TVariant Variant
       -- ^ Lifts a composite variant type
     deriving (Generic, Show, Eq, Ord)
 instance NFData Type
@@ -151,7 +151,7 @@ instance Pretty Type where
             where
                 showParam (p, v) = pPrint p <+> PP.text "=" <+> pPrint v
         TRecord r -> PP.text "*" <> pPrint r
-        TSum s -> PP.text "+" <> pPrint s
+        TVariant s -> PP.text "+" <> pPrint s
 
 instance Pretty (Composite p) where
     pPrint CEmpty = PP.text "{}"

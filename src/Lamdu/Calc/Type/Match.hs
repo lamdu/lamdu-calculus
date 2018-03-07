@@ -12,7 +12,7 @@ import qualified Lamdu.Calc.Type.FlatComposite as Flat
 
 import           Prelude.Compat
 
-type VarMatches = ([(TypeVar, TypeVar)], [(ProductVar, ProductVar)], [(SumVar, SumVar)])
+type VarMatches = ([(TypeVar, TypeVar)], [(ProductVar, ProductVar)], [(VariantVar, VariantVar)])
 
 matchMap :: Ord k => (a -> b -> c) -> Map k a -> Map k b -> Maybe (Map k c)
 matchMap valMatch m0 m1
@@ -29,7 +29,7 @@ matchVars (TInst i0 params0) (TInst i1 params1)
         <&> Map.elems >>= sequence <&> mconcat
 matchVars (TRecord c0) (TRecord c1) =
     matchCompositeVars (\x -> ([], x, [])) c0 c1
-matchVars (TSum c0) (TSum c1) =
+matchVars (TVariant c0) (TVariant c1) =
     matchCompositeVars (\x -> ([], [], x)) c0 c1
 matchVars _ _ = Nothing
 

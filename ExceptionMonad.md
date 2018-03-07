@@ -13,16 +13,16 @@ Note that `err` must be the same type in both sides of the bind - even
 if the kinds of errors thrown by the two bound actions are vastly
 different.
 
-Haskell's sum types are also fully nominal, meaning that one must
-manually declare all possible errors in all bound actions in a single
-sum type, to use that as the error type.
+Haskell's sum (variant) types are also fully nominal, meaning that one
+must manually declare all possible errors in all bound actions in a
+single sum type, to use that as the error type.
 
 This inhibits use of Haskell exception monads, and instead, much more
 code uses dynamically typed exceptions (`SomeException` and the
 `Exception` class).
 
-However, with extensible sum types and Lamdu Calculus's powerful case
-expressions, we can do better.
+However, with extensible variant types and Lamdu Calculus's powerful
+case expressions, we can do better.
 
 ## Throwing errors
 
@@ -113,5 +113,5 @@ successful = \case
   #Success -> id
 ```
 
-This instantiates `err` to be the empty sum type (void), and is thus
+This instantiates `err` to be the empty variant type (Void), and is thus
 allowed to eliminate the #Error/#Success wrapper to yield an `a`.
