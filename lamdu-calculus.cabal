@@ -19,6 +19,7 @@ library
   exposed-modules:     Lamdu.Calc.Identifier
                      , Lamdu.Calc.Val
                      , Lamdu.Calc.Val.Annotated
+                     , Lamdu.Calc.Val.Annotated.Arbitrary
                      , Lamdu.Calc.Type
                      , Lamdu.Calc.Type.Constraints
                      , Lamdu.Calc.Type.FlatComposite
@@ -29,6 +30,8 @@ library
   build-depends:       base >= 4.7
                      , base-compat >= 0.8.2
                      , base16-bytestring
+                     , transformers
+                     , QuickCheck
                      , binary
                      , bytestring
                      , containers
