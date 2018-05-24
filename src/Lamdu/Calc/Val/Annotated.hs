@@ -23,7 +23,7 @@ import           Prelude.Compat
 data Val a = Val
     { _valPayload :: a
     , _valBody :: !(Body (Val a))
-    } deriving (Functor, Foldable, Traversable, Generic, Show, Eq)
+    } deriving (Functor, Foldable, Traversable, Generic, Show, Eq, Ord)
 instance NFData a => NFData (Val a)
 instance Hashable a => Hashable (Val a)
 instance Binary a => Binary (Val a)

@@ -29,7 +29,7 @@ data TypeVars = TypeVars
     { typeVars :: !(Set T.TypeVar)
     , recordTypeVars :: !(Set T.RecordVar)
     , variantTypeVars :: !(Set T.VariantVar)
-    } deriving (Eq, Generic, Show)
+    } deriving (Eq, Ord, Generic, Show)
 instance NFData TypeVars where
 instance Semigroup TypeVars where
     TypeVars t0 r0 s0 <> TypeVars t1 r1 s1 = TypeVars (t0 <> t1) (r0 <> r1) (s0 <> s1)

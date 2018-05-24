@@ -33,7 +33,7 @@ data Scheme = Scheme
     { _schemeForAll :: TypeVars
     , _schemeConstraints :: Constraints
     , _schemeType :: Type
-    } deriving (Generic, Show)
+    } deriving (Generic, Show, Eq, Ord)
 
 schemeForAll :: Lens' Scheme TypeVars
 schemeForAll f Scheme{..} = f _schemeForAll <&> \_schemeForAll -> Scheme{..}

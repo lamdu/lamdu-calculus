@@ -55,7 +55,7 @@ data Leaf
     |  LLiteral {-# UNPACK #-} !PrimVal
     |  LRecEmpty
     |  LAbsurd
-    deriving (Generic, Show, Eq)
+    deriving (Generic, Show, Eq, Ord)
 instance NFData Leaf
 instance Binary Leaf
 instance Hashable Leaf
@@ -68,7 +68,7 @@ class Match f where
 data Apply exp = Apply
     { _applyFunc :: exp
     , _applyArg :: exp
-    } deriving (Functor, Foldable, Traversable, Generic, Show, Eq)
+    } deriving (Functor, Foldable, Traversable, Generic, Show, Eq, Ord)
 instance NFData exp => NFData (Apply exp)
 instance Binary exp => Binary (Apply exp)
 instance Hashable exp => Hashable (Apply exp)
@@ -80,7 +80,7 @@ Lens.makeLenses ''Apply
 data GetField exp = GetField
     { _getFieldRecord :: exp
     , _getFieldTag :: T.Tag
-    } deriving (Functor, Foldable, Traversable, Generic, Show, Eq)
+    } deriving (Functor, Foldable, Traversable, Generic, Show, Eq, Ord)
 instance NFData exp => NFData (GetField exp)
 instance Binary exp => Binary (GetField exp)
 instance Hashable exp => Hashable (GetField exp)
@@ -94,7 +94,7 @@ Lens.makeLenses ''GetField
 data Inject exp = Inject
     { _injectTag :: T.Tag
     , _injectVal :: exp
-    } deriving (Functor, Foldable, Traversable, Generic, Show, Eq)
+    } deriving (Functor, Foldable, Traversable, Generic, Show, Eq, Ord)
 instance NFData exp => NFData (Inject exp)
 instance Binary exp => Binary (Inject exp)
 instance Hashable exp => Hashable (Inject exp)
@@ -109,7 +109,7 @@ data Case exp = Case
     { _caseTag :: T.Tag
     , _caseMatch :: exp
     , _caseMismatch :: exp
-    } deriving (Functor, Foldable, Traversable, Generic, Show, Eq)
+    } deriving (Functor, Foldable, Traversable, Generic, Show, Eq, Ord)
 instance NFData exp => NFData (Case exp)
 instance Binary exp => Binary (Case exp)
 instance Hashable exp => Hashable (Case exp)
@@ -123,7 +123,7 @@ Lens.makeLenses ''Case
 data Lam exp = Lam
     { _lamParamId :: Var
     , _lamResult :: exp
-    } deriving (Functor, Foldable, Traversable, Generic, Show, Eq)
+    } deriving (Functor, Foldable, Traversable, Generic, Show, Eq, Ord)
 instance NFData exp => NFData (Lam exp)
 instance Hashable exp => Hashable (Lam exp)
 instance Binary exp => Binary (Lam exp)
@@ -134,7 +134,7 @@ data RecExtend exp = RecExtend
     { _recTag :: T.Tag
     , _recFieldVal :: exp
     , _recRest :: exp
-    } deriving (Functor, Foldable, Traversable, Generic, Show, Eq)
+    } deriving (Functor, Foldable, Traversable, Generic, Show, Eq, Ord)
 instance NFData exp => NFData (RecExtend exp)
 instance Binary exp => Binary (RecExtend exp)
 instance Hashable exp => Hashable (RecExtend exp)
@@ -148,7 +148,7 @@ Lens.makeLenses ''RecExtend
 data Nom exp = Nom
     { _nomId :: T.NominalId
     , _nomVal :: exp
-    } deriving (Functor, Foldable, Traversable, Generic, Show, Eq)
+    } deriving (Functor, Foldable, Traversable, Generic, Show, Eq, Ord)
 instance NFData exp => NFData (Nom exp)
 instance Hashable exp => Hashable (Nom exp)
 instance Binary exp => Binary (Nom exp)
@@ -171,7 +171,7 @@ data Body exp
     |  -- Convert from Nominal type
        BFromNom {-# UNPACK #-}!(Nom exp)
     |  BLeaf Leaf
-    deriving (Functor, Foldable, Traversable, Generic, Show, Eq)
+    deriving (Functor, Foldable, Traversable, Generic, Show, Eq, Ord)
 -- NOTE: Careful of Eq, it's not alpha-eq!
 instance NFData exp => NFData (Body exp)
 instance Hashable exp => Hashable (Body exp)

@@ -34,7 +34,7 @@ type TypeVarConstraints = ()
 
 newtype CompositeVarConstraints t = CompositeVarConstraints
     { compositeVarConstraints :: Map (T.Var (T.Composite t)) ForbiddenFields
-    } deriving (Generic, Eq, Show)
+    } deriving (Generic, Eq, Ord, Show)
 
 nullCompositeConstraints :: CompositeVarConstraints t -> Bool
 nullCompositeConstraints (CompositeVarConstraints m) = Map.null m
@@ -68,7 +68,7 @@ renameApply renames (CompositeVarConstraints m) =
 data Constraints = Constraints
     { recordVarConstraints :: CompositeVarConstraints T.RecordTag
     , variantVarConstraints :: CompositeVarConstraints T.VariantTag
-    } deriving (Generic, Eq, Show)
+    } deriving (Generic, Eq, Ord, Show)
 
 null :: Constraints -> Bool
 null (Constraints rtvs stvs) =
