@@ -39,7 +39,7 @@ matchCompositeVars ::
 matchCompositeVars f c0 c1 =
     case (v0, v1) of
     (Nothing, Nothing) -> fMatch
-    (Just r0, Just r1) -> fMatch `mappend` Just (f [(r0, r1)])
+    (Just r0, Just r1) -> fMatch <> Just (f [(r0, r1)])
     _ -> Nothing
     where
         FlatComposite f0 v0 = Flat.fromComposite c0

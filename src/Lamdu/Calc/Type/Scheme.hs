@@ -60,7 +60,7 @@ fromDoublyConsistentList pairs =
     do
         m <- fromConsistentList pairs
         _ <- fromConsistentList $ map Tuple.swap $ Map.toList m
-        return m
+        pure m
 
 alphaEq :: Scheme -> Scheme -> Bool
 alphaEq
