@@ -17,10 +17,11 @@ library
   ghc-options:         -Wall -O2 -Wnoncanonical-monad-instances -Wcompat -Wincomplete-record-updates -Wincomplete-uni-patterns -Wredundant-constraints
   hs-source-dirs:      src
   exposed-modules:     Data.Tree.Diverse
+                     , Data.Tree.Diverse.Arbitrary
                      , Lamdu.Calc.Identifier
-                     , Lamdu.Calc.Val
-                     , Lamdu.Calc.Val.Annotated
-                     , Lamdu.Calc.Val.Annotated.Arbitrary
+                     , Lamdu.Calc.Term
+                     , Lamdu.Calc.Term.Arbitrary
+                     , Lamdu.Calc.Term.Eq
                      , Lamdu.Calc.Type
                      , Lamdu.Calc.Type.Constraints
                      , Lamdu.Calc.Type.FlatComposite

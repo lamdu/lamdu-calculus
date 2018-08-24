@@ -1,4 +1,4 @@
-{-# LANGUAGE DeriveGeneric, DeriveTraversable, FlexibleContexts, RankNTypes, StandaloneDeriving, TemplateHaskell, UndecidableInstances #-}
+{-# LANGUAGE NoImplicitPrelude, DeriveGeneric, DeriveTraversable, FlexibleContexts, RankNTypes, StandaloneDeriving, TemplateHaskell, UndecidableInstances, GeneralizedNewtypeDeriving #-}
 
 module Data.Tree.Diverse
     ( Node(..), _Node
@@ -8,20 +8,25 @@ module Data.Tree.Diverse
     , annotations
     ) where
 
-import Control.Lens (Lens)
+import           Control.Lens (Lens)
 import qualified Control.Lens as Lens
-import Control.Lens.Operators
-import Data.Functor.Const (Const(..))
-import Data.Functor.Identity (Identity(..))
-import GHC.Generics (Generic)
+import           Control.Lens.Operators
+import           Data.Binary (Binary)
+import           Data.Functor.Const (Const(..))
+import           Data.Functor.Identity (Identity(..))
+import           GHC.Generics (Generic)
+import qualified Text.PrettyPrint as PP
+import           Text.PrettyPrint.HughesPJClass (Pretty(..), maybeParens)
 
-import Prelude
+import           Prelude.Compat
 
 newtype Node f expr = Node (f (expr f))
     deriving Generic
 deriving instance Eq (f (expr f)) => Eq (Node f expr)
 deriving instance Ord (f (expr f)) => Ord (Node f expr)
 deriving instance Show (f (expr f)) => Show (Node f expr)
+deriving instance Pretty (f (expr f)) => Pretty (Node f expr)
+deriving instance Binary (f (expr f)) => Binary (Node f expr)
 
 Lens.makePrisms ''Node
 
@@ -60,8 +65,17 @@ data Ann a v = Ann
     { _ann :: a
     , _val :: v
     } deriving (Eq, Ord, Show, Functor, Foldable, Traversable, Generic)
-
+instance (Binary a, Binary v) => Binary (Ann a v)
 Lens.makeLenses ''Ann
+
+instance (Pretty a, Pretty v) => Pretty (Ann a v) where
+    pPrintPrec lvl prec (Ann pl b)
+        | PP.isEmpty plDoc || plDoc == PP.text "()" = pPrintPrec lvl prec b
+        | otherwise =
+            maybeParens (13 < prec) $ mconcat
+            [ pPrintPrec lvl 14 b, PP.text "{", plDoc, PP.text "}" ]
+        where
+            plDoc = pPrintPrec lvl 0 pl
 
 annotations ::
     Children e =>

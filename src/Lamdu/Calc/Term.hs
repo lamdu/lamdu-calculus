@@ -1,11 +1,13 @@
 -- | Val AST
-{-# LANGUAGE NoImplicitPrelude, DeriveGeneric, DeriveTraversable, GeneralizedNewtypeDeriving, TemplateHaskell #-}
-module Lamdu.Calc.Val
-    ( Leaf(..), _LVar, _LHole, _LLiteral, _LRecEmpty, _LAbsurd
+{-# LANGUAGE NoImplicitPrelude, DeriveGeneric, DeriveTraversable, GeneralizedNewtypeDeriving, TemplateHaskell, FlexibleContexts, UndecidableInstances, StandaloneDeriving #-}
+module Lamdu.Calc.Term
+    ( Val
+    , Leaf(..), _LVar, _LHole, _LLiteral, _LRecEmpty, _LAbsurd
     , PrimVal(..), primType, primData
-    , Body(..)
+    , Term(..)
         , _BApp, _BLam, _BGetField, _BRecExtend
         , _BInject, _BCase, _BToNom, _BFromNom, _BLeaf
+        , termChildren
     , Apply(..), applyFunc, applyArg
     , GetField(..), getFieldRecord, getFieldTag
     , Inject(..), injectVal, injectTag
@@ -20,13 +22,16 @@ module Lamdu.Calc.Val
 import           Prelude.Compat
 
 import           Control.DeepSeq (NFData(..))
+import           Control.Lens (Traversal)
 import qualified Control.Lens as Lens
+import           Control.Lens.Operators
 import           Data.Binary (Binary)
 import           Data.ByteString (ByteString)
 import qualified Data.ByteString.Char8 as BS8
 import           Data.Hashable (Hashable(..))
 import           Data.Semigroup ((<>))
 import           Data.String (IsString(..))
+import           Data.Tree.Diverse (Node, Ann, Children(..))
 import           GHC.Generics (Generic)
 import           Lamdu.Calc.Identifier (Identifier)
 import qualified Lamdu.Calc.Type as T
@@ -159,27 +164,43 @@ instance Match Nom where
 
 Lens.makeLenses ''Nom
 
-data Body exp
-    =  BApp {-# UNPACK #-}!(Apply exp)
-    |  BLam {-# UNPACK #-}!(Lam exp)
-    |  BGetField {-# UNPACK #-}!(GetField exp)
-    |  BRecExtend {-# UNPACK #-}!(RecExtend exp)
-    |  BInject {-# UNPACK #-}!(Inject exp)
-    |  BCase {-# UNPACK #-}!(Case exp)
-    |  -- Convert to Nominal type
-       BToNom {-# UNPACK #-}!(Nom exp)
-    |  -- Convert from Nominal type
-       BFromNom {-# UNPACK #-}!(Nom exp)
-    |  BLeaf Leaf
-    deriving (Functor, Foldable, Traversable, Generic, Show, Eq, Ord)
+data Term f
+    = BApp {-# UNPACK #-}!(Apply (Node f Term))
+    | BLam {-# UNPACK #-}!(Lam (Node f Term))
+    | BGetField {-# UNPACK #-}!(GetField (Node f Term))
+    | BRecExtend {-# UNPACK #-}!(RecExtend (Node f Term))
+    | BInject {-# UNPACK #-}!(Inject (Node f Term))
+    | BCase {-# UNPACK #-}!(Case (Node f Term))
+    | -- Convert to Nominal type
+      BToNom {-# UNPACK #-}!(Nom (Node f Term))
+    | -- Convert from Nominal type
+      BFromNom {-# UNPACK #-}!(Nom (Node f Term))
+    | BLeaf Leaf
+    deriving Generic
+
 -- NOTE: Careful of Eq, it's not alpha-eq!
-instance NFData exp => NFData (Body exp)
-instance Hashable exp => Hashable (Body exp)
-instance Binary exp => Binary (Body exp)
+deriving instance Eq (f (Term f)) => Eq (Term f)
+deriving instance Ord (f (Term f)) => Ord (Term f)
+deriving instance Show (f (Term f)) => Show (Term f)
+instance Binary (f (Term f)) => Binary (Term f)
 
-Lens.makePrisms ''Body
+Lens.makePrisms ''Term
 
-instance Pretty a => Pretty (Body a) where
+termChildren :: Traversal (Term f) (Term g) (Node f Term) (Node g Term)
+termChildren f (BApp (Apply x y)) = Apply <$> f x <*> f y <&> BApp
+termChildren f (BLam x) = lamResult f x <&> BLam
+termChildren f (BGetField x) = getFieldRecord f x <&> BGetField
+termChildren f (BRecExtend (RecExtend t x y)) = RecExtend t <$> f x <*> f y <&> BRecExtend
+termChildren f (BInject x) = injectVal f x <&> BInject
+termChildren f (BCase (Case t x y)) = Case t <$> f x <*> f y <&> BCase
+termChildren f (BToNom x) = nomVal f x <&> BToNom
+termChildren f (BFromNom x) = nomVal f x <&> BFromNom
+termChildren _ (BLeaf x) = BLeaf x & pure
+
+instance Children Term where
+    children = termChildren
+
+instance Pretty (f (Term f)) => Pretty (Term f) where
     pPrintPrec lvl prec b =
         case b of
         BLeaf (LVar var)          -> pPrint var
@@ -213,3 +234,6 @@ instance Pretty a => Pretty (Body a) where
                                      PP.text "}"
             where
                 prField = pPrint tag <+> PP.text "=" <+> pPrint val
+
+-- Type synonym to ease the transition
+type Val a = Node (Ann a) Term
