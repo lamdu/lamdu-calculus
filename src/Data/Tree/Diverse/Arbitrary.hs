@@ -17,9 +17,6 @@ class Arbitrary a => ArbitraryWithContext a where
 
 type ArbitraryWithContextOf c a = (ArbitraryWithContext a, Context a ~ c)
 
-deriving instance Arbitrary (f (expr f)) => Arbitrary (Node f expr)
-deriving instance ArbitraryWithContext (f (expr f)) => ArbitraryWithContext (Node f expr)
-
 instance (Arbitrary a, Arbitrary v) => Arbitrary (Ann a v) where
     arbitrary = Ann <$> arbitrary <*> arbitrary
 

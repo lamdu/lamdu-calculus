@@ -1,8 +1,7 @@
 {-# LANGUAGE NoImplicitPrelude, DeriveGeneric, DeriveTraversable, FlexibleContexts, RankNTypes, StandaloneDeriving, TemplateHaskell, UndecidableInstances, GeneralizedNewtypeDeriving #-}
 
 module Data.Tree.Diverse
-    ( Node(..), _Node
-    , Children(..), overChildren
+    ( Node, Children(..), overChildren
     , leaf, hoist
     , Ann(..), ann, val
     , annotations
@@ -20,15 +19,7 @@ import           Text.PrettyPrint.HughesPJClass (Pretty(..), maybeParens)
 
 import           Prelude.Compat
 
-newtype Node f expr = Node (f (expr f))
-    deriving Generic
-deriving instance Eq (f (expr f)) => Eq (Node f expr)
-deriving instance Ord (f (expr f)) => Ord (Node f expr)
-deriving instance Show (f (expr f)) => Show (Node f expr)
-deriving instance Pretty (f (expr f)) => Pretty (Node f expr)
-deriving instance Binary (f (expr f)) => Binary (Node f expr)
-
-Lens.makePrisms ''Node
+type Node f expr = f (expr f)
 
 class Children expr where
     children ::
@@ -51,14 +42,14 @@ leaf ::
 leaf f x =
     x
     <&> Lens.Const
-    & Lens.from _Node f
+    & f
     <&> fmap Lens.getConst
 
 hoist ::
     (Children expr, Functor f, Functor g) =>
     (forall a. f a -> g a) ->
     expr f -> expr g
-hoist f = overChildren (_Node %~ f . fmap (hoist f))
+hoist f = overChildren (f . fmap (hoist f))
 
 -- Annotate tree nodes
 data Ann a v = Ann
@@ -83,5 +74,4 @@ annotations ::
     (Node (Ann a) e)
     (Node (Ann b) e)
     a b
-annotations f (Node (Ann pl x)) =
-    Ann <$> f pl <*> children (annotations f) x <&> Node
+annotations f (Ann pl x) = Ann <$> f pl <*> children (annotations f) x

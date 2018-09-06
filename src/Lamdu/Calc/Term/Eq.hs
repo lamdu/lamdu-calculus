@@ -7,7 +7,7 @@ module Lamdu.Calc.Term.Eq
 import qualified Data.Foldable as Foldable
 import qualified Data.Map as Map
 import           Data.Maybe (fromMaybe)
-import           Data.Tree.Diverse (Node(..), Ann(..))
+import           Data.Tree.Diverse (Ann(..))
 import           Lamdu.Calc.Term
 
 import           Prelude.Compat
@@ -18,7 +18,7 @@ eqCommon holeIsJoker =
     where
         xToYConv xToY x =
             fromMaybe x $ Map.lookup x xToY
-        go xToY (Node (Ann _ xBody)) (Node (Ann _ yBody)) =
+        go xToY (Ann _ xBody) (Ann _ yBody) =
             case (xBody, yBody) of
             (BLeaf LHole, _) | holeIsJoker -> True
             (_, BLeaf LHole) | holeIsJoker -> True
