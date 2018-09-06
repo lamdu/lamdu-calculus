@@ -1,4 +1,4 @@
-{-# LANGUAGE NoImplicitPrelude, DeriveGeneric, DeriveTraversable, FlexibleContexts, RankNTypes, StandaloneDeriving, TemplateHaskell, UndecidableInstances, GeneralizedNewtypeDeriving #-}
+{-# LANGUAGE NoImplicitPrelude, DeriveGeneric, DeriveTraversable, RankNTypes, TemplateHaskell #-}
 
 module Data.Tree.Diverse
     ( Node, Children(..), overChildren

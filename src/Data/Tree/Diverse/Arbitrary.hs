@@ -1,4 +1,4 @@
-{-# LANGUAGE NoImplicitPrelude, StandaloneDeriving, GeneralizedNewtypeDeriving, UndecidableInstances, TypeFamilies, FlexibleContexts, ConstraintKinds #-}
+{-# LANGUAGE NoImplicitPrelude, TypeFamilies, ConstraintKinds #-}
 {-# OPTIONS -fno-warn-orphans #-} -- Arbitrary instances
 module Data.Tree.Diverse.Arbitrary
     ( ArbitraryWithContext(..)
