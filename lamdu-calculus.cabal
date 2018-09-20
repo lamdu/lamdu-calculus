@@ -19,6 +19,8 @@ library
   exposed-modules:     Data.Tree.Diverse
                      , Data.Tree.Diverse.Arbitrary
                      , Lamdu.Calc.Identifier
+                     , Lamdu.Calc.Lens
+                     , Lamdu.Calc.Pure
                      , Lamdu.Calc.Term
                      , Lamdu.Calc.Term.Arbitrary
                      , Lamdu.Calc.Term.Eq
