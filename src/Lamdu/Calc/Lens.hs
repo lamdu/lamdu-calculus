@@ -108,7 +108,7 @@ valApply :: Traversal' (Val a) (V.Apply (Val a))
 valApply = val . V._BApp
 
 {-# INLINE valAbs #-}
-valAbs :: Traversal' (Val a) (V.Lam (Val a))
+valAbs :: Traversal' (Val a) (V.Lam (Ann a))
 valAbs = val . V._BLam
 
 {-# INLINE pureValBody #-}

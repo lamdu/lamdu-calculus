@@ -125,16 +125,6 @@ instance Match Case where
 
 Lens.makeLenses ''Case
 
-data Lam exp = Lam
-    { _lamParamId :: Var
-    , _lamResult :: exp
-    } deriving (Functor, Foldable, Traversable, Generic, Show, Eq, Ord)
-instance NFData exp => NFData (Lam exp)
-instance Hashable exp => Hashable (Lam exp)
-instance Binary exp => Binary (Lam exp)
-
-Lens.makeLenses ''Lam
-
 data RecExtend exp = RecExtend
     { _recTag :: T.Tag
     , _recFieldVal :: exp
@@ -164,9 +154,20 @@ instance Match Nom where
 
 Lens.makeLenses ''Nom
 
+data Lam f = Lam
+    { _lamParamId :: Var
+    , _lamResult :: Node f Term
+    } deriving Generic
+deriving instance Eq   (Node f Term) => Eq   (Lam f)
+deriving instance Ord  (Node f Term) => Ord  (Lam f)
+deriving instance Show (Node f Term) => Show (Lam f)
+instance NFData   (f (Term f)) => NFData   (Lam f)
+instance Hashable (f (Term f)) => Hashable (Lam f)
+instance Binary   (f (Term f)) => Binary   (Lam f)
+
 data Term f
     = BApp {-# UNPACK #-}!(Apply (Node f Term))
-    | BLam {-# UNPACK #-}!(Lam (Node f Term))
+    | BLam {-# UNPACK #-}!(Lam f)
     | BGetField {-# UNPACK #-}!(GetField (Node f Term))
     | BRecExtend {-# UNPACK #-}!(RecExtend (Node f Term))
     | BInject {-# UNPACK #-}!(Inject (Node f Term))
@@ -184,6 +185,7 @@ deriving instance Ord (f (Term f)) => Ord (Term f)
 deriving instance Show (f (Term f)) => Show (Term f)
 instance Binary (f (Term f)) => Binary (Term f)
 
+Lens.makeLenses ''Lam
 Lens.makePrisms ''Term
 
 termChildren :: Traversal (Term f) (Term g) (Node f Term) (Node g Term)
