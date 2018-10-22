@@ -246,7 +246,7 @@ valGlobals :: Set V.Var -> Lens.IndexedFold a (Val a) V.Var
 valGlobals scope f (Ann pl body) =
     case body of
     V.BLeaf (V.LVar v)
-        | Set.member v scope -> V.LVar v & V.BLeaf & pure
+        | scope ^. Lens.contains v -> V.LVar v & V.BLeaf & pure
         | otherwise -> Lens.indexed f pl v <&> V.LVar <&> V.BLeaf
     V.BLam (V.Lam var lamBody) ->
         valGlobals (Set.insert var scope) f lamBody
