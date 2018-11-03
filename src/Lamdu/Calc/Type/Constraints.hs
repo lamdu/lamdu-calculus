@@ -1,10 +1,11 @@
-{-# LANGUAGE NoImplicitPrelude, DeriveGeneric #-}
+{-# LANGUAGE NoImplicitPrelude, DeriveGeneric, TemplateHaskell #-}
 module Lamdu.Calc.Type.Constraints
     ( Constraints(..), null
     , ForbiddenFields
     , applyRenames
     , intersect, difference
-    , CompositeVarsConstraints(..), nullCompositeConstraints
+    , CompositeVarsConstraints(..), compositeVarsConstraints
+    , nullCompositeConstraints
     , getRecordVarConstraints
     , getVariantVarConstraints
     , TypeVarConstraints
@@ -35,8 +36,10 @@ type ForbiddenFields = Set T.Tag
 type TypeVarConstraints = ()
 
 newtype CompositeVarsConstraints t = CompositeVarsConstraints
-    { compositeVarsConstraints :: Map (T.Var (T.Composite t)) ForbiddenFields
+    { _compositeVarsConstraints :: Map (T.Var (T.Composite t)) ForbiddenFields
     } deriving (Generic, Eq, Ord, Show)
+
+Lens.makeLenses ''CompositeVarsConstraints
 
 nullCompositeConstraints :: CompositeVarsConstraints t -> Bool
 nullCompositeConstraints (CompositeVarsConstraints m) = Map.null m
@@ -90,7 +93,7 @@ instance Pretty Constraints where
         PP.text "[" <> pPrint s <> PP.text "]"
 
 getTVCompositeConstraints :: T.Var (T.Composite t) -> CompositeVarsConstraints t -> Set T.Tag
-getTVCompositeConstraints tv = fromMaybe Set.empty . Map.lookup tv . compositeVarsConstraints
+getTVCompositeConstraints tv cs = cs ^. compositeVarsConstraints . Lens.at tv & fromMaybe Set.empty
 
 getRecordVarConstraints :: T.RecordVar -> Constraints -> ForbiddenFields
 getRecordVarConstraints tv c = getTVCompositeConstraints tv $ recordVarConstraints c
