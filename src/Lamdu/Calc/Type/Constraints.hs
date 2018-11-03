@@ -13,6 +13,8 @@ module Lamdu.Calc.Type.Constraints
 
 import           Prelude.Compat hiding (null)
 import           Control.DeepSeq (NFData(..))
+import qualified Control.Lens as Lens
+import           Control.Lens.Operators
 import           Data.Binary (Binary)
 import           Data.Map (Map)
 import qualified Data.Map as Map
@@ -52,8 +54,7 @@ instance Pretty (CompositeVarsConstraints t) where
     pPrint (CompositeVarsConstraints m)
         | Map.null m = PP.text "NoConstraints"
         | otherwise =
-            PP.hcat $ PP.punctuate PP.comma $ map (uncurry pPrintConstraint) $
-            Map.toList m
+            PP.hcat $ PP.punctuate PP.comma $ Lens.imap pPrintConstraint m ^.. Lens.folded
 
 instance Binary (CompositeVarsConstraints t)
 
