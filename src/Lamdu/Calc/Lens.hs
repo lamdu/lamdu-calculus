@@ -43,7 +43,7 @@ import           Lamdu.Calc.Term (Val)
 import qualified Lamdu.Calc.Term as V
 import           Lamdu.Calc.Type (Type)
 import qualified Lamdu.Calc.Type as T
-import           Lamdu.Calc.Type.Constraints (compositeVarsConstraints, Constraints(..))
+import           Lamdu.Calc.Type.Constraints (compositeVarsConstraints, Constraints(..), forbiddenFields)
 import           Lamdu.Calc.Type.Scheme (Scheme(..))
 
 import           Prelude.Compat
@@ -96,7 +96,7 @@ constraintsTagsSet f (Constraints productCs sumCs) =
     <$> getTags f productCs
     <*> getTags f sumCs
     where
-        getTags = compositeVarsConstraints . traverse
+        getTags = compositeVarsConstraints . traverse . forbiddenFields
 
 {-# INLINE valApply #-}
 valApply :: Traversal' (Val a) (V.Apply (Val a))
