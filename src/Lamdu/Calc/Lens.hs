@@ -45,7 +45,7 @@ import           Lamdu.Calc.Term (Val)
 import qualified Lamdu.Calc.Term as V
 import           Lamdu.Calc.Type (Type)
 import qualified Lamdu.Calc.Type as T
-import           Lamdu.Calc.Type.Constraints (CompositeVarConstraints(..), Constraints(..))
+import           Lamdu.Calc.Type.Constraints (CompositeVarsConstraints(..), Constraints(..))
 import           Lamdu.Calc.Type.Scheme (Scheme(..))
 
 import           Prelude.Compat
@@ -92,9 +92,9 @@ typeTags f (T.TVariant composite) = T.TVariant <$> compositeTags f composite
 typeTags f x = nextLayer (typeTags f) x
 
 {-# INLINE compositeVarConstraintsTagsSet #-}
-compositeVarConstraintsTagsSet :: Traversal' (CompositeVarConstraints t) (Set T.Tag)
-compositeVarConstraintsTagsSet f (CompositeVarConstraints m) =
-    CompositeVarConstraints <$> Lens.traverse f m
+compositeVarConstraintsTagsSet :: Traversal' (CompositeVarsConstraints t) (Set T.Tag)
+compositeVarConstraintsTagsSet f (CompositeVarsConstraints m) =
+    CompositeVarsConstraints <$> Lens.traverse f m
 
 {-# INLINE constraintsTagsSet #-}
 constraintsTagsSet :: Traversal' Constraints (Set T.Tag)

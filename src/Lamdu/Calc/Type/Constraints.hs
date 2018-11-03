@@ -4,7 +4,7 @@ module Lamdu.Calc.Type.Constraints
     , ForbiddenFields
     , applyRenames
     , intersect, difference
-    , CompositeVarConstraints(..), nullCompositeConstraints
+    , CompositeVarsConstraints(..), nullCompositeConstraints
     , getRecordVarConstraints
     , getVariantVarConstraints
     , TypeVarConstraints
@@ -32,42 +32,42 @@ type ForbiddenFields = Set T.Tag
 
 type TypeVarConstraints = ()
 
-newtype CompositeVarConstraints t = CompositeVarConstraints
-    { compositeVarConstraints :: Map (T.Var (T.Composite t)) ForbiddenFields
+newtype CompositeVarsConstraints t = CompositeVarsConstraints
+    { compositeVarsConstraints :: Map (T.Var (T.Composite t)) ForbiddenFields
     } deriving (Generic, Eq, Ord, Show)
 
-nullCompositeConstraints :: CompositeVarConstraints t -> Bool
-nullCompositeConstraints (CompositeVarConstraints m) = Map.null m
+nullCompositeConstraints :: CompositeVarsConstraints t -> Bool
+nullCompositeConstraints (CompositeVarsConstraints m) = Map.null m
 
-instance Semigroup (CompositeVarConstraints t) where
-    CompositeVarConstraints x <> CompositeVarConstraints y =
-        CompositeVarConstraints (Map.unionWith (<>) x y)
-instance Monoid (CompositeVarConstraints t) where
-    mempty = CompositeVarConstraints Map.empty
+instance Semigroup (CompositeVarsConstraints t) where
+    CompositeVarsConstraints x <> CompositeVarsConstraints y =
+        CompositeVarsConstraints (Map.unionWith (<>) x y)
+instance Monoid (CompositeVarsConstraints t) where
+    mempty = CompositeVarsConstraints Map.empty
     mappend = (<>)
 
-instance NFData (CompositeVarConstraints t) where
+instance NFData (CompositeVarsConstraints t) where
 
-instance Pretty (CompositeVarConstraints t) where
-    pPrint (CompositeVarConstraints m)
+instance Pretty (CompositeVarsConstraints t) where
+    pPrint (CompositeVarsConstraints m)
         | Map.null m = PP.text "NoConstraints"
         | otherwise =
             PP.hcat $ PP.punctuate PP.comma $ map (uncurry pPrintConstraint) $
             Map.toList m
 
-instance Binary (CompositeVarConstraints t)
+instance Binary (CompositeVarsConstraints t)
 
 renameApply ::
     Map (T.Var (T.Composite t)) (T.Var (T.Composite t)) ->
-    CompositeVarConstraints t -> CompositeVarConstraints t
-renameApply renames (CompositeVarConstraints m) =
-    CompositeVarConstraints (Map.mapKeys rename m)
+    CompositeVarsConstraints t -> CompositeVarsConstraints t
+renameApply renames (CompositeVarsConstraints m) =
+    CompositeVarsConstraints (Map.mapKeys rename m)
     where
         rename x = fromMaybe x $ Map.lookup x renames
 
 data Constraints = Constraints
-    { recordVarConstraints :: CompositeVarConstraints T.RecordTag
-    , variantVarConstraints :: CompositeVarConstraints T.VariantTag
+    { recordVarConstraints :: CompositeVarsConstraints T.RecordTag
+    , variantVarConstraints :: CompositeVarsConstraints T.VariantTag
     } deriving (Generic, Eq, Ord, Show)
 
 null :: Constraints -> Bool
@@ -88,8 +88,8 @@ instance Pretty Constraints where
         PP.text "{" <> pPrint p <> PP.text "}" <>
         PP.text "[" <> pPrint s <> PP.text "]"
 
-getTVCompositeConstraints :: T.Var (T.Composite t) -> CompositeVarConstraints t -> Set T.Tag
-getTVCompositeConstraints tv = fromMaybe Set.empty . Map.lookup tv . compositeVarConstraints
+getTVCompositeConstraints :: T.Var (T.Composite t) -> CompositeVarsConstraints t -> Set T.Tag
+getTVCompositeConstraints tv = fromMaybe Set.empty . Map.lookup tv . compositeVarsConstraints
 
 getRecordVarConstraints :: T.RecordVar -> Constraints -> ForbiddenFields
 getRecordVarConstraints tv c = getTVCompositeConstraints tv $ recordVarConstraints c
@@ -118,9 +118,9 @@ applyRenames
 
 compositeIntersect ::
     TypeVars.CompositeVarKind t =>
-    TypeVars -> CompositeVarConstraints t -> CompositeVarConstraints t
-compositeIntersect tvs (CompositeVarConstraints c) =
-    CompositeVarConstraints (Map.filterWithKey inTVs c)
+    TypeVars -> CompositeVarsConstraints t -> CompositeVarsConstraints t
+compositeIntersect tvs (CompositeVarsConstraints c) =
+    CompositeVarsConstraints (Map.filterWithKey inTVs c)
     where
         inTVs rtv _ = rtv `TypeVars.member` tvs
 
@@ -129,13 +129,13 @@ intersect tvs (Constraints p s) =
     Constraints (compositeIntersect tvs p) (compositeIntersect tvs s)
 
 compositeDifference ::
-    CompositeVarConstraints t ->
-    CompositeVarConstraints t ->
-    CompositeVarConstraints t
+    CompositeVarsConstraints t ->
+    CompositeVarsConstraints t ->
+    CompositeVarsConstraints t
 compositeDifference
-    (CompositeVarConstraints big)
-    (CompositeVarConstraints small) =
-        CompositeVarConstraints (Map.difference big small)
+    (CompositeVarsConstraints big)
+    (CompositeVarsConstraints small) =
+        CompositeVarsConstraints (Map.difference big small)
 
 difference :: Constraints -> Constraints -> Constraints
 difference (Constraints bigp bigs) (Constraints smallp smalls) =
