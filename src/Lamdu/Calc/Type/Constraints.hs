@@ -1,9 +1,9 @@
-{-# LANGUAGE NoImplicitPrelude, DeriveGeneric, TemplateHaskell #-}
+{-# LANGUAGE NoImplicitPrelude, DeriveGeneric, TemplateHaskell, GeneralizedNewtypeDeriving #-}
 module Lamdu.Calc.Type.Constraints
     ( Constraints(..), null
-    , ForbiddenFields
     , applyRenames
     , intersect, difference
+    , CompositeVarConstraints(..), forbiddenFields
     , CompositeVarsConstraints(..), compositeVarsConstraints
     , nullCompositeConstraints
     , getRecordVarConstraints
@@ -31,12 +31,16 @@ import           Text.PrettyPrint ((<+>))
 import qualified Text.PrettyPrint as PP
 import           Text.PrettyPrint.HughesPJClass (Pretty(..))
 
-type ForbiddenFields = Set T.Tag
-
 type TypeVarConstraints = ()
 
+newtype CompositeVarConstraints t = CompositeVarConstraints
+    { _forbiddenFields :: Set T.Tag
+    } deriving (Generic, Eq, Ord, Show, Semigroup, Monoid)
+
+Lens.makeLenses ''CompositeVarConstraints
+
 newtype CompositeVarsConstraints t = CompositeVarsConstraints
-    { _compositeVarsConstraints :: Map (T.Var (T.Composite t)) ForbiddenFields
+    { _compositeVarsConstraints :: Map (T.Var (T.Composite t)) (CompositeVarConstraints t)
     } deriving (Generic, Eq, Ord, Show)
 
 Lens.makeLenses ''CompositeVarsConstraints
@@ -51,6 +55,7 @@ instance Monoid (CompositeVarsConstraints t) where
     mempty = CompositeVarsConstraints Map.empty
     mappend = (<>)
 
+instance NFData (CompositeVarConstraints t) where
 instance NFData (CompositeVarsConstraints t) where
 
 instance Pretty (CompositeVarsConstraints t) where
@@ -59,6 +64,7 @@ instance Pretty (CompositeVarsConstraints t) where
         | otherwise =
             PP.hcat $ PP.punctuate PP.comma $ Lens.imap pPrintConstraint m ^.. Lens.folded
 
+instance Binary (CompositeVarConstraints t)
 instance Binary (CompositeVarsConstraints t)
 
 renameApply ::
@@ -92,22 +98,22 @@ instance Pretty Constraints where
         PP.text "{" <> pPrint p <> PP.text "}" <>
         PP.text "[" <> pPrint s <> PP.text "]"
 
-getTVCompositeConstraints :: T.Var (T.Composite t) -> CompositeVarsConstraints t -> Set T.Tag
-getTVCompositeConstraints tv cs = cs ^. compositeVarsConstraints . Lens.at tv & fromMaybe Set.empty
+getTVCompositeConstraints :: T.Var (T.Composite t) -> CompositeVarsConstraints t -> CompositeVarConstraints t
+getTVCompositeConstraints tv cs = cs ^. compositeVarsConstraints . Lens.at tv . Lens._Just
 
-getRecordVarConstraints :: T.RecordVar -> Constraints -> ForbiddenFields
+getRecordVarConstraints :: T.RecordVar -> Constraints -> CompositeVarConstraints T.RecordTag
 getRecordVarConstraints tv c = getTVCompositeConstraints tv $ recordVarConstraints c
 
-getVariantVarConstraints :: T.VariantVar -> Constraints -> ForbiddenFields
+getVariantVarConstraints :: T.VariantVar -> Constraints -> CompositeVarConstraints T.VariantTag
 getVariantVarConstraints tv c = getTVCompositeConstraints tv $ variantVarConstraints c
 
 getTypeVarConstraints :: T.TypeVar -> Constraints -> TypeVarConstraints
 getTypeVarConstraints _ _ = ()
 
-pPrintConstraint :: T.Var t -> Set T.Tag -> PP.Doc
-pPrintConstraint tv forbiddenFields =
+pPrintConstraint :: T.Var (T.Composite t) -> CompositeVarConstraints t -> PP.Doc
+pPrintConstraint tv (CompositeVarConstraints forbidden) =
     PP.text "{" PP.<>
-    (PP.hsep . map pPrint . Set.toList) forbiddenFields PP.<>
+    (PP.hsep . map pPrint . Set.toList) forbidden PP.<>
     PP.text "}" <+>
     PP.text "∉" <+> pPrint tv
 
