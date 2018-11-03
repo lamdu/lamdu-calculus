@@ -30,8 +30,6 @@ module Lamdu.Calc.Lens
     , nextLayer
     , typeTIds
     , typeTags
-    , constraintsTagsSet
-    , compositeVarConstraintsTagsSet
     ) where
 
 import           Control.Lens (Traversal', Prism', Iso', iso)
