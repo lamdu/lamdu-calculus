@@ -14,7 +14,7 @@ build-type:          Simple
 cabal-version:       >=1.10
 
 library
-  ghc-options:         -Wall -O2 -Wnoncanonical-monad-instances -Wcompat -Wincomplete-record-updates -Wincomplete-uni-patterns -Wredundant-constraints
+  ghc-options:         -O2 -Wall -Wnoncanonical-monad-instances -Wcompat -Wincomplete-record-updates -Wincomplete-uni-patterns -Wredundant-constraints
   hs-source-dirs:      src
   exposed-modules:     Data.Tree.Diverse
                      , Data.Tree.Diverse.Arbitrary
