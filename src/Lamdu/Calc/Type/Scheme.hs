@@ -5,8 +5,6 @@ module Lamdu.Calc.Type.Scheme
     , alphaEq
     ) where
 
-import           Prelude.Compat hiding (any)
-
 import           Control.DeepSeq (NFData(..))
 import           Control.Lens (Lens')
 import           Control.Lens.Operators
@@ -20,7 +18,7 @@ import qualified Data.Tuple as Tuple
 import           GHC.Generics (Generic)
 import           Lamdu.Calc.Type (Type)
 import qualified Lamdu.Calc.Type as T
-import           Lamdu.Calc.Type.Constraints (Constraints(..), getTypeVarConstraints, getVariantVarConstraints, getRecordVarConstraints)
+import           Lamdu.Calc.Type.Constraints (Constraints(..))
 import qualified Lamdu.Calc.Type.Constraints as Constraints
 import qualified Lamdu.Calc.Type.Match as TypeMatch
 import           Lamdu.Calc.Type.Vars (TypeVars(..))
@@ -28,6 +26,8 @@ import qualified Lamdu.Calc.Type.Vars as TV
 import           Text.PrettyPrint ((<+>))
 import qualified Text.PrettyPrint as PP
 import           Text.PrettyPrint.HughesPJClass (Pretty(..), maybeParens)
+
+import           Prelude.Compat hiding (any)
 
 data Scheme = Scheme
     { _schemeForAll :: TypeVars
@@ -71,9 +71,9 @@ alphaEq
             | Just tvMap <- fromDoublyConsistentList tvPairs
             , Just ctvMap <- fromDoublyConsistentList ctvPairs
             , Just stvMap <- fromDoublyConsistentList stvPairs
-            -> all (checkVarsMatch getVariantVarConstraints) (Map.toList stvMap) &&
-               all (checkVarsMatch getRecordVarConstraints) (Map.toList ctvMap) &&
-               all (checkVarsMatch getTypeVarConstraints) (Map.toList tvMap)
+            -> all (checkVarsMatch Constraints.getVariantVar) (Map.toList stvMap) &&
+               all (checkVarsMatch Constraints.getRecordVar) (Map.toList ctvMap) &&
+               all (checkVarsMatch Constraints.getTypeVar) (Map.toList tvMap)
         _ -> False
     where
         checkVarsMatch getTVConstraints (a, b) =
