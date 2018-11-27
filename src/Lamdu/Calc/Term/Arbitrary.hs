@@ -2,13 +2,13 @@
 {-# OPTIONS -fno-warn-orphans #-} -- Arbitrary instances
 module Lamdu.Calc.Term.Arbitrary () where
 
+import           AST.Ann.Arbitrary (ArbitraryWithContext(..), ArbitraryWithContextOf)
 import qualified Control.Lens as Lens
 import           Control.Lens.Operators
 import           Control.Monad (replicateM)
 import qualified Data.ByteString as BS
 import           Data.Map (Map)
 import           Data.Set (Set)
-import           Data.Tree.Diverse.Arbitrary (ArbitraryWithContext(..), ArbitraryWithContextOf)
 import           Lamdu.Calc.Identifier (Identifier(..))
 import           Lamdu.Calc.Term
 import qualified Lamdu.Calc.Type as T

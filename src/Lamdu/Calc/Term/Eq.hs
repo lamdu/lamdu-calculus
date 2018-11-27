@@ -4,10 +4,10 @@ module Lamdu.Calc.Term.Eq
     ( alphaEq, couldEq
     ) where
 
+import           AST.Ann (Ann(..))
 import qualified Data.Foldable as Foldable
 import qualified Data.Map as Map
 import           Data.Maybe (fromMaybe)
-import           Data.Tree.Diverse (Ann(..))
 import           Lamdu.Calc.Term
 
 import           Prelude.Compat

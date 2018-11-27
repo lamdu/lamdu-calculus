@@ -9,8 +9,8 @@ module Lamdu.Calc.Pure
     , ($$), ($$:), ($.), ($=)
     ) where
 
+import           AST.Ann (Ann(..))
 import           Data.ByteString (ByteString)
-import           Data.Tree.Diverse (Ann(..))
 import           Lamdu.Calc.Term (Val)
 import qualified Lamdu.Calc.Term as V
 import qualified Lamdu.Calc.Type as T

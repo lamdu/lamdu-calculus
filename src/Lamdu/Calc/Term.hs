@@ -1,5 +1,5 @@
 -- | Val AST
-{-# LANGUAGE NoImplicitPrelude, DeriveGeneric, DeriveTraversable, GeneralizedNewtypeDeriving, TemplateHaskell, FlexibleContexts, UndecidableInstances, StandaloneDeriving #-}
+{-# LANGUAGE NoImplicitPrelude, DeriveGeneric, DeriveTraversable, GeneralizedNewtypeDeriving, TemplateHaskell, FlexibleContexts, UndecidableInstances, StandaloneDeriving, TypeFamilies #-}
 module Lamdu.Calc.Term
     ( Val
     , Leaf(..), _LVar, _LHole, _LLiteral, _LRecEmpty, _LAbsurd
@@ -7,7 +7,6 @@ module Lamdu.Calc.Term
     , Term(..)
         , _BApp, _BLam, _BGetField, _BRecExtend
         , _BInject, _BCase, _BToNom, _BFromNom, _BLeaf
-        , termChildren
     , Apply(..), applyFunc, applyArg
     , GetField(..), getFieldRecord, getFieldTag
     , Inject(..), injectVal, injectTag
@@ -21,17 +20,17 @@ module Lamdu.Calc.Term
 
 import           Prelude.Compat
 
+import           AST (Node)
+import           AST.Ann (Ann)
+import           AST.TH (makeChildren)
 import           Control.DeepSeq (NFData(..))
-import           Control.Lens (Traversal)
 import qualified Control.Lens as Lens
-import           Control.Lens.Operators
 import           Data.Binary (Binary)
 import           Data.ByteString (ByteString)
 import qualified Data.ByteString.Char8 as BS8
 import           Data.Hashable (Hashable(..))
 import           Data.Semigroup ((<>))
 import           Data.String (IsString(..))
-import           Data.Tree.Diverse (Node, Ann, Children(..))
 import           GHC.Generics (Generic)
 import           Lamdu.Calc.Identifier (Identifier)
 import qualified Lamdu.Calc.Type as T
@@ -188,19 +187,8 @@ instance Binary (f (Term f)) => Binary (Term f)
 Lens.makeLenses ''Lam
 Lens.makePrisms ''Term
 
-termChildren :: Traversal (Term f) (Term g) (Node f Term) (Node g Term)
-termChildren f (BApp (Apply x y)) = Apply <$> f x <*> f y <&> BApp
-termChildren f (BLam x) = lamResult f x <&> BLam
-termChildren f (BGetField x) = getFieldRecord f x <&> BGetField
-termChildren f (BRecExtend (RecExtend t x y)) = RecExtend t <$> f x <*> f y <&> BRecExtend
-termChildren f (BInject x) = injectVal f x <&> BInject
-termChildren f (BCase (Case t x y)) = Case t <$> f x <*> f y <&> BCase
-termChildren f (BToNom x) = nomVal f x <&> BToNom
-termChildren f (BFromNom x) = nomVal f x <&> BFromNom
-termChildren _ (BLeaf x) = BLeaf x & pure
-
-instance Children Term where
-    children = termChildren
+makeChildren ''Lam
+makeChildren ''Term
 
 instance Pretty (f (Term f)) => Pretty (Term f) where
     pPrintPrec lvl prec b =
