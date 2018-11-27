@@ -32,12 +32,11 @@ module Lamdu.Calc.Lens
     , typeTags
     ) where
 
-import           AST (Children(..))
+import           AST (Node, monoChildren)
 import           AST.Ann (Ann(..), val, annotations)
 import           Control.Lens (Traversal', Prism', Iso', iso)
 import qualified Control.Lens as Lens
 import           Control.Lens.Operators
-import           Data.Proxy (Proxy(..))
 import           Data.Set (Set)
 import qualified Data.Set as Set
 import           Data.Set.Lens (setmapped)
@@ -159,11 +158,8 @@ valLeafs :: Lens.IndexedTraversal' a (Val a) V.Leaf
 valLeafs f (Ann pl body) =
     case body of
     V.BLeaf l -> Lens.indexed f pl l <&> V.BLeaf
-    _ -> children termProxy (valLeafs f) body
+    _ -> monoChildren (valLeafs f) body
     <&> Ann pl
-
-termProxy :: Proxy ((~) V.Term)
-termProxy = Proxy
 
 {-# INLINE compositeFields #-}
 compositeFields :: Traversal' (T.Composite p) (T.Tag, Type)
@@ -184,14 +180,14 @@ subExprPayloads :: Lens.IndexedTraversal (Val ()) (Val a) (Val b) a b
 subExprPayloads f x@(Ann pl body) =
     Ann
     <$> Lens.indexed f (x & annotations .~ ()) pl
-    <*> (children termProxy .> subExprPayloads) f body
+    <*> (monoChildren .> subExprPayloads) f body
 
 {-# INLINE subExprs #-}
 subExprs :: Lens.Fold (Val a) (Val a)
 subExprs =
     Lens.folding f
     where
-        f x = x : x ^.. val . children termProxy . subExprs
+        f x = x : x ^.. val . monoChildren . subExprs
 
 {-# INLINE payloadsIndexedByPath #-}
 payloadsIndexedByPath ::
@@ -201,12 +197,16 @@ payloadsIndexedByPath ::
     (Val b)
     a b
 payloadsIndexedByPath f =
-    go []
+    go f []
     where
-        go path x@(Ann pl body) =
+        go ::
+            ( Lens.Indexable [Node (Ann ()) V.Term] p, Applicative f
+            ) =>
+            p a (f b) -> [Node (Ann ()) V.Term] -> Val a -> f (Val b)
+        go g path x@(Ann pl body) =
             Ann
-            <$> Lens.indexed f newPath pl
-            <*> children termProxy (go newPath) body
+            <$> Lens.indexed g newPath pl
+            <*> monoChildren (go g newPath) body
             where
                 newPath = (x & annotations .~ ()) : path
 
@@ -233,7 +233,7 @@ biTraverseBodyTags onTag onChild body =
         V.BCase <$> (V.Case <$> onTag t <*> onChild v <*> onChild r)
     V.BRecExtend (V.RecExtend t v r) ->
         V.BRecExtend <$> (V.RecExtend <$> onTag t <*> onChild v <*> onChild r)
-    _ -> children termProxy onChild body
+    _ -> monoChildren onChild body
 
 {-# INLINE bodyTags #-}
 bodyTags :: Lens.Traversal' (V.Term (Ann a)) T.Tag
@@ -253,7 +253,7 @@ valGlobals scope f (Ann pl body) =
     V.BLam (V.Lam var lamBody) ->
         valGlobals (Set.insert var scope) f lamBody
         <&> V.Lam var <&> V.BLam
-    _ -> (children termProxy . valGlobals scope) f body
+    _ -> (monoChildren . valGlobals scope) f body
     <&> Ann pl
 
 {-# INLINE valNominals #-}
@@ -262,7 +262,7 @@ valNominals f (Ann pl body) =
     case body of
     V.BFromNom nom -> onNom nom <&> V.BFromNom
     V.BToNom nom -> onNom nom <&> V.BToNom
-    _ -> body & children termProxy . valNominals %%~ f
+    _ -> body & monoChildren . valNominals %%~ f
     <&> Ann pl
     where
         onNom (V.Nom nomId x) = V.Nom <$> f nomId <*> valNominals f x
