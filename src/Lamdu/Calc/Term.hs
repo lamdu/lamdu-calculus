@@ -22,6 +22,7 @@ import           Prelude.Compat
 
 import           AST (Node)
 import           AST.Ann (Ann)
+import           AST.Recursive (Recursive)
 import           AST.TH (makeChildren)
 import           Control.DeepSeq (NFData(..))
 import qualified Control.Lens as Lens
@@ -189,6 +190,8 @@ Lens.makePrisms ''Term
 
 makeChildren ''Lam
 makeChildren ''Term
+instance Recursive Lam
+instance Recursive Term
 
 instance Pretty (f (Term f)) => Pretty (Term f) where
     pPrintPrec lvl prec b =
