@@ -32,8 +32,9 @@ module Lamdu.Calc.Lens
     , typeTags
     ) where
 
-import           AST (Node, monoChildren)
+import           AST (Node)
 import           AST.Ann (Ann(..), val, annotations)
+import           AST.Mono (monoChildren)
 import           Control.Lens (Traversal', Prism', Iso', iso)
 import qualified Control.Lens as Lens
 import           Control.Lens.Operators
