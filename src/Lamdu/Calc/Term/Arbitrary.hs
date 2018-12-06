@@ -2,7 +2,7 @@
 {-# OPTIONS -fno-warn-orphans #-} -- Arbitrary instances
 module Lamdu.Calc.Term.Arbitrary () where
 
-import           AST.Ann.Arbitrary (ArbitraryWithContext(..), ArbitraryWithContextOf)
+import           AST.Functor.Ann.Arbitrary (ArbitraryWithContext(..), ArbitraryWithContextOf)
 import qualified Control.Lens as Lens
 import           Control.Lens.Operators
 import           Control.Monad (replicateM)

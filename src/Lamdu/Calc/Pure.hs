@@ -9,7 +9,7 @@ module Lamdu.Calc.Pure
     , ($$), ($$:), ($.), ($=)
     ) where
 
-import           AST.Ann (Ann(..))
+import           AST (Ann(..))
 import           Data.ByteString (ByteString)
 import           Lamdu.Calc.Term (Val)
 import qualified Lamdu.Calc.Term as V

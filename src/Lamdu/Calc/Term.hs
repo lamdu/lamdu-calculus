@@ -20,9 +20,7 @@ module Lamdu.Calc.Term
 
 import           Prelude.Compat
 
-import           AST (Node)
-import           AST.Ann (Ann)
-import           AST.TH (makeChildren)
+import           AST (Node, Ann, makeChildren)
 import           Control.DeepSeq (NFData(..))
 import qualified Control.Lens as Lens
 import           Data.Binary (Binary)

@@ -4,7 +4,7 @@ module Lamdu.Calc.Term.Eq
     ( alphaEq, couldEq
     ) where
 
-import           AST.Ann (Ann(..))
+import           AST (Ann(..))
 import qualified Data.Foldable as Foldable
 import qualified Data.Map as Map
 import           Data.Maybe (fromMaybe)
