@@ -103,11 +103,11 @@ constraintsTagsSet f (Constraints productCs sumCs) =
             Constraints.compositeVars . traverse . Constraints.forbiddenFields
 
 {-# INLINE valApply #-}
-valApply :: Traversal' (Val a) (V.Apply (Val a))
+valApply :: Traversal' (Val a) (V.Apply V.Term (Ann a))
 valApply = val . V._BApp
 
 {-# INLINE valAbs #-}
-valAbs :: Traversal' (Val a) (V.Lam (Ann a))
+valAbs :: Traversal' (Val a) (V.Lam V.Var V.Term (Ann a))
 valAbs = val . V._BLam
 
 {-# INLINE pureValBody #-}
@@ -115,7 +115,7 @@ pureValBody :: Iso' (Val ()) (V.Term (Ann ()))
 pureValBody = iso (^. val) (Ann ())
 
 {-# INLINE pureValApply #-}
-pureValApply :: Prism' (Val ()) (V.Apply (Val ()))
+pureValApply :: Prism' (Val ()) (V.Apply V.Term (Ann ()))
 pureValApply = pureValBody . V._BApp
 
 {-# INLINE valHole #-}

@@ -5,12 +5,20 @@ module Lamdu.Calc.Term.Eq
     ) where
 
 import           AST (Ann(..))
-import qualified Data.Foldable as Foldable
+import           AST.Class.ZipMatch (zipMatch_)
+import qualified Control.Lens as Lens
+import           Control.Lens.Operators
+import           Control.Monad (guard)
 import qualified Data.Map as Map
 import           Data.Maybe (fromMaybe)
+import           Data.Proxy (Proxy(..))
 import           Lamdu.Calc.Term
 
 import           Prelude.Compat
+
+-- TODO:
+-- * Is this needed?
+-- * `syntax-tree` package should make this simple
 
 eqCommon :: Bool -> Val () -> Val () -> Bool
 eqCommon holeIsJoker =
@@ -30,16 +38,24 @@ eqCommon holeIsJoker =
                 -- shadowing corner cases
                 xToYConv xToY x == y
             (BLeaf x, BLeaf y) -> x == y
-            (BApp x, BApp y) -> goRecurse x y
-            (BGetField x, BGetField y) -> goRecurse x y
-            (BRecExtend x, BRecExtend y) -> goRecurse x y
-            (BCase x, BCase y) -> goRecurse x y
-            (BInject x, BInject y) -> goRecurse x y
-            (BFromNom x, BFromNom y) -> goRecurse x y
-            (BToNom x, BToNom y) -> goRecurse x y
+            (BApp x, BApp y) ->
+                zipMatch_ (Proxy :: Proxy ((~) Term)) (fmap guard . go xToY) x y
+                & Lens.has (Lens._Just . Lens._Just)
+            (BGetField (GetField r0 f0), BGetField (GetField r1 f1))
+                | f0 == f1 -> go xToY r0 r1
+            (BRecExtend (RecExtend t0 f0 r0), BRecExtend (RecExtend t1 f1 r1))
+                -- TODO: this is wrong actually, fields can have different order!
+                | t0 == t1 -> go xToY f0 f1 && go xToY r0 r1
+            (BCase (Case t0 a0 r0), BCase (Case t1 a1 r1))
+                -- TODO: this is wrong actually, fields can have different order!
+                | t0 == t1 -> go xToY a0 a1 && go xToY r0 r1
+            (BInject (Inject t0 v0), BInject (Inject t1 v1))
+                | t0 == t1 -> go xToY v0 v1
+            (BFromNom (Nom n0 v0), BFromNom (Nom n1 v1))
+                | n0 == n1 -> go xToY v0 v1
+            (BToNom (Nom n0 v0), BToNom (Nom n1 v1))
+                | n0 == n1 -> go xToY v0 v1
             (_, _) -> False
-            where
-                goRecurse x y = maybe False Foldable.and $ match (go xToY) x y
 
 alphaEq :: Val () -> Val () -> Bool
 alphaEq = eqCommon False

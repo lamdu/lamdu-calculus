@@ -11,16 +11,17 @@ module Lamdu.Calc.Term
     , GetField(..), getFieldRecord, getFieldTag
     , Inject(..), injectVal, injectTag
     , Case(..), caseTag, caseMatch, caseMismatch
-    , Lam(..), lamParamId, lamResult
+    , Lam(..), lamIn, lamOut
     , RecExtend(..), recTag, recFieldVal, recRest
     , Nom(..), nomId, nomVal
     , Var(..)
-    , Match(..)
     ) where
 
 import           Prelude.Compat
 
 import           AST (Node, Ann, makeChildren)
+import           AST.Term.Apply (Apply(..), applyFunc, applyArg)
+import           AST.Term.Lam (Lam(..), lamIn, lamOut)
 import           Control.DeepSeq (NFData(..))
 import qualified Control.Lens as Lens
 import           Data.Binary (Binary)
@@ -64,21 +65,6 @@ instance Hashable Leaf
 
 Lens.makePrisms ''Leaf
 
-class Match f where
-    match :: (a -> b -> c) -> f a -> f b -> Maybe (f c)
-
-data Apply exp = Apply
-    { _applyFunc :: exp
-    , _applyArg :: exp
-    } deriving (Functor, Foldable, Traversable, Generic, Show, Eq, Ord)
-instance NFData exp => NFData (Apply exp)
-instance Binary exp => Binary (Apply exp)
-instance Hashable exp => Hashable (Apply exp)
-instance Match Apply where
-    match f (Apply f0 a0) (Apply f1 a1) = Just $ Apply (f f0 f1) (f a0 a1)
-
-Lens.makeLenses ''Apply
-
 data GetField exp = GetField
     { _getFieldRecord :: exp
     , _getFieldTag :: T.Tag
@@ -86,10 +72,6 @@ data GetField exp = GetField
 instance NFData exp => NFData (GetField exp)
 instance Binary exp => Binary (GetField exp)
 instance Hashable exp => Hashable (GetField exp)
-instance Match GetField where
-    match f (GetField r0 t0) (GetField r1 t1)
-        | t0 == t1 = Just $ GetField (f r0 r1) t0
-        | otherwise = Nothing
 
 Lens.makeLenses ''GetField
 
@@ -100,10 +82,6 @@ data Inject exp = Inject
 instance NFData exp => NFData (Inject exp)
 instance Binary exp => Binary (Inject exp)
 instance Hashable exp => Hashable (Inject exp)
-instance Match Inject where
-    match f (Inject t0 r0) (Inject t1 r1)
-        | t0 == t1 = Just $ Inject t0 (f r0 r1)
-        | otherwise = Nothing
 
 Lens.makeLenses ''Inject
 
@@ -115,10 +93,6 @@ data Case exp = Case
 instance NFData exp => NFData (Case exp)
 instance Binary exp => Binary (Case exp)
 instance Hashable exp => Hashable (Case exp)
-instance Match Case where
-    match f (Case t0 h0 hr0) (Case t1 h1 hr1)
-        | t0 == t1 = Just $ Case t0 (f h0 h1) (f hr0 hr1)
-        | otherwise = Nothing
 
 Lens.makeLenses ''Case
 
@@ -130,10 +104,6 @@ data RecExtend exp = RecExtend
 instance NFData exp => NFData (RecExtend exp)
 instance Binary exp => Binary (RecExtend exp)
 instance Hashable exp => Hashable (RecExtend exp)
-instance Match RecExtend where
-    match f (RecExtend t0 f0 r0) (RecExtend t1 f1 r1)
-        | t0 == t1 = Just $ RecExtend t0 (f f0 f1) (f r0 r1)
-        | otherwise = Nothing
 
 Lens.makeLenses ''RecExtend
 
@@ -144,27 +114,12 @@ data Nom exp = Nom
 instance NFData exp => NFData (Nom exp)
 instance Hashable exp => Hashable (Nom exp)
 instance Binary exp => Binary (Nom exp)
-instance Match Nom where
-    match f (Nom i0 v0) (Nom i1 v1)
-        | i0 == i1 = Just $ Nom i0 (f v0 v1)
-        | otherwise = Nothing
 
 Lens.makeLenses ''Nom
 
-data Lam f = Lam
-    { _lamParamId :: Var
-    , _lamResult :: Node f Term
-    } deriving Generic
-deriving instance Eq   (Node f Term) => Eq   (Lam f)
-deriving instance Ord  (Node f Term) => Ord  (Lam f)
-deriving instance Show (Node f Term) => Show (Lam f)
-instance NFData   (f (Term f)) => NFData   (Lam f)
-instance Hashable (f (Term f)) => Hashable (Lam f)
-instance Binary   (f (Term f)) => Binary   (Lam f)
-
 data Term f
-    = BApp {-# UNPACK #-}!(Apply (Node f Term))
-    | BLam {-# UNPACK #-}!(Lam f)
+    = BApp {-# UNPACK #-}!(Apply Term f)
+    | BLam {-# UNPACK #-}!(Lam Var Term f)
     | BGetField {-# UNPACK #-}!(GetField (Node f Term))
     | BRecExtend {-# UNPACK #-}!(RecExtend (Node f Term))
     | BInject {-# UNPACK #-}!(Inject (Node f Term))
@@ -182,10 +137,9 @@ deriving instance Ord (f (Term f)) => Ord (Term f)
 deriving instance Show (f (Term f)) => Show (Term f)
 instance Binary (f (Term f)) => Binary (Term f)
 
-Lens.makeLenses ''Lam
 Lens.makePrisms ''Term
 
-makeChildren [''Lam, ''Term]
+makeChildren [''Term]
 
 instance Pretty (f (Term f)) => Pretty (Term f) where
     pPrintPrec lvl prec b =
