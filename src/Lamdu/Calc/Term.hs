@@ -1,5 +1,5 @@
 -- | Val AST
-{-# LANGUAGE NoImplicitPrelude, DeriveGeneric, DeriveTraversable, GeneralizedNewtypeDeriving, TemplateHaskell, FlexibleContexts, UndecidableInstances, StandaloneDeriving, TypeFamilies #-}
+{-# LANGUAGE NoImplicitPrelude, DeriveGeneric, DeriveTraversable, GeneralizedNewtypeDeriving, TemplateHaskell, FlexibleContexts, UndecidableInstances, StandaloneDeriving, TypeFamilies, MultiParamTypeClasses #-}
 module Lamdu.Calc.Term
     ( Val
     , Leaf(..), _LVar, _LHole, _LLiteral, _LRecEmpty, _LAbsurd
