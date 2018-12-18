@@ -1,8 +1,9 @@
-{-# LANGUAGE NoImplicitPrelude, TypeFamilies, TemplateHaskell, StandaloneDeriving, GeneralizedNewtypeDeriving, ConstraintKinds, UndecidableInstances #-}
+{-# LANGUAGE NoImplicitPrelude, TypeFamilies, TemplateHaskell, StandaloneDeriving, GeneralizedNewtypeDeriving, ConstraintKinds, UndecidableInstances, TypeSynonymInstances, FlexibleInstances #-}
 {-# OPTIONS -fno-warn-orphans #-} -- Arbitrary instances
 module Lamdu.Calc.Term.Arbitrary () where
 
-import           AST.Functor.Ann.Arbitrary (ArbitraryWithContext(..), ArbitraryWithContextOf)
+import           AST (Tree)
+import           AST.Knot.Ann.Arbitrary (ArbitraryWithContext(..), ArbitraryWithContextOf)
 import qualified Control.Lens as Lens
 import           Control.Lens.Operators
 import           Control.Monad (replicateM)
@@ -53,11 +54,11 @@ instance ArbitraryWithContext Leaf where
             <&> LVar)
         & Gen.elements
 
-instance ArbitraryWithContextOf Env (f (Term f)) => Arbitrary (Term f) where
+instance ArbitraryWithContextOf Env (Tree f Term) => Arbitrary (Tree Term f) where
     arbitrary = arbitraryCtx emptyEnv
 
-instance ArbitraryWithContextOf Env (f (Term f)) => ArbitraryWithContext (Term f) where
-    type Context (Term f) = Env
+instance ArbitraryWithContextOf Env (Tree f Term) => ArbitraryWithContext (Tree Term f) where
+    type Context (Tree Term f) = Env
     arbitraryCtx ctx =
         Gen.frequency
         [ (2, arbitraryLam <&> BLam)

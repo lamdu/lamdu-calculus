@@ -19,7 +19,7 @@ module Lamdu.Calc.Term
 
 import           Prelude.Compat
 
-import           AST (Node, Ann, makeChildren)
+import           AST (Tree, Tie, Ann, makeChildren)
 import           AST.Term.Apply (Apply(..), applyFunc, applyArg)
 import           AST.Term.Lam (Lam(..), lamIn, lamOut)
 import           Control.DeepSeq (NFData(..))
@@ -120,28 +120,28 @@ Lens.makeLenses ''Nom
 data Term f
     = BApp {-# UNPACK #-}!(Apply Term f)
     | BLam {-# UNPACK #-}!(Lam Var Term f)
-    | BGetField {-# UNPACK #-}!(GetField (Node f Term))
-    | BRecExtend {-# UNPACK #-}!(RecExtend (Node f Term))
-    | BInject {-# UNPACK #-}!(Inject (Node f Term))
-    | BCase {-# UNPACK #-}!(Case (Node f Term))
+    | BGetField {-# UNPACK #-}!(GetField (Tie f Term))
+    | BRecExtend {-# UNPACK #-}!(RecExtend (Tie f Term))
+    | BInject {-# UNPACK #-}!(Inject (Tie f Term))
+    | BCase {-# UNPACK #-}!(Case (Tie f Term))
     | -- Convert to Nominal type
-      BToNom {-# UNPACK #-}!(Nom (Node f Term))
+      BToNom {-# UNPACK #-}!(Nom (Tie f Term))
     | -- Convert from Nominal type
-      BFromNom {-# UNPACK #-}!(Nom (Node f Term))
+      BFromNom {-# UNPACK #-}!(Nom (Tie f Term))
     | BLeaf Leaf
     deriving Generic
 
 -- NOTE: Careful of Eq, it's not alpha-eq!
-deriving instance Eq (f (Term f)) => Eq (Term f)
-deriving instance Ord (f (Term f)) => Ord (Term f)
-deriving instance Show (f (Term f)) => Show (Term f)
-instance Binary (f (Term f)) => Binary (Term f)
+deriving instance Eq   (Tie f Term) => Eq   (Term f)
+deriving instance Ord  (Tie f Term) => Ord  (Term f)
+deriving instance Show (Tie f Term) => Show (Term f)
+instance Binary (Tie f Term) => Binary (Term f)
 
 Lens.makePrisms ''Term
 
 makeChildren [''Term]
 
-instance Pretty (f (Term f)) => Pretty (Term f) where
+instance Pretty (Tie f Term) => Pretty (Term f) where
     pPrintPrec lvl prec b =
         case b of
         BLeaf (LVar var)          -> pPrint var
@@ -177,4 +177,4 @@ instance Pretty (f (Term f)) => Pretty (Term f) where
                 prField = pPrint tag <+> PP.text "=" <+> pPrint val
 
 -- Type synonym to ease the transition
-type Val a = Node (Ann a) Term
+type Val a = Tree (Ann a) Term

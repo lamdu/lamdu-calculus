@@ -1,4 +1,4 @@
-{-# LANGUAGE NoImplicitPrelude, RankNTypes, NoMonomorphismRestriction, FlexibleContexts #-}
+{-# LANGUAGE NoImplicitPrelude, RankNTypes, NoMonomorphismRestriction, FlexibleContexts, TypeFamilies #-}
 module Lamdu.Calc.Lens
     ( -- Leafs
       valHole    , valBodyHole
@@ -32,9 +32,9 @@ module Lamdu.Calc.Lens
     , typeTags
     ) where
 
-import           AST (Node)
+import           AST (Tree)
 import           AST.Class.Children.Mono (monoChildren)
-import           AST.Functor.Ann (Ann(..), annotations, val)
+import           AST.Knot.Ann (Ann(..), annotations, val)
 import           Control.Lens (Traversal', Prism', Iso', iso)
 import qualified Control.Lens as Lens
 import           Control.Lens.Operators
@@ -103,19 +103,19 @@ constraintsTagsSet f (Constraints productCs sumCs) =
             Constraints.compositeVars . traverse . Constraints.forbiddenFields
 
 {-# INLINE valApply #-}
-valApply :: Traversal' (Val a) (V.Apply V.Term (Ann a))
+valApply :: Traversal' (Val a) (Tree (V.Apply V.Term) (Ann a))
 valApply = val . V._BApp
 
 {-# INLINE valAbs #-}
-valAbs :: Traversal' (Val a) (V.Lam V.Var V.Term (Ann a))
+valAbs :: Traversal' (Val a) (Tree (V.Lam V.Var V.Term) (Ann a))
 valAbs = val . V._BLam
 
 {-# INLINE pureValBody #-}
-pureValBody :: Iso' (Val ()) (V.Term (Ann ()))
+pureValBody :: Iso' (Val ()) (Tree V.Term (Ann ()))
 pureValBody = iso (^. val) (Ann ())
 
 {-# INLINE pureValApply #-}
-pureValApply :: Prism' (Val ()) (V.Apply V.Term (Ann ()))
+pureValApply :: Prism' (Val ()) (Tree (V.Apply V.Term) (Ann ()))
 pureValApply = pureValBody . V._BApp
 
 {-# INLINE valHole #-}
@@ -201,9 +201,9 @@ payloadsIndexedByPath f =
     go f []
     where
         go ::
-            ( Lens.Indexable [Node (Ann ()) V.Term] p, Applicative f
+            ( Lens.Indexable [Tree (Ann ()) V.Term] p, Applicative f
             ) =>
-            p a (f b) -> [Node (Ann ()) V.Term] -> Val a -> f (Val b)
+            p a (f b) -> [Tree (Ann ()) V.Term] -> Val a -> f (Val b)
         go g path x@(Ann pl body) =
             Ann
             <$> Lens.indexed g newPath pl
@@ -213,7 +213,7 @@ payloadsIndexedByPath f =
 
 {-# INLINE payloadsOf #-}
 payloadsOf ::
-    Lens.Fold (V.Term (Ann ())) a -> Lens.IndexedTraversal' (Val ()) (Val b) b
+    Lens.Fold (Tree V.Term (Ann ())) a -> Lens.IndexedTraversal' (Val ()) (Val b) b
 payloadsOf body =
     subExprPayloads . Lens.ifiltered predicate
     where
@@ -223,7 +223,7 @@ payloadsOf body =
 biTraverseBodyTags ::
     Applicative f =>
     (T.Tag -> f T.Tag) -> (Val a -> f (Val b)) ->
-    V.Term (Ann a) -> f (V.Term (Ann b))
+    Tree V.Term (Ann a) -> f (Tree V.Term (Ann b))
 biTraverseBodyTags onTag onChild body =
     case body of
     V.BInject (V.Inject t v) ->
@@ -237,7 +237,7 @@ biTraverseBodyTags onTag onChild body =
     _ -> monoChildren onChild body
 
 {-# INLINE bodyTags #-}
-bodyTags :: Lens.Traversal' (V.Term (Ann a)) T.Tag
+bodyTags :: Lens.Traversal' (Tree V.Term (Ann a)) T.Tag
 bodyTags f = biTraverseBodyTags f pure
 
 {-# INLINE valTags #-}
