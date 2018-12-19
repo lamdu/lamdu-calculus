@@ -4,4 +4,4 @@ packages:
     git: https://github.com/lamdu/syntax-tree
     commit: 81a2405987358b62fe9704ea6b30e43d08c47dc3
   extra-dep: True
-resolver: lts-12.17
+resolver: lts-12.24
