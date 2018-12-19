@@ -19,7 +19,7 @@ module Lamdu.Calc.Term
 
 import           Prelude.Compat
 
-import           AST (Tree, Tie, Ann, makeChildren)
+import           AST (Tree, Tie, Ann, makeChildrenRecursive)
 import           AST.Term.Apply (Apply(..), applyFunc, applyArg)
 import           AST.Term.Lam (Lam(..), lamIn, lamOut)
 import           Control.DeepSeq (NFData(..))
@@ -139,7 +139,7 @@ instance Binary (Tie f Term) => Binary (Term f)
 
 Lens.makePrisms ''Term
 
-makeChildren [''Term]
+makeChildrenRecursive [''Term]
 
 instance Pretty (Tie f Term) => Pretty (Term f) where
     pPrintPrec lvl prec b =
