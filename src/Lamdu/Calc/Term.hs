@@ -1,5 +1,8 @@
 -- | Val AST
-{-# LANGUAGE NoImplicitPrelude, DeriveGeneric, DeriveTraversable, GeneralizedNewtypeDeriving, TemplateHaskell, FlexibleContexts, UndecidableInstances, StandaloneDeriving, TypeFamilies, MultiParamTypeClasses #-}
+{-# LANGUAGE NoImplicitPrelude, DeriveGeneric, DeriveTraversable #-}
+{-# LANGUAGE GeneralizedNewtypeDeriving, TemplateHaskell, FlexibleContexts #-}
+{-# LANGUAGE UndecidableInstances, StandaloneDeriving, TypeFamilies #-}
+{-# LANGUAGE MultiParamTypeClasses, FlexibleInstances, ConstraintKinds #-}
 module Lamdu.Calc.Term
     ( Val
     , Leaf(..), _LVar, _LHole, _LLiteral, _LRecEmpty, _LAbsurd
@@ -19,7 +22,7 @@ module Lamdu.Calc.Term
 
 import           Prelude.Compat
 
-import           AST (Tree, Tie, Ann, makeChildrenRecursive)
+import           AST (Tree, Tie, Ann, Recursive, makeChildren)
 import           AST.Term.Apply (Apply(..), applyFunc, applyArg)
 import           AST.Term.Lam (Lam(..), lamIn, lamOut)
 import           Control.DeepSeq (NFData(..))
@@ -138,8 +141,9 @@ deriving instance Show (Tie f Term) => Show (Term f)
 instance Binary (Tie f Term) => Binary (Term f)
 
 Lens.makePrisms ''Term
+makeChildren ''Term
 
-makeChildrenRecursive [''Term]
+instance c Term => Recursive c Term
 
 instance Pretty (Tie f Term) => Pretty (Term f) where
     pPrintPrec lvl prec b =
