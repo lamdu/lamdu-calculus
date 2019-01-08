@@ -1,13 +1,11 @@
 {-# LANGUAGE NoImplicitPrelude, DeriveGeneric, TemplateHaskell, GeneralizedNewtypeDeriving #-}
 module Lamdu.Calc.Type.Constraints
-    ( Constraints(..), null
+    ( Constraints(..), compositeVars
+    , null
     , applyRenames
     , intersect, difference
     , CompositeVar(..), forbiddenFields
-    , CompositeVars(..), compositeVars
-    , nullComposite
-    , getRecordVar
-    , getVariantVar
+    , getRowVar
     , TypeVar
     , getTypeVar
     ) where
@@ -33,84 +31,55 @@ import           Text.PrettyPrint.HughesPJClass (Pretty(..))
 
 type TypeVar = ()
 
-newtype CompositeVar t = CompositeVar
+newtype CompositeVar = CompositeVar
     { _forbiddenFields :: Set T.Tag
     } deriving (Generic, Eq, Ord, Show, Semigroup, Monoid)
 
 Lens.makeLenses ''CompositeVar
 
-newtype CompositeVars t = CompositeVars
-    { _compositeVars :: Map (T.Var (T.Composite t)) (CompositeVar t)
+newtype Constraints = Constraints
+    { _compositeVars :: Map T.RowVar CompositeVar
     } deriving (Generic, Eq, Ord, Show)
 
-Lens.makeLenses ''CompositeVars
+Lens.makeLenses ''Constraints
 
-nullComposite :: CompositeVars t -> Bool
-nullComposite (CompositeVars m) = Map.null m
+null :: Constraints -> Bool
+null (Constraints m) = Map.null m
 
-instance Semigroup (CompositeVars t) where
-    CompositeVars x <> CompositeVars y =
-        CompositeVars (Map.unionWith (<>) x y)
-instance Monoid (CompositeVars t) where
-    mempty = CompositeVars Map.empty
+instance Semigroup Constraints where
+    Constraints x <> Constraints y =
+        Constraints (Map.unionWith (<>) x y)
+instance Monoid Constraints where
+    mempty = Constraints Map.empty
     mappend = (<>)
 
-instance NFData (CompositeVar t) where
-instance NFData (CompositeVars t) where
+instance NFData CompositeVar
+instance NFData Constraints
 
-instance Pretty (CompositeVars t) where
-    pPrint (CompositeVars m)
+instance Pretty Constraints where
+    pPrint (Constraints m)
         | Map.null m = PP.text "NoConstraints"
         | otherwise =
             PP.hcat $ PP.punctuate PP.comma $ Lens.imap pPrintConstraint m ^.. Lens.folded
 
-instance Binary (CompositeVar t)
-instance Binary (CompositeVars t)
+instance Binary CompositeVar
+instance Binary Constraints
 
 renameApply ::
-    Map (T.Var (T.Composite t)) (T.Var (T.Composite t)) ->
-    CompositeVars t -> CompositeVars t
-renameApply renames (CompositeVars m) =
-    CompositeVars (Map.mapKeys rename m)
+    Map T.RowVar T.RowVar ->
+    Constraints -> Constraints
+renameApply renames (Constraints m) =
+    Constraints (Map.mapKeys rename m)
     where
         rename x = fromMaybe x $ Map.lookup x renames
 
-data Constraints = Constraints
-    { recordVar :: CompositeVars T.RecordTag
-    , variantVar :: CompositeVars T.VariantTag
-    } deriving (Generic, Eq, Ord, Show)
-
-null :: Constraints -> Bool
-null (Constraints rtvs stvs) =
-    nullComposite rtvs
-    && nullComposite stvs
-
-instance Semigroup Constraints where
-    Constraints p0 s0 <> Constraints p1 s1 = Constraints (p0 <> p1) (s0 <> s1)
-instance Monoid Constraints where
-    mempty = Constraints mempty mempty
-    mappend = (<>)
-
-instance Binary Constraints
-instance NFData Constraints where
-instance Pretty Constraints where
-    pPrint (Constraints p s) =
-        PP.text "{" <> pPrint p <> PP.text "}" <>
-        PP.text "[" <> pPrint s <> PP.text "]"
-
-getTVComposite :: T.Var (T.Composite t) -> CompositeVars t -> CompositeVar t
-getTVComposite tv cs = cs ^. compositeVars . Lens.at tv . Lens._Just
-
-getRecordVar :: T.RecordVar -> Constraints -> CompositeVar T.RecordTag
-getRecordVar tv c = getTVComposite tv $ recordVar c
-
-getVariantVar :: T.VariantVar -> Constraints -> CompositeVar T.VariantTag
-getVariantVar tv c = getTVComposite tv $ variantVar c
+getRowVar :: T.RowVar -> Constraints -> CompositeVar
+getRowVar tv cs = cs ^. compositeVars . Lens.ix tv
 
 getTypeVar :: T.TypeVar -> Constraints -> TypeVar
 getTypeVar _ _ = ()
 
-pPrintConstraint :: T.Var (T.Composite t) -> CompositeVar t -> PP.Doc
+pPrintConstraint :: T.RowVar -> CompositeVar -> PP.Doc
 pPrintConstraint tv (CompositeVar forbidden) =
     PP.text "{" PP.<>
     (PP.hsep . map pPrint . Set.toList) forbidden PP.<>
@@ -119,29 +88,14 @@ pPrintConstraint tv (CompositeVar forbidden) =
 
 {-# INLINE applyRenames #-}
 applyRenames :: TypeVars.Renames -> Constraints -> Constraints
-applyRenames
-    (TypeVars.Renames _ prodRenames variantRenames)
-    (Constraints prod variant) =
-        Constraints
-        (renameApply prodRenames prod)
-        (renameApply variantRenames variant)
+applyRenames (TypeVars.Renames _ rowRenames) = renameApply rowRenames
 
-compositeIntersect ::
-    TypeVars.CompositeVarKind t =>
-    TypeVars -> CompositeVars t -> CompositeVars t
-compositeIntersect tvs (CompositeVars c) =
-    CompositeVars (Map.filterWithKey inTVs c)
+intersect :: TypeVars -> Constraints -> Constraints
+intersect tvs (Constraints c) =
+    Constraints (Map.filterWithKey inTVs c)
     where
         inTVs rtv _ = rtv `TypeVars.member` tvs
 
-intersect :: TypeVars -> Constraints -> Constraints
-intersect tvs (Constraints p s) =
-    Constraints (compositeIntersect tvs p) (compositeIntersect tvs s)
-
-compositeDifference :: CompositeVars t -> CompositeVars t -> CompositeVars t
-compositeDifference (CompositeVars big) (CompositeVars small) =
-    CompositeVars (Map.difference big small)
-
 difference :: Constraints -> Constraints -> Constraints
-difference (Constraints bigp bigs) (Constraints smallp smalls) =
-    Constraints (compositeDifference bigp smallp) (compositeDifference bigs smalls)
+difference (Constraints big) (Constraints small) =
+    Constraints (Map.difference big small)

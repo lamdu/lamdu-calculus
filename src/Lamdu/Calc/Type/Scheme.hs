@@ -67,12 +67,10 @@ alphaEq
     (Scheme aForall aConstraints aType)
     (Scheme bForall bConstraints bType) =
         case TypeMatch.matchVars aType bType of
-        Just (tvPairs, ctvPairs, stvPairs)
+        Just (tvPairs, rvPairs)
             | Just tvMap <- fromDoublyConsistentList tvPairs
-            , Just ctvMap <- fromDoublyConsistentList ctvPairs
-            , Just stvMap <- fromDoublyConsistentList stvPairs
-            -> all (checkVarsMatch Constraints.getVariantVar) (Map.toList stvMap) &&
-               all (checkVarsMatch Constraints.getRecordVar) (Map.toList ctvMap) &&
+            , Just rvMap <- fromDoublyConsistentList rvPairs
+            -> all (checkVarsMatch Constraints.getRowVar) (Map.toList rvMap) &&
                all (checkVarsMatch Constraints.getTypeVar) (Map.toList tvMap)
         _ -> False
     where
@@ -108,7 +106,7 @@ any =
 instance NFData Scheme where
 
 instance Pretty Scheme where
-    pPrintPrec lvl prec (Scheme vars@(TypeVars tv rv sv) constraints t)  =
+    pPrintPrec lvl prec (Scheme vars@(TypeVars tv rv) constraints t)  =
         maybeParens (0 < prec) $
         forallStr <+> constraintsStr <+> pPrintPrec lvl 0 t
         where
@@ -116,7 +114,7 @@ instance Pretty Scheme where
                 | mempty == vars = mempty
                 | otherwise =
                     PP.text "forall" <+>
-                    PP.hsep (map pPrint (Set.toList tv) ++ map pPrint (Set.toList rv) ++ map pPrint (Set.toList sv)) PP.<>
+                    PP.hsep (map pPrint (Set.toList tv) ++ map pPrint (Set.toList rv)) PP.<>
                     PP.text "."
             constraintsStr
                 | mempty == constraints = mempty

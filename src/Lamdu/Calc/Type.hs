@@ -14,15 +14,13 @@
 module Lamdu.Calc.Type
     (
     -- * Type Variable kinds
-      RecordTag, VariantTag
-    , RecordVar, VariantVar, TypeVar
-    , Record   , Variant
+      RowVar, TypeVar
     -- * Typed identifiers of the Type AST
     , Var(..), NominalId(..), Tag(..), ParamId(..)
-    -- * Composites
-    , Composite(..)
+    -- * Rows
+    , Row(..)
     -- * Composite Prisms
-    , _CExtend, _CEmpty, _CVar
+    , _RExtend, _REmpty, _RVar
     -- * Type AST
     , Type(..)
     , (~>)
@@ -65,49 +63,28 @@ newtype Tag = Tag { tagName :: Identifier }
 newtype ParamId = ParamId { typeParamId :: Identifier }
     deriving (Eq, Ord, Show, NFData, IsString, Pretty, Binary, Hashable)
 
--- | This is a type-level tag used to tag composites as records in the
--- type-level. It is not used as the type of values.
-data RecordTag
-
--- | This is a type-level tag used to tag composites as variants
--- (variants) in the type-level. It is not used as the type of values.
-data VariantTag
-
--- | The AST type for record types
-type Record = Composite RecordTag
-
--- | The AST type for variant types
-type Variant = Composite VariantTag
-
--- | A row type variable (of kind 'Record') that represents a set of
--- typed fields in a record
-type RecordVar = Var Record
-
--- | A column type variable (of kind 'Variant') that represents a set of
--- typed data constructors in a variant
-type VariantVar = Var Variant
+-- | A row type variable that represents a set of
+-- typed fields in a row
+type RowVar = Var Row
 
 -- | A type variable that represents a type
 type TypeVar = Var Type
 
--- | The AST for extensible composite types (records, variants) For
--- example: CExtend "a" int (CExtend "b" bool (CVar "c")) represents
+-- | The AST for rows (records, variants) For
+-- example: RExtend "a" int (RExtend "b" bool (RVar "c")) represents
 -- the composite type:
 -- > { a : int, b : bool | c }
--- This composite type can be a record or variant, depending on the
--- phantom type tag ('RecordTag' or 'VariantTag')
-data Composite p
-    = CExtend Tag Type (Composite p)
-      -- ^ Extend a composite type with an extra component (field /
+data Row
+    = RExtend Tag Type Row
+      -- ^ Extend a row type with an extra component (field /
       -- data constructor).
-    | CEmpty
-      -- ^ The empty composite type (empty record [unit] or empty variant [void])
-    | CVar (Var (Composite p))
-      -- ^ A row/column type variable (represents some unknown
-      -- composite of the same kind)
+    | REmpty
+      -- ^ The empty row type (empty record [unit] or empty variant [void])
+    | RVar (Var Row)
+      -- ^ A row type variable
     deriving (Generic, Show, Eq, Ord)
-instance NFData (Composite p)
-instance Binary (Composite p)
+instance NFData Row
+instance Binary Row
 
 -- | The AST for any Lamdu Calculus type
 data Type
@@ -118,15 +95,15 @@ data Type
     | TInst NominalId (Map ParamId Type)
       -- ^ An instantiation of a nominal type of the given id with the
       -- given keyword type arguments
-    | TRecord Record
+    | TRecord Row
       -- ^ Lifts a composite record type
-    | TVariant Variant
+    | TVariant Row
       -- ^ Lifts a composite variant type
     deriving (Generic, Show, Eq, Ord)
 instance NFData Type
 instance Binary Type
 
-Lens.makePrisms ''Composite
+Lens.makePrisms ''Row
 Lens.makePrisms ''Type
 
 -- | A convenience infix alias for 'TFun'
@@ -153,11 +130,11 @@ instance Pretty Type where
         TRecord r -> PP.text "*" <> pPrint r
         TVariant s -> PP.text "+" <> pPrint s
 
-instance Pretty (Composite p) where
-    pPrint CEmpty = PP.text "{}"
+instance Pretty Row where
+    pPrint REmpty = PP.text "{}"
     pPrint x =
         PP.text "{" <+> go PP.empty x <+> PP.text "}"
         where
-            go _   CEmpty          = PP.empty
-            go sep (CVar tv)       = sep <> pPrint tv <> PP.text "..."
-            go sep (CExtend f t r) = sep PP.<> pPrint f <+> PP.text ":" <+> pPrint t PP.<> go (PP.text ", ") r
+            go _   REmpty          = PP.empty
+            go sep (RVar tv)       = sep <> pPrint tv <> PP.text "..."
+            go sep (RExtend f t r) = sep PP.<> pPrint f <+> PP.text ":" <+> pPrint t PP.<> go (PP.text ", ") r

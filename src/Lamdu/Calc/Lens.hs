@@ -52,10 +52,10 @@ import           Lamdu.Calc.Type.Scheme (Scheme(..))
 import           Prelude.Compat
 
 {-# INLINE compositeTypes #-}
-compositeTypes :: Lens.Traversal' (T.Composite p) Type
-compositeTypes f (T.CExtend tag typ rest) = T.CExtend tag <$> f typ <*> compositeTypes f rest
-compositeTypes _ T.CEmpty = pure T.CEmpty
-compositeTypes _ (T.CVar tv) = pure (T.CVar tv)
+compositeTypes :: Lens.Traversal' T.Row Type
+compositeTypes f (T.RExtend tag typ rest) = T.RExtend tag <$> f typ <*> compositeTypes f rest
+compositeTypes _ T.REmpty = pure T.REmpty
+compositeTypes _ (T.RVar v) = pure (T.RVar v)
 
 {-# INLINE nextLayer #-}
 -- | Traverse direct types within a type
@@ -94,13 +94,7 @@ typeTags f x = nextLayer (typeTags f) x
 
 {-# INLINE constraintsTagsSet #-}
 constraintsTagsSet :: Traversal' Constraints (Set T.Tag)
-constraintsTagsSet f (Constraints productCs sumCs) =
-    Constraints
-    <$> getTags f productCs
-    <*> getTags f sumCs
-    where
-        getTags =
-            Constraints.compositeVars . traverse . Constraints.forbiddenFields
+constraintsTagsSet = Constraints.compositeVars . traverse . Constraints.forbiddenFields
 
 {-# INLINE valApply #-}
 valApply :: Traversal' (Val a) (Tree (V.Apply V.Term) (Ann a))
@@ -163,17 +157,17 @@ valLeafs f (Ann pl body) =
     <&> Ann pl
 
 {-# INLINE compositeFields #-}
-compositeFields :: Traversal' (T.Composite p) (T.Tag, Type)
-compositeFields f (T.CExtend tag typ rest) =
-    uncurry T.CExtend <$> f (tag, typ) <*> compositeFields f rest
+compositeFields :: Traversal' T.Row (T.Tag, Type)
+compositeFields f (T.RExtend tag typ rest) =
+    uncurry T.RExtend <$> f (tag, typ) <*> compositeFields f rest
 compositeFields _ r = pure r
 
 {-# INLINE compositeFieldTags #-}
-compositeFieldTags :: Traversal' (T.Composite p) T.Tag
+compositeFieldTags :: Traversal' T.Row T.Tag
 compositeFieldTags = compositeFields . Lens._1
 
 {-# INLINE compositeTags #-}
-compositeTags :: Traversal' (T.Composite p) T.Tag
+compositeTags :: Traversal' T.Row T.Tag
 compositeTags f = compositeFields $ \(tag, typ) -> (,) <$> f tag <*> typeTags f typ
 
 {-# INLINE subExprPayloads #-}

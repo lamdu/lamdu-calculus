@@ -3,7 +3,7 @@ module Lamdu.Calc.Type.Vars
     ( TypeVars(..)
     , null
     , Free(..)
-    , VarKind(..), CompositeVarKind(..)
+    , VarKind(..)
     , difference, intersection
     , Renames(..), applyRenames, renameDest
     , nullRenames
@@ -27,19 +27,18 @@ import           Text.PrettyPrint.HughesPJClass (Pretty(..))
 
 data TypeVars = TypeVars
     { typeVars :: !(Set T.TypeVar)
-    , recordTypeVars :: !(Set T.RecordVar)
-    , variantTypeVars :: !(Set T.VariantVar)
+    , rowVars :: !(Set T.RowVar)
     } deriving (Eq, Ord, Generic, Show)
 instance NFData TypeVars where
 instance Semigroup TypeVars where
-    TypeVars t0 r0 s0 <> TypeVars t1 r1 s1 = TypeVars (t0 <> t1) (r0 <> r1) (s0 <> s1)
+    TypeVars t0 r0 <> TypeVars t1 r1 = TypeVars (t0 <> t1) (r0 <> r1)
 instance Monoid TypeVars where
-    mempty = TypeVars mempty mempty mempty
+    mempty = TypeVars mempty mempty
     mappend = (<>)
 
 instance Pretty TypeVars where
-    pPrint (TypeVars tvs rtvs stvs) =
-        PP.hcat $ PP.punctuate (PP.text ", ") $ p tvs ++ p rtvs ++ p stvs
+    pPrint (TypeVars tvs rvs) =
+        PP.hcat $ PP.punctuate (PP.text ", ") $ p tvs ++ p rvs
         where
             p :: Set (T.Var t) -> [PP.Doc]
             p = map pPrint . Set.elems
@@ -47,16 +46,16 @@ instance Pretty TypeVars where
 instance Binary TypeVars
 
 difference :: TypeVars -> TypeVars -> TypeVars
-difference (TypeVars t0 r0 s0) (TypeVars t1 r1 s1) =
-    TypeVars (Set.difference t0 t1) (Set.difference r0 r1) (Set.difference s0 s1)
+difference (TypeVars t0 r0) (TypeVars t1 r1) =
+    TypeVars (Set.difference t0 t1) (Set.difference r0 r1)
 
 intersection :: TypeVars -> TypeVars -> TypeVars
-intersection (TypeVars t0 r0 s0) (TypeVars t1 r1 s1) =
-    TypeVars (Set.intersection t0 t1) (Set.intersection r0 r1) (Set.intersection s0 s1)
+intersection (TypeVars t0 r0) (TypeVars t1 r1) =
+    TypeVars (Set.intersection t0 t1) (Set.intersection r0 r1)
 
 {-# INLINE null #-}
 null :: TypeVars -> Bool
-null (TypeVars t r s) = Set.null t && Set.null r && Set.null s
+null (TypeVars t r) = Set.null t && Set.null r
 
 class Free t where free :: t -> TypeVars
 
@@ -69,12 +68,12 @@ instance Free Type where
     free (T.TInst _ p)   =  mconcat $ map free $ Map.elems p
     free (T.TFun t1 t2)  =  free t1 <> free t2
     free (T.TRecord r)   =  free r
-    free (T.TVariant s)      =  free s
+    free (T.TVariant s)  =  free s
 
-instance CompositeVarKind p => Free (T.Composite p) where
-    free T.CEmpty          = mempty
-    free (T.CVar n)        = singleton n
-    free (T.CExtend _ t r) = free t <> free r
+instance Free T.Row where
+    free T.REmpty          = mempty
+    free (T.RVar n)        = singleton n
+    free (T.RExtend _ t r) = free t <> free r
 
 class VarKind t where
     lift :: T.Var t -> t
@@ -91,52 +90,37 @@ instance VarKind Type where
     member v tvs = v `Set.member` typeVars tvs
     singleton v = mempty { typeVars = Set.singleton v }
 
-class CompositeVarKind p where
-    compositeMember :: T.Var (T.Composite p) -> TypeVars -> Bool
-    compositeSingleton :: T.Var (T.Composite p) -> TypeVars
-
-instance CompositeVarKind T.RecordTag where
-    compositeMember v tvs = v `Set.member` recordTypeVars tvs
-    compositeSingleton v = mempty { recordTypeVars = Set.singleton v }
-
-instance CompositeVarKind T.VariantTag where
-    compositeMember v tvs = v `Set.member` variantTypeVars tvs
-    compositeSingleton v = mempty { variantTypeVars = Set.singleton v }
-
-instance CompositeVarKind p => VarKind (T.Composite p) where
-    lift = T.CVar
+instance VarKind T.Row where
+    lift = T.RVar
     {-# INLINE lift #-}
-    unlift (T.CVar tv) = Just tv
+    unlift (T.RVar tv) = Just tv
     unlift _ = Nothing
     {-# INLINE unlift #-}
-    member = compositeMember
+    member v tvs = v `Set.member` rowVars tvs
     {-# INLINE member #-}
-    singleton = compositeSingleton
+    singleton v = mempty { rowVars = Set.singleton v }
     {-# INLINE singleton #-}
 
 data Renames = Renames
     { renamesTv :: Map T.TypeVar T.TypeVar
-    , renamesProd :: Map T.RecordVar T.RecordVar
-    , renamesVariant :: Map T.VariantVar T.VariantVar
+    , renamesRv :: Map T.RowVar T.RowVar
     } deriving (Eq, Ord, Show)
 
 nullRenames :: Renames -> Bool
-nullRenames (Renames tv rtv stv) = Map.null tv && Map.null rtv && Map.null stv
+nullRenames (Renames tv rv) = Map.null tv && Map.null rv
 
 renameDest :: Renames -> TypeVars
-renameDest (Renames tvRenames prodRenames variantRenames) =
+renameDest (Renames tvRenames rvRenames) =
     TypeVars
     (Set.fromList (Map.elems tvRenames))
-    (Set.fromList (Map.elems prodRenames))
-    (Set.fromList (Map.elems variantRenames))
+    (Set.fromList (Map.elems rvRenames))
 
 {-# INLINE applyRenames #-}
 applyRenames :: Renames -> TypeVars -> TypeVars
-applyRenames (Renames tvRenames prodRenames variantRenames) (TypeVars tvs rtvs stvs) =
+applyRenames (Renames tvRenames rvRenames) (TypeVars tvs rvs) =
     TypeVars
     (apply tvRenames tvs)
-    (apply prodRenames rtvs)
-    (apply variantRenames stvs)
+    (apply rvRenames rvs)
     where
         apply renames = Set.map (applyRename renames)
         applyRename m k = fromMaybe k (Map.lookup k m)

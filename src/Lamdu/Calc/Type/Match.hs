@@ -12,7 +12,7 @@ import qualified Lamdu.Calc.Type.FlatComposite as Flat
 
 import           Prelude.Compat
 
-type VarMatches = ([(TypeVar, TypeVar)], [(RecordVar, RecordVar)], [(VariantVar, VariantVar)])
+type VarMatches = ([(TypeVar, TypeVar)], [(RowVar, RowVar)])
 
 matchMap :: Ord k => (a -> b -> c) -> Map k a -> Map k b -> Maybe (Map k c)
 matchMap valMatch m0 m1
@@ -21,21 +21,21 @@ matchMap valMatch m0 m1
     | otherwise = Nothing
 
 matchVars :: Type -> Type -> Maybe VarMatches
-matchVars (TVar tv0)         (TVar tv1)         = Just ([(tv0, tv1)], [], [])
+matchVars (TVar tv0)         (TVar tv1)         = Just ([(tv0, tv1)], [])
 matchVars (TFun a0 b0)       (TFun a1 b1)       = mappend <$> matchVars a0 a1 <*> matchVars b0 b1
 matchVars (TInst i0 params0) (TInst i1 params1)
     | i0 == i1 =
         matchMap matchVars params0 params1
         <&> Map.elems >>= sequence <&> mconcat
 matchVars (TRecord c0) (TRecord c1) =
-    matchCompositeVars (\x -> ([], x, [])) c0 c1
+    matchCompositeVars (\x -> ([], x)) c0 c1
 matchVars (TVariant c0) (TVariant c1) =
-    matchCompositeVars (\x -> ([], [], x)) c0 c1
+    matchCompositeVars (\x -> ([], x)) c0 c1
 matchVars _ _ = Nothing
 
 matchCompositeVars ::
-    ([(Var (Composite t), Var (Composite t))] -> VarMatches) ->
-    Composite t -> Composite t -> Maybe VarMatches
+    ([(RowVar, RowVar)] -> VarMatches) ->
+    Row -> Row -> Maybe VarMatches
 matchCompositeVars f c0 c1 =
     case (v0, v1) of
     (Nothing, Nothing) -> fMatch

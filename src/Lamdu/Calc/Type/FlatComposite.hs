@@ -14,19 +14,19 @@ import qualified Lamdu.Calc.Type as T
 
 import           Prelude.Compat
 
-data FlatComposite p = FlatComposite
+data FlatComposite = FlatComposite
     { _fields :: Map T.Tag Type
-    , _extension :: Maybe (T.Var (T.Composite p)) -- TyVar of more possible fields
-    } deriving (Show)
+    , _extension :: Maybe (T.Var T.Row) -- TyVar of more possible fields
+    } deriving Show
 
 Lens.makeLenses ''FlatComposite
 
 -- From a record type to a sorted list of fields
-fromComposite :: T.Composite p -> FlatComposite p
-fromComposite (T.CExtend name typ rest) = fromComposite rest & fields %~ Map.insert name typ
-fromComposite T.CEmpty                  = FlatComposite Map.empty Nothing
-fromComposite (T.CVar name)             = FlatComposite Map.empty (Just name)
+fromComposite :: T.Row -> FlatComposite
+fromComposite (T.RExtend name typ rest) = fromComposite rest & fields %~ Map.insert name typ
+fromComposite T.REmpty                  = FlatComposite Map.empty Nothing
+fromComposite (T.RVar name)             = FlatComposite Map.empty (Just name)
 
-toComposite :: FlatComposite p -> T.Composite p
+toComposite :: FlatComposite -> T.Row
 toComposite (FlatComposite fs ext) =
-    Map.foldrWithKey T.CExtend (maybe T.CEmpty T.CVar ext) fs
+    Map.foldrWithKey T.RExtend (maybe T.REmpty T.RVar ext) fs
