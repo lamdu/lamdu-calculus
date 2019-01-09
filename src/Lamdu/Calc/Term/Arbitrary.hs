@@ -8,12 +8,10 @@ import qualified Control.Lens as Lens
 import           Control.Lens.Operators
 import           Control.Monad (replicateM)
 import qualified Data.ByteString as BS
-import           Data.Map (Map)
 import           Data.Set (Set)
 import           Lamdu.Calc.Identifier (Identifier(..))
 import           Lamdu.Calc.Term
 import qualified Lamdu.Calc.Type as T
-import           Lamdu.Calc.Type.Scheme (Scheme)
 import           Test.QuickCheck (Arbitrary(..))
 import qualified Test.QuickCheck.Gen as Gen
 
@@ -21,7 +19,7 @@ import           Prelude.Compat hiding (any)
 
 data Env = Env
     { _envScope :: Set Var
-    , _envGlobals :: Map Var Scheme
+    , _envGlobals :: Set Var
     }
 Lens.makeLenses ''Env
 
@@ -50,7 +48,7 @@ instance ArbitraryWithContext Leaf where
         , LAbsurd
         ]
         <> ( ctx ^.. envScope . Lens.folded
-            <> ctx ^.. envGlobals . Lens.itraversed . Lens.asIndex
+            <> ctx ^.. envGlobals . Lens.folded
             <&> LVar)
         & Gen.elements
 
