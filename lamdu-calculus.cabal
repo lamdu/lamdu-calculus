@@ -17,27 +17,26 @@ library
   ghc-options:         -O2 -Wall -Wnoncanonical-monad-instances -Wcompat -Wincomplete-record-updates -Wincomplete-uni-patterns -Wredundant-constraints
   hs-source-dirs:      src
   exposed-modules:     Lamdu.Calc.Identifier
+                     , Lamdu.Calc.Infer
                      , Lamdu.Calc.Lens
                      , Lamdu.Calc.Pure
                      , Lamdu.Calc.Term
                      , Lamdu.Calc.Term.Arbitrary
                      , Lamdu.Calc.Term.Eq
                      , Lamdu.Calc.Type
-                     , Lamdu.Calc.Type.Constraints
-                     , Lamdu.Calc.Type.FlatComposite
-                     , Lamdu.Calc.Type.Match
-                     , Lamdu.Calc.Type.Nominal
-                     , Lamdu.Calc.Type.Scheme
-                     , Lamdu.Calc.Type.Vars
   build-depends:       base >= 4.7
                      , base-compat >= 0.8.2
                      , base16-bytestring
                      , binary
                      , bytestring
+                     , constraints
                      , containers
                      , deepseq
                      , hashable
+                     , lattices
                      , lens >= 4.1
+                     , monad-st
+                     , mtl
                      , pretty >=1.1.2
                      , syntax-tree
                      , transformers
@@ -47,3 +46,24 @@ library
 source-repository head
   type:     git
   location: https://github.com/lamdu/lamdu-calculus.git
+
+benchmark bench-builder-all
+  ghc-options: -O2
+  type:             exitcode-stdio-1.0
+  hs-source-dirs:   test
+  main-is:          benchmark.hs
+  other-modules:    TestVals
+  build-depends: base
+               , base-compat
+               , bytestring
+               , containers
+               , criterion
+               , deepseq
+               , lamdu-calculus
+               , lens
+               , lattices
+               , monad-st
+               , mtl
+               , pretty
+               , syntax-tree
+               , transformers

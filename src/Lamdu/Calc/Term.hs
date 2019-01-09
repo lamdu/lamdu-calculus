@@ -3,6 +3,8 @@
 {-# LANGUAGE GeneralizedNewtypeDeriving, TemplateHaskell, FlexibleContexts #-}
 {-# LANGUAGE UndecidableInstances, StandaloneDeriving, TypeFamilies #-}
 {-# LANGUAGE MultiParamTypeClasses, FlexibleInstances, ConstraintKinds #-}
+{-# LANGUAGE TupleSections, ScopedTypeVariables #-}
+
 module Lamdu.Calc.Term
     ( Val
     , Leaf(..), _LVar, _LHole, _LLiteral, _LRecEmpty, _LAbsurd, _LFromNom
@@ -15,21 +17,32 @@ module Lamdu.Calc.Term
     , Inject(..), injectVal, injectTag
     , Lam(..), lamIn, lamOut
     , Var(..)
+    , ScopeTypes(..), _ScopeTypes
+    , ToNom(..), FromNom(..), RowExtend(..)
     ) where
 
-import           Prelude.Compat
-
-import           AST (Tree, Tie, Ann, Recursive, makeChildren)
+import           AST (Tree, Tie, Ann, Recursive(..), RecursiveDict, makeChildren)
+import           AST.Infer
 import           AST.Term.Apply (Apply(..), applyFunc, applyArg)
+import           AST.Term.FuncType (FuncType(..))
 import           AST.Term.Lam (Lam(..), lamIn, lamOut)
-import           AST.Term.Nominal (ToNom(..))
-import           AST.Term.Row (RowExtend(..))
+import           AST.Term.Nominal (ToNom(..), FromNom(..), NominalInst(..), MonadNominals)
+import           AST.Term.Row (RowExtend(..), rowElementInfer)
+import           AST.Term.Scheme (QVarInstances(..))
+import qualified AST.Term.Var as TermVar
+import           AST.Unify
+import           AST.Unify.Binding (newVar)
+import qualified AST.Unify.Generalize as G
+import           AST.Unify.Term (UTerm(..))
 import           Control.DeepSeq (NFData(..))
 import qualified Control.Lens as Lens
+import           Control.Lens.Operators
 import           Data.Binary (Binary)
 import           Data.ByteString (ByteString)
 import qualified Data.ByteString.Char8 as BS8
+import           Data.Constraint (withDict)
 import           Data.Hashable (Hashable(..))
+import           Data.Map (Map)
 import           Data.Semigroup ((<>))
 import           Data.String (IsString(..))
 import           GHC.Generics (Generic)
@@ -38,6 +51,8 @@ import qualified Lamdu.Calc.Type as T
 import           Text.PrettyPrint ((<+>))
 import qualified Text.PrettyPrint as PP
 import           Text.PrettyPrint.HughesPJClass (Pretty(..), maybeParens)
+
+import           Prelude.Compat
 
 {-# ANN module ("HLint: ignore Use const"::String) #-}
 
@@ -88,15 +103,15 @@ instance Hashable exp => Hashable (Inject exp)
 
 Lens.makeLenses ''Inject
 
-data Term f
-    = BApp {-# UNPACK #-}!(Apply Term f)
-    | BLam {-# UNPACK #-}!(Lam Var Term f)
-    | BGetField {-# UNPACK #-}!(GetField (Tie f Term))
-    | BRecExtend {-# UNPACK #-}!(RowExtend T.Tag Term Term f)
-    | BInject {-# UNPACK #-}!(Inject (Tie f Term))
-    | BCase {-# UNPACK #-}!(RowExtend T.Tag Term Term f)
+data Term k
+    = BApp {-# UNPACK #-}!(Apply Term k)
+    | BLam {-# UNPACK #-}!(Lam Var Term k)
+    | BGetField {-# UNPACK #-}!(GetField (Tie k Term))
+    | BRecExtend {-# UNPACK #-}!(RowExtend T.Tag Term Term k)
+    | BInject {-# UNPACK #-}!(Inject (Tie k Term))
+    | BCase {-# UNPACK #-}!(RowExtend T.Tag Term Term k)
     | -- Convert to Nominal type
-      BToNom {-# UNPACK #-}!(ToNom T.NominalId Term f)
+      BToNom {-# UNPACK #-}!(ToNom T.NominalId Term k)
     | BLeaf Leaf
     deriving Generic
 
@@ -146,5 +161,86 @@ instance Pretty (Tie f Term) => Pretty (Term f) where
             where
                 prField = pPrint tag <+> PP.text "=" <+> pPrint val
 
+newtype ScopeTypes v = ScopeTypes (Map Var (G.Generalized T.Type v))
+    deriving (Semigroup, Monoid)
+Lens.makePrisms ''ScopeTypes
+makeChildren ''ScopeTypes
+
+type instance ScopeOf Term = ScopeTypes
+type instance TypeOf Term = T.Type
+
+instance TermVar.VarType Var Term where
+    varType _ v (ScopeTypes x) = x ^?! Lens.ix v & G.instantiate
+
+instance
+    ( MonadNominals T.NominalId T.Type m
+    , HasScope m ScopeTypes
+    , Unify m T.Type, Unify m T.Row
+    , LocalScopeType Var (Tree (UVar m) T.Type) m
+    ) =>
+    Infer m Term where
+
+    infer (BApp x) = infer x <&> Lens._2 %~ BApp
+    infer (BLam x) = infer x <&> Lens._2 %~ BLam
+    infer (BToNom x) = infer x <&> Lens._2 %~ BToNom
+    infer (BLeaf leaf) =
+        case leaf of
+        LHole -> newUnbound
+        LRecEmpty -> newTerm T.REmpty >>= newTerm . T.TRecord
+        LAbsurd ->
+            FuncType
+            <$> (newTerm T.REmpty >>= newTerm . T.TVariant)
+            <*> newUnbound
+            >>= newTerm . T.TFun
+        LLiteral (PrimVal t _) ->
+            T.Types (QVarInstances mempty) (QVarInstances mempty)
+            & NominalInst t
+            & T.TInst & newTerm
+        LVar x ->
+            infer (TermVar.Var x :: Tree (TermVar.Var Var Term) (Ann a))
+            <&> (^. Lens._1)
+        LFromNom x ->
+            infer (FromNom x :: Tree (FromNom T.NominalId Term) (Ann a))
+            <&> (^. Lens._1)
+        <&> (, BLeaf leaf)
+    infer (BGetField (GetField w k)) =
+        do
+            (rT, wR) <- rowElementInfer T.RExtend k
+            wI <- inferNode w
+            _ <- T.TRecord wR & newTerm >>= unify (wI ^. iType)
+            pure (rT, BGetField (GetField wI k))
+    infer (BInject (Inject k p)) =
+        do
+            (rT, wR) <- rowElementInfer T.RExtend k
+            pI <- inferNode p
+            _ <- unify rT (pI ^. iType)
+            T.TVariant wR & newTerm <&> (, BInject (Inject k pI))
+    infer (BRecExtend (RowExtend k v r)) =
+        withDict (recursive :: RecursiveDict (Unify m) T.Type) $
+        do
+            vI <- inferNode v
+            rI <- inferNode r
+            restR <-
+                scopeConstraints <&> T.rForbiddenFields . Lens.contains k .~ True
+                >>= newVar binding . UUnbound
+            _ <- T.TRecord restR & newTerm >>= unify (rI ^. iType)
+            RowExtend k (vI ^. iType) restR & T.RExtend & newTerm
+                >>= newTerm . T.TRecord
+                <&> (, BRecExtend (RowExtend k vI rI))
+    infer (BCase (RowExtend tag handler rest)) =
+        do
+            handlerI <- inferNode handler
+            restI <- inferNode rest
+            fieldT <- newUnbound
+            restR <- newUnbound
+            result <- newUnbound
+            _ <- FuncType fieldT result & T.TFun & newTerm >>= unify (handlerI ^. iType)
+            restT <- T.TVariant restR & newTerm
+            _ <- FuncType restT result & T.TFun & newTerm >>= unify (restI ^. iType)
+            whole <- RowExtend tag fieldT restR & T.RExtend & newTerm >>= newTerm . T.TVariant
+            FuncType whole result & T.TFun & newTerm
+                <&> (, BCase (RowExtend tag handlerI restI))
+
 -- Type synonym to ease the transition
+
 type Val a = Tree (Ann a) Term

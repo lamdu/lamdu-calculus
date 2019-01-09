@@ -22,14 +22,6 @@ module Lamdu.Calc.Lens
     , subExprs
     , payloadsIndexedByPath
     , payloadsOf
-    -- Type traversals:
-    , schemeTags, schemeGetTags
-    , compositeTypes
-    , compositeTags
-    , compositeFieldTags, compositeFields
-    , nextLayer
-    , typeTIds
-    , typeTags
     ) where
 
 import           AST (Tree)
@@ -42,61 +34,11 @@ import qualified Control.Lens as Lens
 import           Control.Lens.Operators
 import           Data.Set (Set)
 import qualified Data.Set as Set
-import           Data.Set.Lens (setmapped)
 import           Lamdu.Calc.Term (Val)
 import qualified Lamdu.Calc.Term as V
-import           Lamdu.Calc.Type (Type)
 import qualified Lamdu.Calc.Type as T
-import           Lamdu.Calc.Type.Constraints (Constraints(..))
-import qualified Lamdu.Calc.Type.Constraints as Constraints
-import           Lamdu.Calc.Type.Scheme (Scheme(..))
 
 import           Prelude.Compat
-
-{-# INLINE compositeTypes #-}
-compositeTypes :: Lens.Traversal' T.Row Type
-compositeTypes f (T.RExtend tag typ rest) = T.RExtend tag <$> f typ <*> compositeTypes f rest
-compositeTypes _ T.REmpty = pure T.REmpty
-compositeTypes _ (T.RVar v) = pure (T.RVar v)
-
-{-# INLINE nextLayer #-}
--- | Traverse direct types within a type
-nextLayer :: Lens.Traversal' Type Type
-nextLayer _ (T.TVar tv) = pure (T.TVar tv)
-nextLayer f (T.TFun a r) = T.TFun <$> f a <*> f r
-nextLayer f (T.TInst tid m) = T.TInst tid <$> Lens.traverse f m
-nextLayer f (T.TRecord p) = T.TRecord <$> compositeTypes f p
-nextLayer f (T.TVariant s) = T.TVariant <$> compositeTypes f s
-
-{-# INLINE typeTIds #-}
-typeTIds :: Lens.Traversal' Type T.NominalId
-typeTIds f (T.TInst tId args) =
-    T.TInst <$> f tId <*> Lens.traverse (typeTIds f) args
-typeTIds f x = nextLayer (typeTIds f) x
-
-{-# INLINE schemeTags #-}
-schemeTags :: Lens.Setter' Scheme T.Tag
-schemeTags f (Scheme tvs constraints typ) =
-    Scheme tvs
-    <$> (constraintsTagsSet . setmapped) f constraints
-    <*> typeTags f typ
-
-schemeGetTags :: Lens.Fold Scheme T.Tag
-schemeGetTags =
-    Lens.folding $
-    \(Scheme _tvs constraints typ) ->
-    constraints ^.. constraintsTagsSet . Lens.folded
-    ++ typ ^.. typeTags
-
-{-# INLINE typeTags #-}
-typeTags :: Lens.Traversal' Type T.Tag
-typeTags f (T.TRecord composite) = T.TRecord <$> compositeTags f composite
-typeTags f (T.TVariant composite) = T.TVariant <$> compositeTags f composite
-typeTags f x = nextLayer (typeTags f) x
-
-{-# INLINE constraintsTagsSet #-}
-constraintsTagsSet :: Traversal' Constraints (Set T.Tag)
-constraintsTagsSet = Constraints.compositeVars . traverse . Constraints.forbiddenFields
 
 {-# INLINE valApply #-}
 valApply :: Traversal' (Val a) (Tree (V.Apply V.Term) (Ann a))
@@ -157,20 +99,6 @@ valLeafs f (Ann pl body) =
     V.BLeaf l -> Lens.indexed f pl l <&> V.BLeaf
     _ -> monoChildren (valLeafs f) body
     <&> Ann pl
-
-{-# INLINE compositeFields #-}
-compositeFields :: Traversal' T.Row (T.Tag, Type)
-compositeFields f (T.RExtend tag typ rest) =
-    uncurry T.RExtend <$> f (tag, typ) <*> compositeFields f rest
-compositeFields _ r = pure r
-
-{-# INLINE compositeFieldTags #-}
-compositeFieldTags :: Traversal' T.Row T.Tag
-compositeFieldTags = compositeFields . Lens._1
-
-{-# INLINE compositeTags #-}
-compositeTags :: Traversal' T.Row T.Tag
-compositeTags f = compositeFields $ \(tag, typ) -> (,) <$> f tag <*> typeTags f typ
 
 {-# INLINE subExprPayloads #-}
 subExprPayloads :: Lens.IndexedTraversal (Val ()) (Val a) (Val b) a b
@@ -259,6 +187,9 @@ valNominals f (Ann pl body) =
     case body of
     V.BLeaf (V.LFromNom nomId) -> f nomId <&> V.LFromNom <&> V.BLeaf
     V.BToNom (ToNom nomId x) ->
-        ToNom <$> f nomId <*> valNominals f x <&> V.BToNom
+        ToNom
+        <$> f nomId
+        <*> valNominals f x
+        <&> V.BToNom
     _ -> body & monoChildren . valNominals %%~ f
     <&> Ann pl

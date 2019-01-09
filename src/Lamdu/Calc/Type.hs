@@ -10,33 +10,52 @@
 --
 -- * The AST for types: Nominal types, structural composite types,
 --   function types.
-{-# LANGUAGE NoImplicitPrelude, DeriveGeneric, GeneralizedNewtypeDeriving, TemplateHaskell #-}
+{-# LANGUAGE NoImplicitPrelude, DeriveGeneric, GeneralizedNewtypeDeriving #-}
+{-# LANGUAGE TemplateHaskell, DataKinds, StandaloneDeriving #-}
+{-# LANGUAGE UndecidableInstances, ConstraintKinds, FlexibleContexts #-}
+{-# LANGUAGE FlexibleInstances, TypeFamilies, MultiParamTypeClasses #-}
+
 module Lamdu.Calc.Type
     (
     -- * Type Variable kinds
       RowVar, TypeVar
     -- * Typed identifiers of the Type AST
-    , Var(..), NominalId(..), Tag(..), ParamId(..)
+    , Var(..), NominalId(..), Tag(..)
     -- * Rows
     , Row(..)
-    -- * Composite Prisms
+    -- * Row Prisms
     , _RExtend, _REmpty, _RVar
     -- * Type AST
     , Type(..)
     , (~>)
     -- * Type Prisms
     , _TVar, _TFun, _TInst, _TRecord, _TVariant
+    -- TODO: describe
+    , Types(..), tType, tRow
+    , RConstraints(..), rForbiddenFields, rScope
+    , rStructureMismatch
     ) where
 
+import           AST
+import           AST.Class.HasChild
+import           AST.Infer
+import           AST.Term.FuncType
+import           AST.Term.Nominal
+import           AST.Term.Row
+import           AST.Term.Scheme
+import           AST.Unify
+import           AST.Unify.Term
+import           Algebra.PartialOrd
+import           Algebra.Lattice
 import           Control.DeepSeq (NFData(..))
 import qualified Control.Lens as Lens
+import           Control.Lens.Operators
 import           Data.Binary (Binary)
 import           Data.Hashable (Hashable)
-import qualified Data.List as List
-import           Data.Map (Map)
-import qualified Data.Map as Map
+import           Data.Set (Set, singleton)
 import           Data.Semigroup ((<>))
 import           Data.String (IsString(..))
+import           GHC.Exts (Constraint)
 import           GHC.Generics (Generic)
 import           Lamdu.Calc.Identifier (Identifier)
 import           Text.PrettyPrint ((<+>))
@@ -46,7 +65,7 @@ import           Text.PrettyPrint.HughesPJClass (Pretty(..), maybeParens)
 import           Prelude.Compat
 
 -- | A type varible of some kind ('Var' 'Type', 'Var' 'Variant', or 'Var' 'Record')
-newtype Var t = Var { tvName :: Identifier }
+newtype Var (t :: Knot -> *) = Var { tvName :: Identifier }
     deriving (Eq, Ord, Show, NFData, IsString, Pretty, Binary, Hashable)
 
 -- | An identifier for a nominal type
@@ -58,11 +77,6 @@ newtype NominalId = NominalId { nomId :: Identifier }
 newtype Tag = Tag { tagName :: Identifier }
     deriving (Eq, Ord, Show, NFData, IsString, Pretty, Binary, Hashable)
 
--- | In Lamdu Calculus, all type parameters are named (keyword
--- arguments), this is the type of the type parameter names.
-newtype ParamId = ParamId { typeParamId :: Identifier }
-    deriving (Eq, Ord, Show, NFData, IsString, Pretty, Binary, Hashable)
-
 -- | A row type variable that represents a set of
 -- typed fields in a row
 type RowVar = Var Row
@@ -70,71 +84,167 @@ type RowVar = Var Row
 -- | A type variable that represents a type
 type TypeVar = Var Type
 
+type Deps c k = ((c (Tie k Type), c (Tie k Row)) :: Constraint)
+
 -- | The AST for rows (records, variants) For
 -- example: RExtend "a" int (RExtend "b" bool (RVar "c")) represents
 -- the composite type:
 -- > { a : int, b : bool | c }
-data Row
-    = RExtend Tag Type Row
+data Row k
+    = RExtend (RowExtend Tag Type Row k)
       -- ^ Extend a row type with an extra component (field /
       -- data constructor).
     | REmpty
       -- ^ The empty row type (empty record [unit] or empty variant [void])
-    | RVar (Var Row)
+    | RVar RowVar
       -- ^ A row type variable
-    deriving (Generic, Show, Eq, Ord)
-instance NFData Row
-instance Binary Row
+    deriving Generic
 
 -- | The AST for any Lamdu Calculus type
-data Type
+data Type k
     = TVar TypeVar
       -- ^ A type variable
-    | TFun Type Type
+    | TFun (FuncType Type k)
       -- ^ A (non-dependent) function of the given parameter and result types
-    | TInst NominalId (Map ParamId Type)
+    | TInst (NominalInst NominalId Types k)
       -- ^ An instantiation of a nominal type of the given id with the
       -- given keyword type arguments
-    | TRecord Row
+    | TRecord (Tie k Row)
       -- ^ Lifts a composite record type
-    | TVariant Row
+    | TVariant (Tie k Row)
       -- ^ Lifts a composite variant type
-    deriving (Generic, Show, Eq, Ord)
-instance NFData Type
-instance Binary Type
+    deriving Generic
+
+data Types k = Types
+    { _tType :: Tie k Type
+    , _tRow :: Tie k Row
+    } deriving Generic
+
+data RConstraints = RowConstraints
+    { _rForbiddenFields :: Set Tag
+    , _rScope :: ScopeLevel
+    } deriving (Generic, Eq, Show)
 
 Lens.makePrisms ''Row
 Lens.makePrisms ''Type
+Lens.makeLenses ''Types
+Lens.makeLenses ''RConstraints
+makeChildrenAndZipMatch ''Row
+makeChildrenAndZipMatch ''Type
+makeChildrenAndZipMatch ''Types
+
+instance HasChild Types Type where
+    getChild = tType
+
+instance HasChild Types Row where
+    getChild = tRow
 
 -- | A convenience infix alias for 'TFun'
 infixr 2 ~>
-(~>) :: Type -> Type -> Type
-(~>) = TFun
+(~>) :: Tree Pure Type -> Tree Pure Type -> Tree Pure Type
+x ~> y = FuncType x y & TFun & Pure
 
-instance Pretty Type where
+instance Deps Pretty k => Pretty (Type k) where
     pPrintPrec lvl prec typ =
         case typ of
         TVar n -> pPrint n
-        TFun t s ->
+        TInst n -> pPrint n
+        TFun (FuncType t s) ->
             maybeParens (8 < prec) $
             pPrintPrec lvl 9 t <+> PP.text "->" <+> pPrintPrec lvl 8 s
-        TInst n ps ->
-            pPrint n <>
-            if Map.null ps then PP.empty
-            else
-                PP.text "<" <>
-                PP.hsep (List.intersperse PP.comma (map showParam (Map.toList ps))) <>
-                PP.text ">"
-            where
-                showParam (p, v) = pPrint p <+> PP.text "=" <+> pPrint v
         TRecord r -> PP.text "*" <> pPrint r
         TVariant s -> PP.text "+" <> pPrint s
 
-instance Pretty Row where
+instance Pretty (Tree Row Pure) where
     pPrint REmpty = PP.text "{}"
     pPrint x =
         PP.text "{" <+> go PP.empty x <+> PP.text "}"
         where
-            go _   REmpty          = PP.empty
-            go sep (RVar tv)       = sep <> pPrint tv <> PP.text "..."
-            go sep (RExtend f t r) = sep PP.<> pPrint f <+> PP.text ":" <+> pPrint t PP.<> go (PP.text ", ") r
+            go _   REmpty = PP.empty
+            go sep (RVar tv) = sep <> pPrint tv <> PP.text "..."
+            go sep (RExtend (RowExtend f t (Pure r))) =
+                sep PP.<> pPrint f <+> PP.text ":" <+> pPrint t PP.<> go (PP.text ", ") r
+
+type instance NomVarTypes Type = Types
+
+instance (c Type, c Row) => Recursive c Type
+instance (c Type, c Row) => Recursive c Row
+
+instance HasFuncType Type where
+    funcType = _TFun
+
+instance HasNominalInst NominalId Type where
+    nominalInst = _TInst
+
+instance HasQuantifiedVar Type where
+    type QVar Type = TypeVar
+    quantifiedVar = _TVar
+
+instance HasQuantifiedVar Row where
+    type QVar Row = RowVar
+    quantifiedVar = _RVar
+
+instance HasTypeConstraints Type where
+    type TypeConstraintsOf Type = ScopeLevel
+    verifyConstraints _ _ _ _ (TVar x) = TVar x & pure
+    verifyConstraints _ c _ u (TFun x) = monoChildren (u c) x <&> TFun
+    verifyConstraints _ c _ u (TRecord x) = u (RowConstraints bottom c) x <&> TRecord
+    verifyConstraints _ c _ u (TVariant x) = u (RowConstraints bottom c) x <&> TVariant
+    verifyConstraints _ c _ u (TInst (NominalInst n (Types t r))) =
+        Types
+        <$> (_QVarInstances . traverse) (u c) t
+        <*> (_QVarInstances . traverse) (u (RowConstraints mempty c)) r
+        <&> NominalInst n <&> TInst
+
+instance HasTypeConstraints Row where
+    type TypeConstraintsOf Row = RConstraints
+    verifyConstraints _ _ _ _ REmpty = pure REmpty
+    verifyConstraints _ _ _ _ (RVar x) = RVar x & pure
+    verifyConstraints p c e u (RExtend x) =
+        applyRowExtendConstraints p c (^. rScope)
+        (e . (`RowConstraints` bottom) . singleton) u x
+        <&> RExtend
+
+instance TypeConstraints RConstraints where
+    generalizeConstraints = rScope .~ bottom
+
+instance RowConstraints RConstraints where
+    type RowConstraintsKey RConstraints = Tag
+    forbidden = rForbiddenFields
+
+instance PartialOrd RConstraints where
+    RowConstraints f0 s0 `leq` RowConstraints f1 s1 = f0 `leq` f1 && s0 `leq` s1
+
+instance JoinSemiLattice RConstraints where
+    RowConstraints f0 s0 \/ RowConstraints f1 s1 = RowConstraints (f0 \/ f1) (s0 \/ s1)
+
+instance BoundedJoinSemiLattice RConstraints where
+    bottom = RowConstraints bottom bottom
+
+rStructureMismatch ::
+    (Unify m Type, Unify m Row) =>
+    Tree (UTermBody (UVar m)) Row -> Tree (UTermBody (UVar m)) Row -> m ()
+rStructureMismatch (UTermBody c0 (RExtend r0)) (UTermBody c1 (RExtend r1)) =
+    rowExtendStructureMismatch (newTerm . RExtend) (c0, r0) (c1, r1)
+rStructureMismatch x y = unifyError (Mismatch (x ^. uBody) (y ^. uBody))
+
+deriving instance Deps Eq   k => Eq   (Row k)
+deriving instance Deps Ord  k => Ord  (Row k)
+deriving instance Deps Show k => Show (Row k)
+instance Deps NFData k => NFData (Row k)
+instance Deps Binary k => Binary (Row k)
+
+deriving instance Deps Eq   k => Eq   (Type k)
+deriving instance Deps Ord  k => Ord  (Type k)
+deriving instance Deps Show k => Show (Type k)
+instance Deps NFData k => NFData (Type k)
+instance Deps Binary k => Binary (Type k)
+
+deriving instance Deps Eq   k => Eq   (Types k)
+deriving instance Deps Ord  k => Ord  (Types k)
+deriving instance Deps Show k => Show (Types k)
+instance Deps NFData k => NFData (Types k)
+instance Deps Binary k => Binary (Types k)
+
+instance NFData RConstraints
+instance Binary RConstraints
