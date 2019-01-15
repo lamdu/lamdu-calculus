@@ -1,4 +1,4 @@
-{-# LANGUAGE NoImplicitPrelude, TypeFamilies, TemplateHaskell, StandaloneDeriving, GeneralizedNewtypeDeriving, ConstraintKinds, UndecidableInstances, TypeSynonymInstances, FlexibleInstances #-}
+{-# LANGUAGE NoImplicitPrelude, TypeFamilies, TemplateHaskell, StandaloneDeriving, GeneralizedNewtypeDeriving, ConstraintKinds, UndecidableInstances, FlexibleInstances #-}
 {-# OPTIONS -fno-warn-orphans #-} -- Arbitrary instances
 module Lamdu.Calc.Term.Arbitrary () where
 
