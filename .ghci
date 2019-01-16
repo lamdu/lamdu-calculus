@@ -2,3 +2,4 @@
 :set -Wall -Wnoncanonical-monad-instances -Wcompat -Wincomplete-record-updates -Wincomplete-uni-patterns -Wredundant-constraints
 :set -odir=ghci-out
 :set -outputdir=ghci-out
+:set -hide-package base-compat-batteries
