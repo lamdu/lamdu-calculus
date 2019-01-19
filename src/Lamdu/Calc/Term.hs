@@ -170,6 +170,7 @@ type instance ScopeOf Term = ScopeTypes
 type instance TypeOf Term = T.Type
 
 instance TermVar.VarType Var Term where
+    {-# INLINE varType #-}
     varType _ v (ScopeTypes x) = x ^?! Lens.ix v & G.instantiate
 
 instance
@@ -180,6 +181,7 @@ instance
     ) =>
     Infer m Term where
 
+    {-# INLINE infer #-}
     infer (BApp x) = infer x <&> Lens._2 %~ BApp
     infer (BLam x) = infer x <&> Lens._2 %~ BLam
     infer (BToNom x) = infer x <&> Lens._2 %~ BToNom

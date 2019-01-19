@@ -15,6 +15,7 @@ cabal-version:       >=1.10
 
 library
   ghc-options:         -O2 -Wall -Wnoncanonical-monad-instances -Wcompat -Wincomplete-record-updates -Wincomplete-uni-patterns -Wredundant-constraints
+  ghc-prof-options: -O2
   hs-source-dirs:      src
   exposed-modules:     Lamdu.Calc.Identifier
                      , Lamdu.Calc.Infer
@@ -49,6 +50,7 @@ source-repository head
 
 benchmark bench-builder-all
   ghc-options: -O2
+  ghc-prof-options: -O2
   type:             exitcode-stdio-1.0
   hs-source-dirs:   test
   main-is:          benchmark.hs

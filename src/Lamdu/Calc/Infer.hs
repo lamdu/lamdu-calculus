@@ -17,6 +17,7 @@ import           AST.Unify
 import           AST.Unify.Binding.Pure
 import           AST.Unify.Binding.ST
 import           AST.Unify.Generalize
+import           AST.Unify.Term
 import           Algebra.Lattice
 import           Control.Applicative (Alternative(..))
 import qualified Control.Lens as Lens
@@ -28,6 +29,7 @@ import           Control.Monad.State.Class
 import           Control.Monad.Trans.Maybe
 import           Control.Monad.Trans.Reader (ReaderT)
 import           Control.Monad.Trans.RWS (RWST)
+import           Control.Monad.Trans.Writer (WriterT)
 import           Data.Functor.Const
 import           Data.Map (Map)
 import           Data.STRef
@@ -117,17 +119,21 @@ Lens.makePrisms ''STInfer
 type instance UVar (STInfer s) = STVar s
 
 instance MonadNominals T.NominalId T.Type (STInfer s) where
+    {-# INLINE getNominalDecl #-}
     getNominalDecl n =
         Lens.view (Lens._1 . ieNominals . Lens.at n) >>= maybe empty pure
 
 instance HasScope (STInfer s) ScopeTypes where
+    {-# INLINE getScope #-}
     getScope = Lens.view (Lens._1 . ieScope)
 
 instance LocalScopeType Var (Tree (STVar s) T.Type) (STInfer s) where
+    {-# INLINE localScopeType #-}
     localScopeType k v =
         local (Lens._1 . ieScope . _ScopeTypes . Lens.at k ?~ monomorphic v)
 
 instance MonadScopeConstraints ScopeLevel (STInfer s) where
+    {-# INLINE scopeConstraints #-}
     scopeConstraints = Lens.view (Lens._1 . ieScopeLevel)
 
 instance MonadQuantify ScopeLevel T.TypeVar (STInfer s) where
@@ -140,6 +146,7 @@ instance MonadQuantify ScopeLevel T.TypeVar (STInfer s) where
                 (x:xs, ys) -> x <$ liftST (writeSTRef gen (xs, ys))
 
 instance MonadScopeConstraints T.RConstraints (STInfer s) where
+    {-# INLINE scopeConstraints #-}
     scopeConstraints = scopeConstraints <&> T.RowConstraints mempty
 
 instance MonadQuantify T.RConstraints T.RowVar (STInfer s) where
@@ -152,10 +159,34 @@ instance MonadQuantify T.RConstraints T.RowVar (STInfer s) where
                 (xs, y:ys) -> y <$ liftST (writeSTRef gen (xs, ys))
 
 instance Unify (STInfer s) T.Type where
+    {-# INLINE binding #-}
     binding = stBinding
     unifyError _ = empty
 
 instance Unify (STInfer s) T.Row where
+    {-# INLINE binding #-}
     binding = stBinding
     unifyError _ = empty
+    {-# INLINE structureMismatch #-}
     structureMismatch = T.rStructureMismatch
+
+{-# SPECIALIZE semiPruneLookup :: Tree (Const Int) T.Type -> PureInfer (Tree (Const Int) T.Type, Tree (UTerm (Const Int)) T.Type) #-}
+{-# SPECIALIZE semiPruneLookup :: Tree (Const Int) T.Row -> PureInfer (Tree (Const Int) T.Row, Tree (UTerm (Const Int)) T.Row) #-}
+{-# SPECIALIZE semiPruneLookup :: Tree (STVar s) T.Type -> STInfer s (Tree (STVar s) T.Type, Tree (UTerm (STVar s)) T.Type) #-}
+{-# SPECIALIZE semiPruneLookup :: Tree (STVar s) T.Row -> STInfer s (Tree (STVar s) T.Row, Tree (UTerm (STVar s)) T.Row) #-}
+{-# SPECIALIZE updateConstraints :: ScopeLevel -> Tree (Const Int) T.Type -> PureInfer (Tree (Const Int) T.Type) #-}
+{-# SPECIALIZE updateConstraints :: T.RConstraints -> Tree (Const Int) T.Row -> PureInfer (Tree (Const Int) T.Row) #-}
+{-# SPECIALIZE updateConstraints :: ScopeLevel -> Tree (STVar s) T.Type -> STInfer s (Tree (STVar s) T.Type) #-}
+{-# SPECIALIZE updateConstraints :: T.RConstraints -> Tree (STVar s) T.Row -> STInfer s (Tree (STVar s) T.Row) #-}
+{-# SPECIALIZE unify :: Tree (Const Int) T.Type -> Tree (Const Int) T.Type -> PureInfer (Tree (Const Int) T.Type) #-}
+{-# SPECIALIZE unify :: Tree (Const Int) T.Row -> Tree (Const Int) T.Row -> PureInfer (Tree (Const Int) T.Row) #-}
+{-# SPECIALIZE unify :: Tree (STVar s) T.Type -> Tree (STVar s) T.Type -> STInfer s (Tree (STVar s) T.Type) #-}
+{-# SPECIALIZE unify :: Tree (STVar s) T.Row -> Tree (STVar s) T.Row -> STInfer s (Tree (STVar s) T.Row) #-}
+{-# SPECIALIZE applyBindings :: Tree (Const Int) T.Type -> PureInfer (Tree Pure T.Type) #-}
+{-# SPECIALIZE applyBindings :: Tree (Const Int) T.Row -> PureInfer (Tree Pure T.Row) #-}
+{-# SPECIALIZE applyBindings :: Tree (STVar s) T.Type -> STInfer s (Tree Pure T.Type) #-}
+{-# SPECIALIZE applyBindings :: Tree (STVar s) T.Row -> STInfer s (Tree Pure T.Row) #-}
+{-# SPECIALIZE instantiateH :: Tree (GTerm (Const Int)) T.Type -> WriterT [PureInfer ()] (PureInfer) (Tree (Const Int) T.Type) #-}
+{-# SPECIALIZE instantiateH :: Tree (GTerm (Const Int)) T.Row -> WriterT [PureInfer ()] (PureInfer) (Tree (Const Int) T.Row) #-}
+{-# SPECIALIZE instantiateH :: Tree (GTerm (STVar s)) T.Type -> WriterT [STInfer s ()] (STInfer s) (Tree (STVar s) T.Type) #-}
+{-# SPECIALIZE instantiateH :: Tree (GTerm (STVar s)) T.Row -> WriterT [STInfer s ()] (STInfer s) (Tree (STVar s) T.Row) #-}

@@ -134,9 +134,11 @@ makeChildrenAndZipMatch ''Type
 makeChildrenAndZipMatch ''Types
 
 instance HasChild Types Type where
+    {-# INLINE getChild #-}
     getChild = tType
 
 instance HasChild Types Row where
+    {-# INLINE getChild #-}
     getChild = tRow
 
 -- | A convenience infix alias for 'TFun'
@@ -171,9 +173,11 @@ instance (c Type, c Row) => Recursive c Type
 instance (c Type, c Row) => Recursive c Row
 
 instance HasFuncType Type where
+    {-# INLINE funcType #-}
     funcType = _TFun
 
 instance HasNominalInst NominalId Type where
+    {-# INLINE nominalInst #-}
     nominalInst = _TInst
 
 instance HasQuantifiedVar Type where
@@ -186,6 +190,7 @@ instance HasQuantifiedVar Row where
 
 instance HasTypeConstraints Type where
     type TypeConstraintsOf Type = ScopeLevel
+    {-# INLINE verifyConstraints #-}
     verifyConstraints _ _ _ _ (TVar x) = TVar x & pure
     verifyConstraints _ c _ u (TFun x) = monoChildren (u c) x <&> TFun
     verifyConstraints _ c _ u (TRecord x) = u (RowConstraints bottom c) x <&> TRecord
@@ -198,6 +203,7 @@ instance HasTypeConstraints Type where
 
 instance HasTypeConstraints Row where
     type TypeConstraintsOf Row = RConstraints
+    {-# INLINE verifyConstraints #-}
     verifyConstraints _ _ _ _ REmpty = pure REmpty
     verifyConstraints _ _ _ _ (RVar x) = RVar x & pure
     verifyConstraints p c e u (RExtend x) =
@@ -206,21 +212,27 @@ instance HasTypeConstraints Row where
         <&> RExtend
 
 instance TypeConstraints RConstraints where
+    {-# INLINE generalizeConstraints #-}
     generalizeConstraints = rScope .~ bottom
 
 instance RowConstraints RConstraints where
     type RowConstraintsKey RConstraints = Tag
+    {-# INLINE forbidden #-}
     forbidden = rForbiddenFields
 
 instance PartialOrd RConstraints where
+    {-# INLINE leq #-}
     RowConstraints f0 s0 `leq` RowConstraints f1 s1 = f0 `leq` f1 && s0 `leq` s1
 
 instance JoinSemiLattice RConstraints where
+    {-# INLINE (\/) #-}
     RowConstraints f0 s0 \/ RowConstraints f1 s1 = RowConstraints (f0 \/ f1) (s0 \/ s1)
 
 instance BoundedJoinSemiLattice RConstraints where
+    {-# INLINE bottom #-}
     bottom = RowConstraints bottom bottom
 
+{-# INLINE rStructureMismatch #-}
 rStructureMismatch ::
     (Unify m Type, Unify m Row) =>
     Tree (UTermBody (UVar m)) Row -> Tree (UTermBody (UVar m)) Row -> m ()
