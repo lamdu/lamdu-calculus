@@ -1,18 +1,19 @@
 {-# LANGUAGE NoImplicitPrelude, OverloadedStrings, ScopedTypeVariables, FlexibleContexts #-}
 import Prelude.Compat
 
-import AST
 import AST.Infer
 import AST.Term.Nominal
 import AST.Term.Scheme
 import AST.Unify
 import Control.DeepSeq (rnf)
 import Control.Exception (evaluate)
+import Control.Lens (ASetter')
 import Control.Lens.Operators
 import Control.Lens.Tuple
 import Control.Monad.Reader
 import Control.Monad.ST.Class
 import Control.Monad.Trans.Maybe
+import Control.Monad.Trans.RWS (RWST(..))
 import Criterion (Benchmarkable, whnfIO)
 import Criterion.Main (bench, defaultMain)
 import qualified Data.Map as Map
@@ -26,8 +27,13 @@ import qualified Lamdu.Calc.Type as T
 
 import TestVals
 
-localInitEnv :: Set T.NominalId -> Set Var -> STInfer s a -> STInfer s a
-localInitEnv usedNominals usedGlobals action =
+localInitEnv ::
+    ( MonadReader env m
+    , Unify m T.Type, Unify m T.Row
+    ) =>
+    ASetter' env (InferEnv (UVar m)) ->
+    Set T.NominalId -> Set Var -> m a -> m a
+localInitEnv l usedNominals usedGlobals action =
     do
         loadedNoms <-
             Map.filterWithKey (\k _ -> k `Set.member` usedNominals) envNominals
@@ -39,35 +45,47 @@ localInitEnv usedNominals usedGlobals action =
                 x
                 & ieScope . _ScopeTypes <>~ loadedSchemes
                 & ieNominals <>~ loadedNoms
-        local (_1 %~ addScope) action
+        local (l %~ addScope) action
 
-inferExpr ::
-    forall s.
-    Val () ->
-    STInfer s (Tree Pure T.Type)
-inferExpr x =
-    inferNode x
-    <&> (^. iType)
-    >>= applyBindings
+varGen :: ([T.TypeVar], [T.RowVar])
+varGen = (["t0", "t1", "t2", "t3", "t4"], ["r0", "r1", "r2", "r3", "r4"])
 
-benchInfer :: Val () -> Benchmarkable
-benchInfer e =
-    do
-        varGen <- newSTRef (["t0", "t1", "t2", "t3", "t4"], ["r0", "r1", "r2", "r3", "r4"])
-        localInitEnv
+benchInferPure :: Val () -> Benchmarkable
+benchInferPure e =
+    runRWST (action ^. _PureInfer) emptyInferEnv (InferState emptyPureInferState varGen)
+    <&> (^. _1)
+    & rnf
+    & evaluate
+    & whnfIO
+    where
+        action =
+            localInitEnv id
             (Set.fromList (e ^.. valNominals))
             (Set.fromList (e ^.. valGlobals mempty))
-            (inferExpr e) ^. _STInfer
-            & (`runReaderT` (emptyInferEnv, varGen))
+            (inferNode e <&> (^. iType) >>= applyBindings)
+
+benchInferST :: Val () -> Benchmarkable
+benchInferST e =
+    do
+        vg <- newSTRef varGen
+        localInitEnv _1
+            (Set.fromList (e ^.. valNominals))
+            (Set.fromList (e ^.. valGlobals mempty))
+            (inferNode e <&> (^. iType) >>= applyBindings) ^. _STInfer
+            & (`runReaderT` (emptyInferEnv, vg))
             & runMaybeT
     & liftST >>= evaluate . rnf & whnfIO
 
 benches :: [(String, Benchmarkable)]
 benches =
-    [ ("factorial", benchInfer factorialVal)
-    , ("euler1", benchInfer euler1Val)
-    , ("solveDepressedQuartic", benchInfer solveDepressedQuarticVal)
-    , ("factors", benchInfer factorsVal)
+    [ ("S_factorial", benchInferST factorialVal)
+    , ("S_euler1", benchInferST euler1Val)
+    , ("S_solveDepressedQuartic", benchInferST solveDepressedQuarticVal)
+    , ("S_factors", benchInferST factorsVal)
+    , ("P_factorial", benchInferPure factorialVal)
+    , ("P_euler1", benchInferPure euler1Val)
+    , ("P_solveDepressedQuartic", benchInferPure solveDepressedQuarticVal)
+    , ("P_factors", benchInferPure factorsVal)
     ]
 
 main :: IO ()
