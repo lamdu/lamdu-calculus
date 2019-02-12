@@ -4,16 +4,21 @@
 
 module Lamdu.Calc.Definition
     ( Deps(..), depsGlobalTypes, depsNominals
+    , pruneDeps
     ) where
 
-import           AST (Tree, Pure)
+import           AST (Ann, Tree, Pure)
 import           AST.Term.Nominal (NominalDecl)
 import           AST.Term.Scheme (Scheme)
 import           Control.DeepSeq (NFData)
 import qualified Control.Lens as Lens
+import           Control.Lens.Operators
 import           Data.Binary (Binary)
 import           Data.Map (Map)
+import qualified Data.Map as Map
+import qualified Data.Set as Set
 import           GHC.Generics (Generic)
+import           Lamdu.Calc.Lens (valGlobals, valNominals)
 import qualified Lamdu.Calc.Term as V
 import           Lamdu.Calc.Type (Type)
 import qualified Lamdu.Calc.Type as T
@@ -34,6 +39,14 @@ instance Semigroup Deps where
 instance Monoid Deps where
     mempty = Deps mempty mempty
     mappend = (<>)
+
+pruneDeps :: Tree (Ann a) V.Term -> Deps -> Deps
+pruneDeps e deps =
+    deps
+    & depsGlobalTypes %~ prune (valGlobals mempty)
+    & depsNominals %~ prune valNominals
+    where
+        prune f = Map.filterWithKey (const . (`Set.member` Set.fromList (e ^.. f)))
 
 -- depSchemes :: Lens.Traversal' Deps (Tree (Scheme T.Types Type) Pure)
 -- depSchemes f (Deps globals nominals) =

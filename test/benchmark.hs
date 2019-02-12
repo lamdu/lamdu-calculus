@@ -1,4 +1,5 @@
 {-# LANGUAGE NoImplicitPrelude, OverloadedStrings, ScopedTypeVariables, FlexibleContexts #-}
+import           AST
 import           AST.Infer
 import           AST.Term.Nominal
 import           AST.Term.Scheme
@@ -14,13 +15,9 @@ import           Control.Monad.Trans.Maybe
 import           Control.Monad.Trans.RWS (RWST(..))
 import           Criterion (Benchmarkable, whnfIO)
 import           Criterion.Main (bench, defaultMain)
-import qualified Data.Map as Map
 import           Data.STRef
-import           Data.Set (Set)
-import qualified Data.Set as Set
-import           Lamdu.Calc.Definition (depsGlobalTypes, depsNominals)
+import           Lamdu.Calc.Definition (depsGlobalTypes, depsNominals, pruneDeps)
 import           Lamdu.Calc.Infer
-import           Lamdu.Calc.Lens
 import           Lamdu.Calc.Term
 import qualified Lamdu.Calc.Type as T
 import           TestVals
@@ -31,23 +28,18 @@ localInitEnv ::
     ( MonadReader env m
     , Unify m T.Type, Unify m T.Row
     ) =>
-    ASetter' env (InferEnv (UVar m)) ->
-    Set T.NominalId -> Set Var -> m a -> m a
-localInitEnv l usedNominals usedGlobals action =
+    ASetter' env (InferEnv (UVar m)) -> Tree (Ann z) Term -> m a -> m a
+localInitEnv inferEnv e action =
     do
-        loadedNoms <-
-            allDeps ^. depsNominals
-            & Map.filterWithKey (\k _ -> k `Set.member` usedNominals)
-            & traverse loadNominalDecl
-        loadedSchemes <-
-            allDeps ^. depsGlobalTypes
-            & Map.filterWithKey (\k _ -> k `Set.member` usedGlobals)
-            & traverse loadScheme
+        loadedNoms <- deps ^. depsNominals & traverse loadNominalDecl
+        loadedSchemes <- deps ^. depsGlobalTypes & traverse loadScheme
         let addScope x =
                 x
                 & ieScope . _ScopeTypes <>~ loadedSchemes
                 & ieNominals <>~ loadedNoms
-        local (l %~ addScope) action
+        local (inferEnv %~ addScope) action
+    where
+        deps = pruneDeps e allDeps
 
 varGen :: ([T.TypeVar], [T.RowVar])
 varGen = (["t0", "t1", "t2", "t3", "t4"], ["r0", "r1", "r2", "r3", "r4"])
@@ -61,18 +53,14 @@ benchInferPure e =
     & whnfIO
     where
         action =
-            localInitEnv id
-            (Set.fromList (e ^.. valNominals))
-            (Set.fromList (e ^.. valGlobals mempty))
+            localInitEnv id e
             (inferNode e <&> (^. iType) >>= applyBindings)
 
 benchInferST :: Val () -> Benchmarkable
 benchInferST e =
     do
         vg <- newSTRef varGen
-        localInitEnv _1
-            (Set.fromList (e ^.. valNominals))
-            (Set.fromList (e ^.. valGlobals mempty))
+        localInitEnv _1 e
             (inferNode e <&> (^. iType) >>= applyBindings) ^. _STInfer
             & (`runReaderT` (emptyInferEnv, vg))
             & runMaybeT
