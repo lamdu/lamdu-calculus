@@ -1,6 +1,11 @@
 /dist/
 .stack-work/
+.stack-work-profile/
 /tags
 /ghci-out
 .ghcid
 .vscode/
+*.o
+*.hi
+*.dyn_o
+*.dyn_hi
