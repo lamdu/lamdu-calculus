@@ -1,31 +1,30 @@
 {-# LANGUAGE NoImplicitPrelude, OverloadedStrings, ScopedTypeVariables, FlexibleContexts #-}
-import Prelude.Compat
-
-import AST.Infer
-import AST.Term.Nominal
-import AST.Term.Scheme
-import AST.Unify
-import Control.DeepSeq (rnf)
-import Control.Exception (evaluate)
-import Control.Lens (ASetter')
-import Control.Lens.Operators
-import Control.Lens.Tuple
-import Control.Monad.Reader
-import Control.Monad.ST.Class
-import Control.Monad.Trans.Maybe
-import Control.Monad.Trans.RWS (RWST(..))
-import Criterion (Benchmarkable, whnfIO)
-import Criterion.Main (bench, defaultMain)
+import           AST.Infer
+import           AST.Term.Nominal
+import           AST.Term.Scheme
+import           AST.Unify
+import           Control.DeepSeq (rnf)
+import           Control.Exception (evaluate)
+import           Control.Lens (ASetter')
+import           Control.Lens.Operators
+import           Control.Lens.Tuple
+import           Control.Monad.Reader
+import           Control.Monad.ST.Class
+import           Control.Monad.Trans.Maybe
+import           Control.Monad.Trans.RWS (RWST(..))
+import           Criterion (Benchmarkable, whnfIO)
+import           Criterion.Main (bench, defaultMain)
 import qualified Data.Map as Map
-import Data.STRef
-import Data.Set (Set)
+import           Data.STRef
+import           Data.Set (Set)
 import qualified Data.Set as Set
-import Lamdu.Calc.Infer
-import Lamdu.Calc.Lens
-import Lamdu.Calc.Term
+import           Lamdu.Calc.Infer
+import           Lamdu.Calc.Lens
+import           Lamdu.Calc.Term
 import qualified Lamdu.Calc.Type as T
+import           TestVals
 
-import TestVals
+import           Prelude.Compat
 
 localInitEnv ::
     ( MonadReader env m
