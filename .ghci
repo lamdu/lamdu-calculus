@@ -1,4 +1,4 @@
-:set -isrc
+:set -isrc -itest
 :set -Wall -Wnoncanonical-monad-instances -Wcompat -Wincomplete-record-updates -Wincomplete-uni-patterns -Wredundant-constraints
 :set -odir=ghci-out
 :set -outputdir=ghci-out
