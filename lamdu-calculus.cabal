@@ -70,3 +70,4 @@ benchmark bench-builder-all
                , pretty
                , syntax-tree
                , transformers
+  default-language:    Haskell2010
