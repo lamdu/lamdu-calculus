@@ -18,6 +18,7 @@ import qualified Data.Map as Map
 import           Data.STRef
 import           Data.Set (Set)
 import qualified Data.Set as Set
+import           Lamdu.Calc.Definition (depsGlobalTypes, depsNominals)
 import           Lamdu.Calc.Infer
 import           Lamdu.Calc.Lens
 import           Lamdu.Calc.Term
@@ -35,10 +36,12 @@ localInitEnv ::
 localInitEnv l usedNominals usedGlobals action =
     do
         loadedNoms <-
-            Map.filterWithKey (\k _ -> k `Set.member` usedNominals) envNominals
+            allDeps ^. depsNominals
+            & Map.filterWithKey (\k _ -> k `Set.member` usedNominals)
             & traverse loadNominalDecl
         loadedSchemes <-
-            Map.filterWithKey (\k _ -> k `Set.member` usedGlobals) envTypes
+            allDeps ^. depsGlobalTypes
+            & Map.filterWithKey (\k _ -> k `Set.member` usedGlobals)
             & traverse loadScheme
         let addScope x =
                 x

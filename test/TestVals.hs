@@ -2,7 +2,7 @@
 {-# LANGUAGE NoImplicitPrelude, OverloadedStrings #-}
 
 module TestVals
-    ( envTypes, envNominals
+    ( allDeps
     , list
     , factorialVal, euler1Val, solveDepressedQuarticVal
     , factorsVal
@@ -13,24 +13,24 @@ module TestVals
     , listTypePair, boolTypePair
     ) where
 
-import           Prelude.Compat
-
-import           Algebra.Lattice
 import           AST
 import           AST.Term.Nominal
 import           AST.Term.Row
 import           AST.Term.Scheme
+import           Algebra.Lattice
 import qualified Control.Lens as Lens
 import           Control.Lens.Operators
 import qualified Data.ByteString.Char8 as BS8
-import           Data.Map (Map)
 import qualified Data.Map as Map
+import           Lamdu.Calc.Definition (Deps(..))
 import           Lamdu.Calc.Pure (($$), ($$:))
 import qualified Lamdu.Calc.Pure as P
 import           Lamdu.Calc.Term (Val)
 import qualified Lamdu.Calc.Term as V
 import           Lamdu.Calc.Type (Type, (~>))
 import qualified Lamdu.Calc.Type as T
+
+import           Prelude.Compat
 
 {-# ANN module ("HLint: ignore Redundant $" :: String) #-}
 
@@ -133,45 +133,46 @@ infixType a b c = recordType [("l", a), ("r", b)] ~> c
 infixArgs :: Val () -> Val () -> Val ()
 infixArgs l r = P.record [("l", l), ("r", r)]
 
-envTypes :: Map V.Var (Tree Pure (Scheme T.Types Type))
-envTypes =
-    Map.fromList
-    [ ("fix",    forAll ["a"] $ \ [a] -> (a ~> a) ~> a)
-    , ("if",     forAll ["a"] $ \ [a] -> recordType [("condition", boolType), ("then", a), ("else", a)] ~> a)
-    , ("==",     forAll ["a"] $ \ [a] -> infixType a a boolType)
-    , (">",      forAll ["a"] $ \ [a] -> infixType a a boolType)
-    , ("%",      forAll ["a"] $ \ [a] -> infixType a a a)
-    , ("*",      forAll ["a"] $ \ [a] -> infixType a a a)
-    , ("-",      forAll ["a"] $ \ [a] -> infixType a a a)
-    , ("+",      forAll ["a"] $ \ [a] -> infixType a a a)
-    , ("/",      forAll ["a"] $ \ [a] -> infixType a a a)
-    , ("//",     forAll []    $ \ []  -> infixType intType intType intType)
-    , ("sum",    forAll ["a"] $ \ [a] -> listOf a ~> a)
-    , ("filter", forAll ["a"] $ \ [a] -> recordType [("from", listOf a), ("predicate", a ~> boolType)] ~> listOf a)
-    , (":",      forAll ["a"] $ \ [a] -> recordType [("head", a), ("tail", listOf a)] ~> listOf a)
-    , ("[]",     forAll ["a"] $ \ [a] -> listOf a)
-    , ("concat", forAll ["a"] $ \ [a] -> listOf (listOf a) ~> listOf a)
-    , ("map",    forAll ["a", "b"] $ \ [a, b] -> recordType [("list", listOf a), ("mapping", a ~> b)] ~> listOf b)
-    , ("..",     forAll [] $ \ [] -> infixType intType intType (listOf intType))
-    , ("||",     forAll [] $ \ [] -> infixType boolType boolType boolType)
-    , ("head",   forAll ["a"] $ \ [a] -> listOf a ~> a)
-    , ("negate", forAll ["a"] $ \ [a] -> a ~> a)
-    , ("sqrt",   forAll ["a"] $ \ [a] -> a ~> a)
-    , ("id",     forAll ["a"] $ \ [a] -> a ~> a)
-    , ("zipWith",forAll ["a","b","c"] $ \ [a,b,c] ->
-                                (a ~> b ~> c) ~> listOf a ~> listOf b ~> listOf c )
-    , ("Just",   forAll ["a"] $ \ [a] -> a ~> maybeOf a)
-    , ("Nothing",forAll ["a"] $ \ [a] -> maybeOf a)
-    , ("maybe",  forAll ["a", "b"] $ \ [a, b] -> b ~> (a ~> b) ~> maybeOf a ~> b)
-    , ("plus1",  forAll [] $ \ [] -> intType ~> intType)
-    , ("True",   forAll [] $ \ [] -> boolType)
-    , ("False",  forAll [] $ \ [] -> boolType)
+allDeps :: Deps
+allDeps =
+    Deps
+    { _depsNominals = Map.fromList [boolTypePair, listTypePair]
+    , _depsGlobalTypes =
+        Map.fromList
+        [ ("fix",    forAll ["a"] $ \ [a] -> (a ~> a) ~> a)
+        , ("if",     forAll ["a"] $ \ [a] -> recordType [("condition", boolType), ("then", a), ("else", a)] ~> a)
+        , ("==",     forAll ["a"] $ \ [a] -> infixType a a boolType)
+        , (">",      forAll ["a"] $ \ [a] -> infixType a a boolType)
+        , ("%",      forAll ["a"] $ \ [a] -> infixType a a a)
+        , ("*",      forAll ["a"] $ \ [a] -> infixType a a a)
+        , ("-",      forAll ["a"] $ \ [a] -> infixType a a a)
+        , ("+",      forAll ["a"] $ \ [a] -> infixType a a a)
+        , ("/",      forAll ["a"] $ \ [a] -> infixType a a a)
+        , ("//",     forAll []    $ \ []  -> infixType intType intType intType)
+        , ("sum",    forAll ["a"] $ \ [a] -> listOf a ~> a)
+        , ("filter", forAll ["a"] $ \ [a] -> recordType [("from", listOf a), ("predicate", a ~> boolType)] ~> listOf a)
+        , (":",      forAll ["a"] $ \ [a] -> recordType [("head", a), ("tail", listOf a)] ~> listOf a)
+        , ("[]",     forAll ["a"] $ \ [a] -> listOf a)
+        , ("concat", forAll ["a"] $ \ [a] -> listOf (listOf a) ~> listOf a)
+        , ("map",    forAll ["a", "b"] $ \ [a, b] -> recordType [("list", listOf a), ("mapping", a ~> b)] ~> listOf b)
+        , ("..",     forAll [] $ \ [] -> infixType intType intType (listOf intType))
+        , ("||",     forAll [] $ \ [] -> infixType boolType boolType boolType)
+        , ("head",   forAll ["a"] $ \ [a] -> listOf a ~> a)
+        , ("negate", forAll ["a"] $ \ [a] -> a ~> a)
+        , ("sqrt",   forAll ["a"] $ \ [a] -> a ~> a)
+        , ("id",     forAll ["a"] $ \ [a] -> a ~> a)
+        , ("zipWith",forAll ["a","b","c"] $ \ [a,b,c] ->
+                                    (a ~> b ~> c) ~> listOf a ~> listOf b ~> listOf c )
+        , ("Just",   forAll ["a"] $ \ [a] -> a ~> maybeOf a)
+        , ("Nothing",forAll ["a"] $ \ [a] -> maybeOf a)
+        , ("maybe",  forAll ["a", "b"] $ \ [a, b] -> b ~> (a ~> b) ~> maybeOf a ~> b)
+        , ("plus1",  forAll [] $ \ [] -> intType ~> intType)
+        , ("True",   forAll [] $ \ [] -> boolType)
+        , ("False",  forAll [] $ \ [] -> boolType)
 
-    , ("stBind", forAll ["s", "a", "b"] $ \ [s, a, b] -> infixType (stOf s a) (a ~> stOf s b) (stOf s b))
-    ]
-
-envNominals :: Map T.NominalId (Tree Pure (NominalDecl Type))
-envNominals = Map.fromList [boolTypePair, listTypePair]
+        , ("stBind", forAll ["s", "a", "b"] $ \ [s, a, b] -> infixType (stOf s a) (a ~> stOf s b) (stOf s b))
+        ]
+    }
 
 list :: [Val ()] -> Val ()
 list = foldr cons (P.toNom "List" $ P.inject "[]" P.recEmpty)
