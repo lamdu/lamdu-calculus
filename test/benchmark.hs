@@ -1,8 +1,6 @@
 {-# LANGUAGE NoImplicitPrelude, OverloadedStrings, ScopedTypeVariables, FlexibleContexts #-}
 import           AST
 import           AST.Infer
-import           AST.Term.Nominal
-import           AST.Term.Scheme
 import           AST.Unify
 import           Control.DeepSeq (rnf)
 import           Control.Exception (evaluate)
@@ -16,7 +14,7 @@ import           Control.Monad.Trans.RWS (RWST(..))
 import           Criterion (Benchmarkable, whnfIO)
 import           Criterion.Main (bench, defaultMain)
 import           Data.STRef
-import           Lamdu.Calc.Definition (depsGlobalTypes, depsNominals, pruneDeps)
+import           Lamdu.Calc.Definition (pruneDeps)
 import           Lamdu.Calc.Infer
 import           Lamdu.Calc.Term
 import qualified Lamdu.Calc.Type as T
@@ -31,15 +29,8 @@ localInitEnv ::
     ASetter' env (InferEnv (UVar m)) -> Tree (Ann z) Term -> m a -> m a
 localInitEnv inferEnv e action =
     do
-        loadedNoms <- deps ^. depsNominals & traverse loadNominalDecl
-        loadedSchemes <- deps ^. depsGlobalTypes & traverse loadScheme
-        let addScope x =
-                x
-                & ieScope . _ScopeTypes <>~ loadedSchemes
-                & ieNominals <>~ loadedNoms
+        addScope <- loadDeps (pruneDeps e allDeps)
         local (inferEnv %~ addScope) action
-    where
-        deps = pruneDeps e allDeps
 
 varGen :: ([T.TypeVar], [T.RowVar])
 varGen = (["t0", "t1", "t2", "t3", "t4"], ["r0", "r1", "r2", "r3", "r4"])

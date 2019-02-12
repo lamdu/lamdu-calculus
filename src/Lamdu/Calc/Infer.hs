@@ -1,6 +1,6 @@
 {-# LANGUAGE NoImplicitPrelude, TemplateHaskell, GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE UndecidableInstances, MultiParamTypeClasses, TypeFamilies #-}
-{-# LANGUAGE FlexibleInstances, LambdaCase, DataKinds #-}
+{-# LANGUAGE FlexibleInstances, LambdaCase, DataKinds, FlexibleContexts #-}
 
 module Lamdu.Calc.Infer
     ( InferEnv(..), ieNominals, ieScope, ieScopeLevel
@@ -8,11 +8,13 @@ module Lamdu.Calc.Infer
     , emptyInferEnv, emptyPureInferState
     , PureInfer(..), _PureInfer
     , STInfer(..), _STInfer
+    , loadDeps
     ) where
 
 import           AST
 import           AST.Infer
 import           AST.Term.Nominal
+import           AST.Term.Scheme (loadScheme)
 import           AST.Unify
 import           AST.Unify.Binding.Pure
 import           AST.Unify.Binding.ST
@@ -27,12 +29,13 @@ import           Control.Monad.ST
 import           Control.Monad.ST.Class (MonadST(..))
 import           Control.Monad.State.Class
 import           Control.Monad.Trans.Maybe
-import           Control.Monad.Trans.Reader (ReaderT)
 import           Control.Monad.Trans.RWS (RWST)
+import           Control.Monad.Trans.Reader (ReaderT)
 import           Control.Monad.Trans.Writer (WriterT)
 import           Data.Functor.Const
 import           Data.Map (Map)
 import           Data.STRef
+import           Lamdu.Calc.Definition (Deps, depsNominals, depsGlobalTypes)
 import           Lamdu.Calc.Term
 import qualified Lamdu.Calc.Type as T
 
@@ -66,6 +69,18 @@ newtype PureInfer a = PureInfer
 Lens.makePrisms ''PureInfer
 
 type instance UVar PureInfer = Const Int
+
+loadDeps ::
+    (Unify m T.Row, Unify m T.Type) =>
+    Deps -> m (InferEnv (UVar m) -> InferEnv (UVar m))
+loadDeps deps =
+    do
+        loadedNoms <- deps ^. depsNominals & traverse loadNominalDecl
+        loadedSchemes <- deps ^. depsGlobalTypes & traverse loadScheme
+        pure $ \env ->
+            env
+            & ieScope . _ScopeTypes <>~ loadedSchemes
+            & ieNominals <>~ loadedNoms
 
 instance MonadNominals T.NominalId T.Type PureInfer where
     {-# INLINE getNominalDecl #-}
