@@ -240,7 +240,7 @@ rStructureMismatch ::
     (Unify m Type, Unify m Row) =>
     Tree (UTermBody (UVar m)) Row -> Tree (UTermBody (UVar m)) Row -> m ()
 rStructureMismatch (UTermBody c0 (RExtend r0)) (UTermBody c1 (RExtend r1)) =
-    rowExtendStructureMismatch (newTerm . RExtend) (c0, r0) (c1, r1)
+    rowExtendStructureMismatch _RExtend (c0, r0) (c1, r1)
 rStructureMismatch x y = unifyError (Mismatch (x ^. uBody) (y ^. uBody))
 
 deriving instance Deps Eq   k => Eq   (Row k)
