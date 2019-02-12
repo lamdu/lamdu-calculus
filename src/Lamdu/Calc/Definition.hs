@@ -9,7 +9,6 @@ module Lamdu.Calc.Definition
 
 import           AST (Ann, Tree, Pure)
 import           AST.Term.Nominal (NominalDecl)
-import           AST.Term.Scheme (Scheme)
 import           Control.DeepSeq (NFData)
 import qualified Control.Lens as Lens
 import           Control.Lens.Operators
@@ -26,7 +25,7 @@ import qualified Lamdu.Calc.Type as T
 import           Prelude.Compat
 
 data Deps = Deps
-    { _depsGlobalTypes :: !(Map V.Var (Tree Pure (Scheme T.Types Type)))
+    { _depsGlobalTypes :: !(Map V.Var (Tree Pure T.Scheme))
     , _depsNominals :: !(Map T.NominalId (Tree Pure (NominalDecl Type)))
     } deriving (Generic, Show, Eq)
 instance NFData Deps
@@ -48,7 +47,7 @@ pruneDeps e deps =
     where
         prune f = Map.filterWithKey (const . (`Set.member` Set.fromList (e ^.. f)))
 
--- depSchemes :: Lens.Traversal' Deps (Tree (Scheme T.Types Type) Pure)
+-- depSchemes :: Lens.Traversal' Deps (Tree T.Scheme Pure)
 -- depSchemes f (Deps globals nominals) =
 --     Deps
 --     <$> traverse f globals

@@ -56,8 +56,7 @@ recordType :: [(T.Tag, Tree Pure Type)] -> Tree Pure Type
 recordType = recExtends (Pure T.REmpty)
 
 forAll ::
-    [T.TypeVar] -> ([Tree Pure Type] -> Tree Pure Type) ->
-    Tree Pure (Scheme T.Types Type)
+    [T.TypeVar] -> ([Tree Pure Type] -> Tree Pure Type) -> Tree Pure T.Scheme
 forAll tvs mkType =
     tvs <&> T.TVar <&> Pure & mkType
     & Scheme T.Types

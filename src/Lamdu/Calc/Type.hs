@@ -27,6 +27,7 @@ module Lamdu.Calc.Type
     , _RExtend, _REmpty, _RVar
     -- * Type AST
     , Type(..)
+    , Scheme
     , (~>)
     -- * Type Prisms
     , _TVar, _TFun, _TInst, _TRecord, _TVariant
@@ -42,18 +43,18 @@ import           AST.Infer
 import           AST.Term.FuncType
 import           AST.Term.Nominal
 import           AST.Term.Row
-import           AST.Term.Scheme
+import qualified AST.Term.Scheme as S
 import           AST.Unify
 import           AST.Unify.Term
-import           Algebra.PartialOrd
 import           Algebra.Lattice
+import           Algebra.PartialOrd
 import           Control.DeepSeq (NFData(..))
 import qualified Control.Lens as Lens
 import           Control.Lens.Operators
 import           Data.Binary (Binary)
 import           Data.Hashable (Hashable)
-import           Data.Set (Set, singleton)
 import           Data.Semigroup ((<>))
+import           Data.Set (Set, singleton)
 import           Data.String (IsString(..))
 import           GHC.Exts (Constraint)
 import           GHC.Generics (Generic)
@@ -133,6 +134,8 @@ makeChildrenAndZipMatch ''Row
 makeChildrenAndZipMatch ''Type
 makeChildrenAndZipMatch ''Types
 
+type Scheme = S.Scheme Types Type
+
 instance HasChild Types Type where
     {-# INLINE getChild #-}
     getChild = tType
@@ -197,8 +200,8 @@ instance HasTypeConstraints Type where
     verifyConstraints _ c _ u (TVariant x) = u (RowConstraints bottom c) x <&> TVariant
     verifyConstraints _ c _ u (TInst (NominalInst n (Types t r))) =
         Types
-        <$> (_QVarInstances . traverse) (u c) t
-        <*> (_QVarInstances . traverse) (u (RowConstraints mempty c)) r
+        <$> (S._QVarInstances . traverse) (u c) t
+        <*> (S._QVarInstances . traverse) (u (RowConstraints mempty c)) r
         <&> NominalInst n <&> TInst
 
 instance HasTypeConstraints Row where
