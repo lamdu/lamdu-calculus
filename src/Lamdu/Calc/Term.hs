@@ -13,9 +13,7 @@ module Lamdu.Calc.Term
     , Apply(..), applyFunc, applyArg
     , GetField(..), getFieldRecord, getFieldTag
     , Inject(..), injectVal, injectTag
-    , Case(..), caseTag, caseMatch, caseMismatch
     , Lam(..), lamIn, lamOut
-    , RecExtend(..), recTag, recFieldVal, recRest
     , Nom(..), nomId, nomVal
     , Var(..)
     ) where
@@ -25,6 +23,7 @@ import           Prelude.Compat
 import           AST (Tree, Tie, Ann, Recursive, makeChildren)
 import           AST.Term.Apply (Apply(..), applyFunc, applyArg)
 import           AST.Term.Lam (Lam(..), lamIn, lamOut)
+import           AST.Term.Row (RowExtend(..))
 import           Control.DeepSeq (NFData(..))
 import qualified Control.Lens as Lens
 import           Data.Binary (Binary)
@@ -88,28 +87,6 @@ instance Hashable exp => Hashable (Inject exp)
 
 Lens.makeLenses ''Inject
 
-data Case exp = Case
-    { _caseTag :: T.Tag
-    , _caseMatch :: exp
-    , _caseMismatch :: exp
-    } deriving (Functor, Foldable, Traversable, Generic, Show, Eq, Ord)
-instance NFData exp => NFData (Case exp)
-instance Binary exp => Binary (Case exp)
-instance Hashable exp => Hashable (Case exp)
-
-Lens.makeLenses ''Case
-
-data RecExtend exp = RecExtend
-    { _recTag :: T.Tag
-    , _recFieldVal :: exp
-    , _recRest :: exp
-    } deriving (Functor, Foldable, Traversable, Generic, Show, Eq, Ord)
-instance NFData exp => NFData (RecExtend exp)
-instance Binary exp => Binary (RecExtend exp)
-instance Hashable exp => Hashable (RecExtend exp)
-
-Lens.makeLenses ''RecExtend
-
 data Nom exp = Nom
     { _nomId :: T.NominalId
     , _nomVal :: exp
@@ -124,9 +101,9 @@ data Term f
     = BApp {-# UNPACK #-}!(Apply Term f)
     | BLam {-# UNPACK #-}!(Lam Var Term f)
     | BGetField {-# UNPACK #-}!(GetField (Tie f Term))
-    | BRecExtend {-# UNPACK #-}!(RecExtend (Tie f Term))
+    | BRecExtend {-# UNPACK #-}!(RowExtend T.Tag Term Term f)
     | BInject {-# UNPACK #-}!(Inject (Tie f Term))
-    | BCase {-# UNPACK #-}!(Case (Tie f Term))
+    | BCase {-# UNPACK #-}!(RowExtend T.Tag Term Term f)
     | -- Convert to Nominal type
       BToNom {-# UNPACK #-}!(Nom (Tie f Term))
     | -- Convert from Nominal type
@@ -162,7 +139,7 @@ instance Pretty (Tie f Term) => Pretty (Term f) where
                                      pPrintPrec lvl 12 e <> PP.char '.' <> pPrint n
         BInject (Inject n e)      -> maybeParens (12 < prec) $
                                      pPrint n <> PP.char '{' <> pPrintPrec lvl 12 e <> PP.char '}'
-        BCase (Case n m mm)       -> maybeParens (0 < prec) $
+        BCase (RowExtend n m mm)  -> maybeParens (0 < prec) $
                                      PP.vcat
                                      [ PP.text "case of"
                                      , pPrint n <> PP.text " -> " <> pPrint m
@@ -171,7 +148,7 @@ instance Pretty (Tie f Term) => Pretty (Term f) where
         BToNom (Nom ident val)    -> PP.text "[ ->" <+> pPrint ident <+> pPrint val <+> PP.text "]"
         BFromNom (Nom ident val)  -> PP.text "[" <+> pPrint ident <+> pPrint val <+> PP.text "-> ]"
         BLeaf LRecEmpty           -> PP.text "{}"
-        BRecExtend (RecExtend tag val rest) ->
+        BRecExtend (RowExtend tag val rest) ->
                                      PP.text "{" <+>
                                      prField PP.<>
                                      PP.comma <+>

@@ -6,6 +6,7 @@ module Lamdu.Calc.Term.Eq
 
 import           AST (Ann(..))
 import           AST.Class.ZipMatch (zipMatchWith_)
+import           AST.Term.Row (RowExtend(..))
 import qualified Control.Lens as Lens
 import           Control.Lens.Operators
 import           Control.Monad (guard)
@@ -43,10 +44,10 @@ eqCommon holeIsJoker =
                 & Lens.has (Lens._Just . Lens._Just)
             (BGetField (GetField r0 f0), BGetField (GetField r1 f1))
                 | f0 == f1 -> go xToY r0 r1
-            (BRecExtend (RecExtend t0 f0 r0), BRecExtend (RecExtend t1 f1 r1))
+            (BRecExtend (RowExtend t0 f0 r0), BRecExtend (RowExtend t1 f1 r1))
                 -- TODO: this is wrong actually, fields can have different order!
                 | t0 == t1 -> go xToY f0 f1 && go xToY r0 r1
-            (BCase (Case t0 a0 r0), BCase (Case t1 a1 r1))
+            (BCase (RowExtend t0 a0 r0), BCase (RowExtend t1 a1 r1))
                 -- TODO: this is wrong actually, fields can have different order!
                 | t0 == t1 -> go xToY a0 a1 && go xToY r0 r1
             (BInject (Inject t0 v0), BInject (Inject t1 v1))

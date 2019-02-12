@@ -10,6 +10,7 @@ module Lamdu.Calc.Pure
     ) where
 
 import           AST (Ann(..))
+import           AST.Term.Row (RowExtend(..))
 import           Data.ByteString (ByteString)
 import           Lamdu.Calc.Term (Val)
 import qualified Lamdu.Calc.Term as V
@@ -37,7 +38,7 @@ app :: Monoid a => Val a -> Val a -> Val a
 app f x = Ann mempty $ V.BApp $ V.Apply f x
 
 recExtend :: Monoid a => T.Tag -> Val a -> Val a -> Val a
-recExtend name typ rest = Ann mempty $ V.BRecExtend $ V.RecExtend name typ rest
+recExtend name typ rest = Ann mempty $ V.BRecExtend $ RowExtend name typ rest
 
 getField :: Monoid a => Val a -> T.Tag -> Val a
 getField r n = Ann mempty $ V.BGetField $ V.GetField r n
@@ -49,7 +50,7 @@ absurd :: Monoid a => Val a
 absurd = leaf V.LAbsurd
 
 _case :: Monoid a => T.Tag -> Val a -> Val a -> Val a
-_case tag match mismatch = Ann mempty $ V.BCase $ V.Case tag match mismatch
+_case tag match mismatch = Ann mempty $ V.BCase $ RowExtend tag match mismatch
 
 fromNom :: Monoid a => T.NominalId -> Val a -> Val a
 fromNom tid v = Ann mempty $ V.BFromNom $ V.Nom tid v

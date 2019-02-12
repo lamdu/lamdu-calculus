@@ -49,7 +49,7 @@ In the term language, records are constructed using these AST constructions:
 `BLeaf LRecEmpty` denotes the empty record (denote in pseudo-syntax as `()`).
 Its type is `TRecord CEmpty`.
 
-`BRecExtend (RecExtend tag (value : T) (rest : R))`<sup>1</sup> denotes a record extension
+`BRecExtend (RowExtend tag (value : T) (rest : R))`<sup>1</sup> denotes a record extension
 of an existing record `rest`.
 
 Its type is `TRecord (CExtend tag T R)`.

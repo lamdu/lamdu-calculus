@@ -35,6 +35,7 @@ module Lamdu.Calc.Lens
 import           AST (Tree)
 import           AST.Class.Children.Mono (monoChildren)
 import           AST.Knot.Ann (Ann(..), annotations, val)
+import           AST.Term.Row (RowExtend(..))
 import           Control.Lens (Traversal', Prism', Iso', iso)
 import qualified Control.Lens as Lens
 import           Control.Lens.Operators
@@ -224,10 +225,10 @@ biTraverseBodyTags onTag onChild body =
         V.BInject <$> (V.Inject <$> onTag t <*> onChild v)
     V.BGetField (V.GetField r t) ->
         V.BGetField <$> (V.GetField <$> onChild r <*> onTag t)
-    V.BCase (V.Case t v r) ->
-        V.BCase <$> (V.Case <$> onTag t <*> onChild v <*> onChild r)
-    V.BRecExtend (V.RecExtend t v r) ->
-        V.BRecExtend <$> (V.RecExtend <$> onTag t <*> onChild v <*> onChild r)
+    V.BCase (RowExtend t v r) ->
+        V.BCase <$> (RowExtend <$> onTag t <*> onChild v <*> onChild r)
+    V.BRecExtend (RowExtend t v r) ->
+        V.BRecExtend <$> (RowExtend <$> onTag t <*> onChild v <*> onChild r)
     _ -> monoChildren onChild body
 
 {-# INLINE bodyTags #-}

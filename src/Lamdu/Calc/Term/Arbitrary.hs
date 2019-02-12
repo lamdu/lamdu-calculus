@@ -4,6 +4,7 @@ module Lamdu.Calc.Term.Arbitrary () where
 
 import           AST (Tree)
 import           AST.Knot.Ann.Arbitrary (ArbitraryWithContext(..), ArbitraryWithContextOf)
+import           AST.Term.Row (RowExtend(..))
 import qualified Control.Lens as Lens
 import           Control.Lens.Operators
 import           Control.Monad (replicateM)
@@ -60,8 +61,8 @@ instance ArbitraryWithContextOf Env (Tree f Term) => ArbitraryWithContext (Tree 
     arbitraryCtx ctx =
         Gen.frequency
         [ (2, arbitraryLam <&> BLam)
-        , (2, RecExtend <$> arbitrary <*> arbitraryCtx ctx <*> arbitraryCtx ctx <&> BRecExtend)
-        , (2, Case <$> arbitrary <*> arbitraryCtx ctx <*> arbitraryCtx ctx <&> BCase)
+        , (2, RowExtend <$> arbitrary <*> arbitraryCtx ctx <*> arbitraryCtx ctx <&> BRecExtend)
+        , (2, RowExtend <$> arbitrary <*> arbitraryCtx ctx <*> arbitraryCtx ctx <&> BCase)
         , (2, Inject <$> arbitrary <*> arbitraryCtx ctx <&> BInject)
         , (2, GetField <$> arbitraryCtx ctx <*> arbitrary <&> BGetField)
         , (2, arbitraryNom <&> BFromNom)
