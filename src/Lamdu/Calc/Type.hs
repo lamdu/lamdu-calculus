@@ -27,7 +27,7 @@ module Lamdu.Calc.Type
     , _RExtend, _REmpty, _RVar
     -- * Type AST
     , Type(..)
-    , Scheme
+    , Scheme, Nominal
     , (~>)
     -- * Type Prisms
     , _TVar, _TFun, _TInst, _TRecord, _TVariant
@@ -85,8 +85,6 @@ type RowVar = Var Row
 -- | A type variable that represents a type
 type TypeVar = Var Type
 
-type Deps c k = ((c (Tie k Type), c (Tie k Row)) :: Constraint)
-
 -- | The AST for rows (records, variants) For
 -- example: RExtend "a" int (RExtend "b" bool (RVar "c")) represents
 -- the composite type:
@@ -134,6 +132,7 @@ makeChildrenAndZipMatch ''Row
 makeChildrenAndZipMatch ''Type
 makeChildrenAndZipMatch ''Types
 
+type Nominal = NominalInst NominalId Types
 type Scheme = S.Scheme Types Type
 
 instance HasChild Types Type where
@@ -148,6 +147,8 @@ instance HasChild Types Row where
 infixr 2 ~>
 (~>) :: Tree Pure Type -> Tree Pure Type -> Tree Pure Type
 x ~> y = FuncType x y & TFun & Pure
+
+type Deps c k = ((c (Tie k Type), c (Tie k Row)) :: Constraint)
 
 instance Deps Pretty k => Pretty (Type k) where
     pPrintPrec lvl prec typ =
