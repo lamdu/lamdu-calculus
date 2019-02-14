@@ -4,7 +4,7 @@ import           AST.Infer
 import           AST.Unify
 import           Control.DeepSeq (rnf)
 import           Control.Exception (evaluate)
-import           Control.Lens (ASetter')
+import           Control.Lens (ASetter', _Just)
 import           Control.Lens.Operators
 import           Control.Lens.Tuple
 import           Control.Monad.Reader
@@ -37,8 +37,8 @@ varGen = (["t0", "t1", "t2", "t3", "t4"], ["r0", "r1", "r2", "r3", "r4"])
 
 benchInferPure :: Val () -> Benchmarkable
 benchInferPure e =
-    runRWST (action ^. _PureInfer) emptyInferEnv (InferState emptyPureInferState varGen)
-    <&> (^. _1)
+    runRWST (action ^. _PureInferT) emptyInferEnv (InferState emptyPureInferState varGen)
+    & _Just %~ (^. _1)
     & rnf
     & evaluate
     & whnfIO

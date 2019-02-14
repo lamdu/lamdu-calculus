@@ -6,7 +6,7 @@ module Lamdu.Calc.Infer
     ( InferEnv(..), ieNominals, ieScope, ieScopeLevel
     , InferState(..), isBinding, isQVarGen
     , emptyInferEnv, emptyPureInferState
-    , PureInfer(..), _PureInfer
+    , PureInferT(..), _PureInferT
     , STInfer(..), _STInfer
     , loadDeps
     ) where
@@ -59,14 +59,16 @@ data InferState = InferState
     }
 Lens.makeLenses ''InferState
 
-newtype PureInfer a = PureInfer
-    (RWST (InferEnv (Const Int)) () InferState Maybe a)
+newtype PureInferT m a = PureInferT
+    (RWST (InferEnv (Const Int)) () InferState m a)
     deriving
     ( Functor, Alternative, Applicative, Monad
     , MonadReader (InferEnv (Const Int))
     , MonadState InferState
     )
-Lens.makePrisms ''PureInfer
+Lens.makePrisms ''PureInferT
+
+type PureInfer = PureInferT Maybe
 
 type instance UVar PureInfer = Const Int
 
