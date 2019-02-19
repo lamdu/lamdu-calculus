@@ -6,6 +6,7 @@ module Lamdu.Calc.Term.Eq
 
 import           AST (Ann(..))
 import           AST.Class.ZipMatch (zipMatchWith_)
+import           AST.Term.Nominal (ToNom(..))
 import           AST.Term.Row (RowExtend(..))
 import qualified Control.Lens as Lens
 import           Control.Lens.Operators
@@ -54,7 +55,7 @@ eqCommon holeIsJoker =
                 | t0 == t1 -> go xToY v0 v1
             (BFromNom (Nom n0 v0), BFromNom (Nom n1 v1))
                 | n0 == n1 -> go xToY v0 v1
-            (BToNom (Nom n0 v0), BToNom (Nom n1 v1))
+            (BToNom (ToNom n0 v0), BToNom (ToNom n1 v1))
                 | n0 == n1 -> go xToY v0 v1
             (_, _) -> False
 

@@ -23,6 +23,7 @@ import           Prelude.Compat
 import           AST (Tree, Tie, Ann, Recursive, makeChildren)
 import           AST.Term.Apply (Apply(..), applyFunc, applyArg)
 import           AST.Term.Lam (Lam(..), lamIn, lamOut)
+import           AST.Term.Nominal (ToNom(..))
 import           AST.Term.Row (RowExtend(..))
 import           Control.DeepSeq (NFData(..))
 import qualified Control.Lens as Lens
@@ -105,7 +106,7 @@ data Term f
     | BInject {-# UNPACK #-}!(Inject (Tie f Term))
     | BCase {-# UNPACK #-}!(RowExtend T.Tag Term Term f)
     | -- Convert to Nominal type
-      BToNom {-# UNPACK #-}!(Nom (Tie f Term))
+      BToNom {-# UNPACK #-}!(ToNom T.NominalId Term f)
     | -- Convert from Nominal type
       BFromNom {-# UNPACK #-}!(Nom (Tie f Term))
     | BLeaf Leaf
@@ -145,7 +146,7 @@ instance Pretty (Tie f Term) => Pretty (Term f) where
                                      , pPrint n <> PP.text " -> " <> pPrint m
                                      , PP.text "_" <> PP.text " -> " <> pPrint mm
                                      ]
-        BToNom (Nom ident val)    -> PP.text "[ ->" <+> pPrint ident <+> pPrint val <+> PP.text "]"
+        BToNom (ToNom ident val)  -> PP.text "[ ->" <+> pPrint ident <+> pPrint val <+> PP.text "]"
         BFromNom (Nom ident val)  -> PP.text "[" <+> pPrint ident <+> pPrint val <+> PP.text "-> ]"
         BLeaf LRecEmpty           -> PP.text "{}"
         BRecExtend (RowExtend tag val rest) ->

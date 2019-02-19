@@ -35,6 +35,7 @@ module Lamdu.Calc.Lens
 import           AST (Tree)
 import           AST.Class.Children.Mono (monoChildren)
 import           AST.Knot.Ann (Ann(..), annotations, val)
+import           AST.Term.Nominal (ToNom(..))
 import           AST.Term.Row (RowExtend(..))
 import           Control.Lens (Traversal', Prism', Iso', iso)
 import qualified Control.Lens as Lens
@@ -256,9 +257,9 @@ valGlobals scope f (Ann pl body) =
 valNominals :: Lens.Traversal' (Val a) T.NominalId
 valNominals f (Ann pl body) =
     case body of
-    V.BFromNom nom -> onNom nom <&> V.BFromNom
-    V.BToNom nom -> onNom nom <&> V.BToNom
+    V.BFromNom (V.Nom nomId x) ->
+        V.Nom <$> f nomId <*> valNominals f x <&> V.BFromNom
+    V.BToNom (ToNom nomId x) ->
+        ToNom <$> f nomId <*> valNominals f x <&> V.BToNom
     _ -> body & monoChildren . valNominals %%~ f
     <&> Ann pl
-    where
-        onNom (V.Nom nomId x) = V.Nom <$> f nomId <*> valNominals f x

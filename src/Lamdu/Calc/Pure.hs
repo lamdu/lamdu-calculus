@@ -10,6 +10,7 @@ module Lamdu.Calc.Pure
     ) where
 
 import           AST (Ann(..))
+import           AST.Term.Nominal (ToNom(..))
 import           AST.Term.Row (RowExtend(..))
 import           Data.ByteString (ByteString)
 import           Lamdu.Calc.Term (Val)
@@ -56,7 +57,7 @@ fromNom :: Monoid a => T.NominalId -> Val a -> Val a
 fromNom tid v = Ann mempty $ V.BFromNom $ V.Nom tid v
 
 toNom :: Monoid a => T.NominalId -> Val a -> Val a
-toNom tid v = Ann mempty $ V.BToNom $ V.Nom tid v
+toNom tid v = Ann mempty $ V.BToNom $ ToNom tid v
 
 hole :: Monoid a => Val a
 hole = leaf V.LHole

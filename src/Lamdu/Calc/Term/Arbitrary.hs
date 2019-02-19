@@ -4,6 +4,7 @@ module Lamdu.Calc.Term.Arbitrary () where
 
 import           AST (Tree)
 import           AST.Knot.Ann.Arbitrary (ArbitraryWithContext(..), ArbitraryWithContextOf)
+import           AST.Term.Nominal (ToNom(..))
 import           AST.Term.Row (RowExtend(..))
 import qualified Control.Lens as Lens
 import           Control.Lens.Operators
@@ -65,13 +66,12 @@ instance ArbitraryWithContextOf Env (Tree f Term) => ArbitraryWithContext (Tree 
         , (2, RowExtend <$> arbitrary <*> arbitraryCtx ctx <*> arbitraryCtx ctx <&> BCase)
         , (2, Inject <$> arbitrary <*> arbitraryCtx ctx <&> BInject)
         , (2, GetField <$> arbitraryCtx ctx <*> arbitrary <&> BGetField)
-        , (2, arbitraryNom <&> BFromNom)
-        , (2, arbitraryNom <&> BToNom)
+        , (2, Nom <$> arbitrary <*> arbitraryCtx ctx <&> BFromNom)
+        , (2, ToNom <$> arbitrary <*> arbitraryCtx ctx <&> BToNom)
         , (5, Apply <$> arbitraryCtx ctx <*> arbitraryCtx ctx <&> BApp)
         , (17, arbitraryCtx ctx <&> BLeaf)
         ]
         where
-            arbitraryNom = Nom <$> arbitrary <*> arbitraryCtx ctx
             arbitraryLam =
                 do
                     var <- Gen.suchThat arbitrary (not . inScope ctx)
