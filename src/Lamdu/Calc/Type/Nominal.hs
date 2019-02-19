@@ -2,7 +2,6 @@
 
 module Lamdu.Calc.Type.Nominal
     ( Nominal(..), nomType, nomParams
-    , NominalType(..), _NominalType, _OpaqueNominal
     ) where
 
 import           Control.DeepSeq (NFData(..))
@@ -15,16 +14,9 @@ import           Lamdu.Calc.Type.Scheme (Scheme)
 
 import           Prelude.Compat
 
-data NominalType = NominalType Scheme | OpaqueNominal
-    deriving (Generic, Show, Eq, Ord)
-instance NFData NominalType
-instance Binary NominalType
-
-Lens.makePrisms ''NominalType
-
 data Nominal = Nominal
     { _nomParams :: Map T.ParamId T.TypeVar
-    , _nomType :: NominalType
+    , _nomType :: Scheme
     } deriving (Generic, Show, Eq, Ord)
 instance NFData Nominal
 instance Binary Nominal
