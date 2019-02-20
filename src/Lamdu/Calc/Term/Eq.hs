@@ -53,8 +53,6 @@ eqCommon holeIsJoker =
                 | t0 == t1 -> go xToY a0 a1 && go xToY r0 r1
             (BInject (Inject t0 v0), BInject (Inject t1 v1))
                 | t0 == t1 -> go xToY v0 v1
-            (BFromNom (Nom n0 v0), BFromNom (Nom n1 v1))
-                | n0 == n1 -> go xToY v0 v1
             (BToNom (ToNom n0 v0), BToNom (ToNom n1 v1))
                 | n0 == n1 -> go xToY v0 v1
             (_, _) -> False

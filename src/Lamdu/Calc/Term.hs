@@ -5,16 +5,15 @@
 {-# LANGUAGE MultiParamTypeClasses, FlexibleInstances, ConstraintKinds #-}
 module Lamdu.Calc.Term
     ( Val
-    , Leaf(..), _LVar, _LHole, _LLiteral, _LRecEmpty, _LAbsurd
+    , Leaf(..), _LVar, _LHole, _LLiteral, _LRecEmpty, _LAbsurd, _LFromNom
     , PrimVal(..), primType, primData
     , Term(..)
         , _BApp, _BLam, _BGetField, _BRecExtend
-        , _BInject, _BCase, _BToNom, _BFromNom, _BLeaf
+        , _BInject, _BCase, _BToNom, _BLeaf
     , Apply(..), applyFunc, applyArg
     , GetField(..), getFieldRecord, getFieldTag
     , Inject(..), injectVal, injectTag
     , Lam(..), lamIn, lamOut
-    , Nom(..), nomId, nomVal
     , Var(..)
     ) where
 
@@ -61,6 +60,7 @@ data Leaf
     |  LLiteral {-# UNPACK #-} !PrimVal
     |  LRecEmpty
     |  LAbsurd
+    |  LFromNom {-# UNPACK #-} !T.NominalId
     deriving (Generic, Show, Eq, Ord)
 instance NFData Leaf
 instance Binary Leaf
@@ -88,16 +88,6 @@ instance Hashable exp => Hashable (Inject exp)
 
 Lens.makeLenses ''Inject
 
-data Nom exp = Nom
-    { _nomId :: T.NominalId
-    , _nomVal :: exp
-    } deriving (Functor, Foldable, Traversable, Generic, Show, Eq, Ord)
-instance NFData exp => NFData (Nom exp)
-instance Hashable exp => Hashable (Nom exp)
-instance Binary exp => Binary (Nom exp)
-
-Lens.makeLenses ''Nom
-
 data Term f
     = BApp {-# UNPACK #-}!(Apply Term f)
     | BLam {-# UNPACK #-}!(Lam Var Term f)
@@ -107,8 +97,6 @@ data Term f
     | BCase {-# UNPACK #-}!(RowExtend T.Tag Term Term f)
     | -- Convert to Nominal type
       BToNom {-# UNPACK #-}!(ToNom T.NominalId Term f)
-    | -- Convert from Nominal type
-      BFromNom {-# UNPACK #-}!(Nom (Tie f Term))
     | BLeaf Leaf
     deriving Generic
 
@@ -130,6 +118,7 @@ instance Pretty (Tie f Term) => Pretty (Term f) where
         BLeaf (LLiteral (PrimVal _p d)) -> PP.text (BS8.unpack d)
         BLeaf LHole               -> PP.text "?"
         BLeaf LAbsurd             -> PP.text "absurd"
+        BLeaf (LFromNom ident)    -> PP.text "[" <+> PP.text "unpack" <+> pPrint ident <+> PP.text "]"
         BApp (Apply e1 e2)        -> maybeParens (10 < prec) $
                                      pPrintPrec lvl 10 e1 <+> pPrintPrec lvl 11 e2
         BLam (Lam n e)            -> maybeParens (0 < prec) $
@@ -146,8 +135,7 @@ instance Pretty (Tie f Term) => Pretty (Term f) where
                                      , pPrint n <> PP.text " -> " <> pPrint m
                                      , PP.text "_" <> PP.text " -> " <> pPrint mm
                                      ]
-        BToNom (ToNom ident val)  -> PP.text "[ ->" <+> pPrint ident <+> pPrint val <+> PP.text "]"
-        BFromNom (Nom ident val)  -> PP.text "[" <+> pPrint ident <+> pPrint val <+> PP.text "-> ]"
+        BToNom (ToNom ident val)  -> PP.text "[" <+> pPrint ident <+> PP.text "pack" <+> pPrint val <+> PP.text "]"
         BLeaf LRecEmpty           -> PP.text "{}"
         BRecExtend (RowExtend tag val rest) ->
                                      PP.text "{" <+>

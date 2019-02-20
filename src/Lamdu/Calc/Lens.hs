@@ -257,8 +257,7 @@ valGlobals scope f (Ann pl body) =
 valNominals :: Lens.Traversal' (Val a) T.NominalId
 valNominals f (Ann pl body) =
     case body of
-    V.BFromNom (V.Nom nomId x) ->
-        V.Nom <$> f nomId <*> valNominals f x <&> V.BFromNom
+    V.BLeaf (V.LFromNom nomId) -> f nomId <&> V.LFromNom <&> V.BLeaf
     V.BToNom (ToNom nomId x) ->
         ToNom <$> f nomId <*> valNominals f x <&> V.BToNom
     _ -> body & monoChildren . valNominals %%~ f

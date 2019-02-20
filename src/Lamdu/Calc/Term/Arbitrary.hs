@@ -66,7 +66,6 @@ instance ArbitraryWithContextOf Env (Tree f Term) => ArbitraryWithContext (Tree 
         , (2, RowExtend <$> arbitrary <*> arbitraryCtx ctx <*> arbitraryCtx ctx <&> BCase)
         , (2, Inject <$> arbitrary <*> arbitraryCtx ctx <&> BInject)
         , (2, GetField <$> arbitraryCtx ctx <*> arbitrary <&> BGetField)
-        , (2, Nom <$> arbitrary <*> arbitraryCtx ctx <&> BFromNom)
         , (2, ToNom <$> arbitrary <*> arbitraryCtx ctx <&> BToNom)
         , (5, Apply <$> arbitraryCtx ctx <*> arbitraryCtx ctx <&> BApp)
         , (17, arbitraryCtx ctx <&> BLeaf)

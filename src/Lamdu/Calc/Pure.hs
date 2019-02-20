@@ -53,8 +53,8 @@ absurd = leaf V.LAbsurd
 _case :: Monoid a => T.Tag -> Val a -> Val a -> Val a
 _case tag match mismatch = Ann mempty $ V.BCase $ RowExtend tag match mismatch
 
-fromNom :: Monoid a => T.NominalId -> Val a -> Val a
-fromNom tid v = Ann mempty $ V.BFromNom $ V.Nom tid v
+fromNom :: Monoid a => T.NominalId -> Val a
+fromNom tid = Ann mempty $ V.BLeaf $ V.LFromNom tid
 
 toNom :: Monoid a => T.NominalId -> Val a -> Val a
 toNom tid v = Ann mempty $ V.BToNom $ ToNom tid v
