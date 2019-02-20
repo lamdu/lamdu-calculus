@@ -22,7 +22,7 @@ value r@(IResult (Pure (T.TVariant (Pure (T.RExtend v)))) scope) =
     exts ^@.. itraversed <&> genOpt & sequenceA
     where
         Identity (FlatRowExtends exts _rest) =
-            flatten (Identity . (^? _Pure . T._RExtend)) v
+            flattenRowExtend (Identity . (^? _Pure . T._RExtend)) v
         genOpt (tag, innerTyp) =
             valueNoSplit (IResult innerTyp scope) <&> Inject tag <&> BInject
             <&> ITerm () r
