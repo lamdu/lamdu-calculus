@@ -38,6 +38,7 @@ module Lamdu.Calc.Type
     ) where
 
 import           AST
+import           AST.Class.FromChildren
 import           AST.Class.HasChild
 import           AST.Infer
 import           AST.Term.FuncType
@@ -142,6 +143,9 @@ instance HasChild Types Type where
 instance HasChild Types Row where
     {-# INLINE getChild #-}
     getChild = tRow
+
+instance FromChildren Types where
+    fromChildren _ c = Types <$> c <*> c
 
 -- | A convenience infix alias for 'TFun'
 infixr 2 ~>
