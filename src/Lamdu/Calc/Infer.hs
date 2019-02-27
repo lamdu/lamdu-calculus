@@ -1,6 +1,7 @@
 {-# LANGUAGE NoImplicitPrelude, TemplateHaskell, GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE UndecidableInstances, MultiParamTypeClasses, TypeFamilies #-}
 {-# LANGUAGE FlexibleInstances, LambdaCase, DataKinds, FlexibleContexts #-}
+{-# LANGUAGE TypeApplications #-}
 
 module Lamdu.Calc.Infer
     ( InferEnv(..), ieNominals, ieScope, ieScopeLevel
@@ -25,6 +26,7 @@ import           Algebra.Lattice
 import           Control.Applicative (Alternative(..))
 import qualified Control.Lens as Lens
 import           Control.Lens.Operators
+import           Control.Monad.Except
 import           Control.Monad.Reader.Class
 import           Control.Monad.ST
 import           Control.Monad.ST.Class (MonadST(..))
@@ -35,6 +37,7 @@ import           Control.Monad.Trans.Reader (ReaderT)
 import           Control.Monad.Trans.Writer (WriterT)
 import           Data.Functor.Const
 import           Data.Map (Map)
+import           Data.Proxy (Proxy(..))
 import           Data.STRef
 import           Lamdu.Calc.Definition (Deps, depsNominals, depsGlobalTypes)
 import           Lamdu.Calc.Term
@@ -65,11 +68,12 @@ newtype PureInferT m a = PureInferT
     deriving
     ( Functor, Alternative, Applicative, Monad
     , MonadReader (InferEnv (Const Int))
+    , MonadError e
     , MonadState InferState
     )
 Lens.makePrisms ''PureInferT
 
-type PureInfer = PureInferT Maybe
+type PureInfer = PureInferT (Either (Tree Pure T.TypeError))
 
 type instance UVar PureInfer = Const Int
 
@@ -87,7 +91,9 @@ loadDeps deps =
 
 instance MonadNominals T.NominalId T.Type PureInfer where
     {-# INLINE getNominalDecl #-}
-    getNominalDecl n = Lens.view (ieNominals . Lens.at n) >>= maybe empty pure
+    getNominalDecl n =
+        Lens.view (ieNominals . Lens.at n)
+        >>= maybe (throwError (Pure (T.NominalNotFound n))) pure
 
 instance HasScope PureInfer ScopeTypes where
     {-# INLINE getScope #-}
@@ -114,12 +120,16 @@ instance MonadQuantify T.RConstraints T.RowVar PureInfer where
 instance Unify PureInfer T.Type where
     {-# INLINE binding #-}
     binding = pureBinding (isBinding . T.tType)
-    unifyError _ = empty
+    unifyError e =
+        children (Proxy @(Recursive (Unify PureInfer))) applyBindings e
+        >>= throwError . Pure . T.TypeError
 
 instance Unify PureInfer T.Row where
     {-# INLINE binding #-}
     binding = pureBinding (isBinding . T.tRow)
-    unifyError _ = empty
+    unifyError e =
+        children (Proxy @(Recursive (Unify PureInfer))) applyBindings e
+        >>= throwError . Pure . T.RowError
     {-# INLINE structureMismatch #-}
     structureMismatch = T.rStructureMismatch
 

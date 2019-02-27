@@ -35,6 +35,8 @@ module Lamdu.Calc.Type
     , Types(..), tType, tRow
     , RConstraints(..), rForbiddenFields, rScope
     , rStructureMismatch
+
+    , TypeError(..), _TypeError, _RowError
     ) where
 
 import           AST
@@ -125,10 +127,16 @@ data RConstraints = RowConstraints
     , _rScope :: ScopeLevel
     } deriving (Generic, Eq, Show)
 
+data TypeError k
+    = TypeError (UnifyError Type k)
+    | RowError (UnifyError Row k)
+    | NominalNotFound NominalId
+
+Lens.makeLenses ''RConstraints
+Lens.makeLenses ''Types
 Lens.makePrisms ''Row
 Lens.makePrisms ''Type
-Lens.makeLenses ''Types
-Lens.makeLenses ''RConstraints
+Lens.makePrisms ''TypeError
 makeChildrenAndZipMatch ''Row
 makeChildrenAndZipMatch ''Type
 makeChildrenAndZipMatch ''Types
