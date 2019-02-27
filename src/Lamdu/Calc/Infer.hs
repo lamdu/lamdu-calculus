@@ -1,3 +1,4 @@
+{-# LANGUAGE RankNTypes #-}
 {-# LANGUAGE NoImplicitPrelude, TemplateHaskell, GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE UndecidableInstances, MultiParamTypeClasses, TypeFamilies #-}
 {-# LANGUAGE FlexibleInstances, LambdaCase, DataKinds, FlexibleContexts #-}
@@ -26,12 +27,13 @@ import           AST.Unify.Term
 import           Algebra.Lattice
 import           Control.Applicative (Alternative(..))
 import qualified Control.Lens as Lens
+import           Control.Lens (LensLike')
 import           Control.Lens.Operators
 import           Control.Monad.Except
 import           Control.Monad.Reader.Class
 import           Control.Monad.ST
 import           Control.Monad.ST.Class (MonadST(..))
-import           Control.Monad.State.Class
+import           Control.Monad.State
 import           Control.Monad.Trans.Maybe
 import           Control.Monad.Trans.RWS (RWST)
 import           Control.Monad.Trans.Reader (ReaderT)
@@ -57,18 +59,19 @@ Lens.makeLenses ''InferEnv
 emptyInferEnv :: InferEnv v
 emptyInferEnv = InferEnv mempty (ScopeTypes mempty) bottom
 
-type QVarGen = ([T.TypeVar], [T.RowVar])
+data QVarGen = QVarGen
+    { _nextTV :: !Int
+    , _nextRV :: !Int
+    } deriving (Eq, Ord, Show)
+Lens.makeLenses ''QVarGen
 
-varGen :: ([T.TypeVar], [T.RowVar])
-varGen =
-    ( [(0 :: Int) ..] <&> fromString . ('t':) . show
-    , [(0 :: Int) ..] <&> fromString . ('r':) . show
-    )
+varGen :: QVarGen
+varGen = QVarGen 0 0
 
 data InferState = InferState
     { _isBinding :: Tree T.Types PureBinding
     , _isQVarGen :: QVarGen
-    }
+    } deriving (Eq, Ord)
 Lens.makeLenses ''InferState
 
 newtype PureInferT m a = PureInferT
@@ -116,15 +119,21 @@ instance MonadScopeConstraints ScopeLevel PureInfer where
     {-# INLINE scopeConstraints #-}
     scopeConstraints = Lens.view ieScopeLevel
 
+nextTVNamePure ::
+    (MonadState InferState m, IsString a) =>
+    Char -> LensLike' ((,) Int) QVarGen Int -> m a
+nextTVNamePure prefix lens =
+    isQVarGen . lens <<%= (+1) <&> show <&> (prefix :) <&> fromString
+
 instance MonadQuantify ScopeLevel T.TypeVar PureInfer where
-    newQuantifiedVariable _ = isQVarGen . Lens._1 <<%= tail <&> head
+    newQuantifiedVariable _ = nextTVNamePure 't' nextTV
 
 instance MonadScopeConstraints T.RConstraints PureInfer where
     {-# INLINE scopeConstraints #-}
     scopeConstraints = scopeConstraints <&> T.RowConstraints mempty
 
 instance MonadQuantify T.RConstraints T.RowVar PureInfer where
-    newQuantifiedVariable _ = isQVarGen . Lens._2 <<%= tail <&> head
+    newQuantifiedVariable _ = nextTVNamePure 'r' nextRV
 
 instance Unify PureInfer T.Type where
     {-# INLINE binding #-}
@@ -173,27 +182,24 @@ instance MonadScopeConstraints ScopeLevel (STInfer s) where
     {-# INLINE scopeConstraints #-}
     scopeConstraints = Lens.view (Lens._1 . ieScopeLevel)
 
+nextTVNameST :: IsString a => Char -> Lens.ALens' QVarGen Int -> STInfer s a
+nextTVNameST prefix lens =
+    do
+        genRef <- Lens.view Lens._2
+        gen <- readSTRef genRef & liftST
+        let res = prefix : show (gen ^# lens) & fromString
+        let newGen = gen & lens #%~ (+1)
+        res <$ writeSTRef genRef newGen & liftST
+
 instance MonadQuantify ScopeLevel T.TypeVar (STInfer s) where
-    newQuantifiedVariable _ =
-        do
-            gen <- Lens.view Lens._2
-            readSTRef gen & liftST >>=
-                \case
-                ([], _) -> empty
-                (x:xs, ys) -> x <$ liftST (writeSTRef gen (xs, ys))
+    newQuantifiedVariable _ = nextTVNameST 't' nextTV
 
 instance MonadScopeConstraints T.RConstraints (STInfer s) where
     {-# INLINE scopeConstraints #-}
     scopeConstraints = scopeConstraints <&> T.RowConstraints mempty
 
 instance MonadQuantify T.RConstraints T.RowVar (STInfer s) where
-    newQuantifiedVariable _ =
-        do
-            gen <- Lens.view Lens._2
-            readSTRef gen & liftST >>=
-                \case
-                (_, []) -> empty
-                (xs, y:ys) -> y <$ liftST (writeSTRef gen (xs, ys))
+    newQuantifiedVariable _ = nextTVNameST 'r' nextRV
 
 instance Unify (STInfer s) T.Type where
     {-# INLINE binding #-}
