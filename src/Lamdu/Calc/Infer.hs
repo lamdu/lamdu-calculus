@@ -11,6 +11,7 @@ module Lamdu.Calc.Infer
     , PureInfer
     , STInfer(..), _STInfer
     , loadDeps
+    , varGen
     ) where
 
 import           AST
@@ -39,6 +40,7 @@ import           Data.Functor.Const
 import           Data.Map (Map)
 import           Data.Proxy (Proxy(..))
 import           Data.STRef
+import           Data.String (IsString(..))
 import           Lamdu.Calc.Definition (Deps, depsNominals, depsGlobalTypes)
 import           Lamdu.Calc.Term
 import qualified Lamdu.Calc.Type as T
@@ -56,6 +58,12 @@ emptyInferEnv :: InferEnv v
 emptyInferEnv = InferEnv mempty (ScopeTypes mempty) bottom
 
 type QVarGen = ([T.TypeVar], [T.RowVar])
+
+varGen :: ([T.TypeVar], [T.RowVar])
+varGen =
+    ( [(0 :: Int) ..] <&> fromString . ('t':) . show
+    , [(0 :: Int) ..] <&> fromString . ('r':) . show
+    )
 
 data InferState = InferState
     { _isBinding :: Tree T.Types PureBinding
@@ -214,7 +222,7 @@ instance Unify (STInfer s) T.Row where
 {-# SPECIALIZE applyBindings :: Tree (Const Int) T.Row -> PureInfer (Tree Pure T.Row) #-}
 {-# SPECIALIZE applyBindings :: Tree (STVar s) T.Type -> STInfer s (Tree Pure T.Type) #-}
 {-# SPECIALIZE applyBindings :: Tree (STVar s) T.Row -> STInfer s (Tree Pure T.Row) #-}
-{-# SPECIALIZE instantiateH :: Tree (GTerm (Const Int)) T.Type -> WriterT [PureInfer ()] (PureInfer) (Tree (Const Int) T.Type) #-}
-{-# SPECIALIZE instantiateH :: Tree (GTerm (Const Int)) T.Row -> WriterT [PureInfer ()] (PureInfer) (Tree (Const Int) T.Row) #-}
+{-# SPECIALIZE instantiateH :: Tree (GTerm (Const Int)) T.Type -> WriterT [PureInfer ()] PureInfer (Tree (Const Int) T.Type) #-}
+{-# SPECIALIZE instantiateH :: Tree (GTerm (Const Int)) T.Row -> WriterT [PureInfer ()] PureInfer (Tree (Const Int) T.Row) #-}
 {-# SPECIALIZE instantiateH :: Tree (GTerm (STVar s)) T.Type -> WriterT [STInfer s ()] (STInfer s) (Tree (STVar s) T.Type) #-}
 {-# SPECIALIZE instantiateH :: Tree (GTerm (STVar s)) T.Row -> WriterT [STInfer s ()] (STInfer s) (Tree (STVar s) T.Row) #-}

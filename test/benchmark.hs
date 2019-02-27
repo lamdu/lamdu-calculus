@@ -32,14 +32,11 @@ localInitEnv inferEnv e action =
         addScope <- loadDeps (pruneDeps e allDeps)
         local (inferEnv %~ addScope) action
 
-varGen :: ([T.TypeVar], [T.RowVar])
-varGen = (["t0", "t1", "t2", "t3", "t4"], ["r0", "r1", "r2", "r3", "r4"])
-
 benchInferPure :: Val () -> Benchmarkable
 benchInferPure e =
     runRWST (action ^. _PureInferT) emptyInferEnv (InferState emptyPureInferState varGen)
     & _Right %~ (^. _1)
-    & _Left %~ (\x -> (x :: Tree Pure T.TypeError))
+    & _Left %~ (\x -> x :: Tree Pure T.TypeError)
     & rnf
     & evaluate
     & whnfIO
