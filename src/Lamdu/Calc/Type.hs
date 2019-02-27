@@ -131,6 +131,7 @@ data TypeError k
     = TypeError (UnifyError Type k)
     | RowError (UnifyError Row k)
     | NominalNotFound NominalId
+    deriving Generic
 
 Lens.makeLenses ''RConstraints
 Lens.makeLenses ''Types
@@ -273,6 +274,11 @@ deriving instance Deps Ord  k => Ord  (Types k)
 deriving instance Deps Show k => Show (Types k)
 instance Deps NFData k => NFData (Types k)
 instance Deps Binary k => Binary (Types k)
+
+deriving instance Deps Eq   k => Eq   (TypeError k)
+deriving instance Deps Show k => Show (TypeError k)
+instance Deps NFData k => NFData (TypeError k)
+instance Deps Binary k => Binary (TypeError k)
 
 instance NFData RConstraints
 instance Binary RConstraints
