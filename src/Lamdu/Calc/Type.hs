@@ -125,7 +125,7 @@ data Types k = Types
 data RConstraints = RowConstraints
     { _rForbiddenFields :: Set Tag
     , _rScope :: ScopeLevel
-    } deriving (Generic, Eq, Show)
+    } deriving (Generic, Eq, Ord, Show)
 
 data TypeError k
     = TypeError (UnifyError Type k)

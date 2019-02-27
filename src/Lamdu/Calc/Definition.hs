@@ -27,7 +27,7 @@ import           Prelude.Compat
 data Deps = Deps
     { _depsGlobalTypes :: !(Map V.Var (Tree Pure T.Scheme))
     , _depsNominals :: !(Map T.NominalId (Tree Pure (NominalDecl Type)))
-    } deriving (Generic, Show, Eq)
+    } deriving (Generic, Show, Eq, Ord)
 instance NFData Deps
 instance Binary Deps
 
