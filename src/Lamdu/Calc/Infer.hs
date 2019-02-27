@@ -78,6 +78,7 @@ newtype PureInferT m a = PureInferT
     , MonadReader (InferEnv (Const Int))
     , MonadError e
     , MonadState InferState
+    , MonadTrans
     )
 Lens.makePrisms ''PureInferT
 
