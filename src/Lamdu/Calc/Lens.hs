@@ -1,4 +1,4 @@
-{-# LANGUAGE NoImplicitPrelude, RankNTypes, NoMonomorphismRestriction, FlexibleContexts, TypeFamilies #-}
+{-# LANGUAGE NoImplicitPrelude, RankNTypes, NoMonomorphismRestriction, FlexibleContexts, TypeFamilies, TypeApplications #-}
 module Lamdu.Calc.Lens
     ( -- Leafs
       valHole    , valBodyHole
@@ -22,16 +22,19 @@ module Lamdu.Calc.Lens
     , subExprs
     , payloadsIndexedByPath
     , payloadsOf
+    , HasTIds(..), tIds
     ) where
 
-import           AST (Tree)
+import           AST (Tree, Children(..), Recursive(..), recursiveChildren)
 import           AST.Class.Children.Mono (monoChildren)
 import           AST.Knot.Ann (Ann(..), annotations, val)
-import           AST.Term.Nominal (ToNom(..))
+import           AST.Term.Nominal (ToNom(..), NominalInst(..))
 import           AST.Term.Row (RowExtend(..))
+import           AST.Term.Scheme (_QVarInstances)
 import           Control.Lens (Traversal', Prism', Iso', iso)
 import qualified Control.Lens as Lens
 import           Control.Lens.Operators
+import           Data.Proxy (Proxy(..))
 import           Data.Set (Set)
 import qualified Data.Set as Set
 import           Lamdu.Calc.Term (Val)
@@ -39,6 +42,28 @@ import qualified Lamdu.Calc.Term as V
 import qualified Lamdu.Calc.Type as T
 
 import           Prelude.Compat
+
+tIds ::
+    (Recursive Children k, HasTIds expr) =>
+    Traversal' (Tree k expr) T.NominalId
+tIds f = recursiveChildren (Proxy @Children) (bodyTIds f)
+
+class HasTIds expr where
+    bodyTIds :: Recursive Children k => Traversal' (Tree expr k) T.NominalId
+
+instance HasTIds T.Type where
+    {-# INLINE bodyTIds #-}
+    bodyTIds f (T.TInst (NominalInst tId args)) =
+        NominalInst
+        <$> f tId
+        <*> children (Proxy @HasTIds) (_QVarInstances %%~ traverse (tIds f))
+            args
+        <&> T.TInst
+    bodyTIds f x = children (Proxy @HasTIds) (tIds f) x
+
+instance HasTIds T.Row where
+    {-# INLINE bodyTIds #-}
+    bodyTIds f = children (Proxy @HasTIds) (tIds f)
 
 {-# INLINE valApply #-}
 valApply :: Traversal' (Val a) (Tree (V.Apply V.Term) (Ann a))
