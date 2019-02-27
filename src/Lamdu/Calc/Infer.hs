@@ -113,7 +113,7 @@ instance HasScope PureInfer ScopeTypes where
 
 instance LocalScopeType Var (Tree (Const Int) T.Type) PureInfer where
     {-# INLINE localScopeType #-}
-    localScopeType k v = local (ieScope . _ScopeTypes . Lens.at k ?~ monomorphic v)
+    localScopeType k v = local (ieScope . _ScopeTypes . Lens.at k ?~ GMono v)
 
 instance MonadScopeConstraints ScopeLevel PureInfer where
     {-# INLINE scopeConstraints #-}
@@ -176,7 +176,7 @@ instance HasScope (STInfer s) ScopeTypes where
 instance LocalScopeType Var (Tree (STVar s) T.Type) (STInfer s) where
     {-# INLINE localScopeType #-}
     localScopeType k v =
-        local (Lens._1 . ieScope . _ScopeTypes . Lens.at k ?~ monomorphic v)
+        local (Lens._1 . ieScope . _ScopeTypes . Lens.at k ?~ GMono v)
 
 instance MonadScopeConstraints ScopeLevel (STInfer s) where
     {-# INLINE scopeConstraints #-}

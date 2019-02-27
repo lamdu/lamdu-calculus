@@ -21,8 +21,9 @@ module Lamdu.Calc.Term
     , ToNom(..), FromNom(..), RowExtend(..)
     ) where
 
-import           AST (Tree, Tie, Ann, Recursive(..), RecursiveDict, makeChildren)
+import           AST (Tree, Tie, Ann, Recursive(..), RecursiveDict, makeChildren, RunKnot, Children(..))
 import           AST.Infer
+import           AST.Knot.Flip (_Flip)
 import           AST.Term.Apply (Apply(..), applyFunc, applyArg)
 import           AST.Term.FuncType (FuncType(..))
 import           AST.Term.Lam (Lam(..), lamIn, lamOut)
@@ -161,10 +162,17 @@ instance Pretty (Tie f Term) => Pretty (Term f) where
             where
                 prField = pPrint tag <+> PP.text "=" <+> pPrint val
 
-newtype ScopeTypes v = ScopeTypes (Map Var (G.Generalized T.Type v))
+newtype ScopeTypes v = ScopeTypes (Map Var (Tree (G.GTerm (RunKnot v)) T.Type))
     deriving (Semigroup, Monoid)
 Lens.makePrisms ''ScopeTypes
-makeChildren ''ScopeTypes
+
+instance Children ScopeTypes where
+    type ChildrenConstraint ScopeTypes c = (c T.Type, c T.Row)
+    children p f =
+        children p f
+        & Lens.from _Flip
+        & traverse
+        & _ScopeTypes
 
 type instance ScopeOf Term = ScopeTypes
 type instance TypeOf Term = T.Type
