@@ -7,6 +7,7 @@ module Lamdu.Calc.Infer
     , InferState(..), isBinding, isQVarGen
     , emptyInferEnv, emptyPureInferState
     , PureInferT(..), _PureInferT
+    , PureInfer
     , STInfer(..), _STInfer
     , loadDeps
     ) where
