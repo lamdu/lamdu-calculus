@@ -23,10 +23,12 @@ module Lamdu.Calc.Lens
     , payloadsIndexedByPath
     , payloadsOf
     , HasTIds(..), tIds
+    , itermAnn
     ) where
 
 import           AST (Tree, Children(..), Recursive(..), recursiveChildren)
 import           AST.Class.Children.Mono (monoChildren)
+import           AST.Infer (ITerm(..), IResult)
 import           AST.Knot.Ann (Ann(..), annotations, val)
 import           AST.Term.Nominal (ToNom(..), NominalInst(..))
 import           AST.Term.Row (RowExtend(..))
@@ -218,3 +220,19 @@ valNominals f (Ann pl body) =
         <&> V.BToNom
     _ -> body & monoChildren . valNominals %%~ f
     <&> Ann pl
+
+-- Lamdu-calculus uses a uniform type for all subexpression types, so
+-- ITerm yields unnecessary power compared to Ann, and is less usable
+itermAnn ::
+    Lens.Iso
+    (Tree (ITerm a n) V.Term)
+    (Tree (ITerm b m) V.Term)
+    (Tree (Ann (a, IResult n V.Term)) V.Term)
+    (Tree (Ann (b, IResult m V.Term)) V.Term)
+itermAnn =
+    Lens.iso toAnn fromAnn
+    where
+        fromAnn (Ann (pl, ires) term) =
+            term & monoChildren %~ fromAnn & ITerm pl ires
+        toAnn (ITerm pl ires term) =
+            term & monoChildren %~ toAnn & Ann (pl, ires)
