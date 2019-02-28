@@ -32,7 +32,6 @@ import           AST.Term.Row (RowExtend(..), rowElementInfer)
 import           AST.Term.Scheme (QVarInstances(..))
 import qualified AST.Term.Var as TermVar
 import           AST.Unify
-import           AST.Unify.Binding (newVar)
 import qualified AST.Unify.Generalize as G
 import           AST.Unify.Term (UTerm(..))
 import           Control.DeepSeq (NFData(..))
@@ -185,7 +184,7 @@ instance
     ( MonadNominals T.NominalId T.Type m
     , HasScope m ScopeTypes
     , Unify m T.Type, Unify m T.Row
-    , LocalScopeType Var (Tree (UVar m) T.Type) m
+    , LocalScopeType Var (Tree (UVarOf m) T.Type) m
     ) =>
     Infer m Term where
 

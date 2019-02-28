@@ -26,7 +26,7 @@ localInitEnv ::
     ( MonadReader env m
     , Unify m T.Type, Unify m T.Row
     ) =>
-    ASetter' env (InferEnv (UVar m)) -> Tree (Ann z) Term -> m a -> m a
+    ASetter' env (InferEnv (UVarOf m)) -> Tree (Ann z) Term -> m a -> m a
 localInitEnv inferEnv e action =
     do
         addScope <- loadDeps (pruneDeps e allDeps)
