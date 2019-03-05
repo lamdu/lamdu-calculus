@@ -165,6 +165,10 @@ newtype ScopeTypes v = ScopeTypes (Map Var (Tree (G.GTerm (RunKnot v)) T.Type))
     deriving (Semigroup, Monoid)
 Lens.makePrisms ''ScopeTypes
 
+deriving instance (Eq   (Tie v T.Type), Eq   (Tie v T.Row)) => Eq   (ScopeTypes v)
+deriving instance (Ord  (Tie v T.Type), Ord  (Tie v T.Row)) => Ord  (ScopeTypes v)
+deriving instance (Show (Tie v T.Type), Show (Tie v T.Row)) => Show (ScopeTypes v)
+
 instance Children ScopeTypes where
     type ChildrenConstraint ScopeTypes c = (c T.Type, c T.Row)
     children p f =
