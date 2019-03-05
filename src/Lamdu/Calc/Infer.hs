@@ -1,8 +1,7 @@
-{-# LANGUAGE RankNTypes #-}
 {-# LANGUAGE NoImplicitPrelude, TemplateHaskell, GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE UndecidableInstances, MultiParamTypeClasses, TypeFamilies #-}
 {-# LANGUAGE FlexibleInstances, LambdaCase, DataKinds, FlexibleContexts #-}
-{-# LANGUAGE TypeApplications #-}
+{-# LANGUAGE TypeApplications, RankNTypes, StandaloneDeriving, ConstraintKinds #-}
 
 module Lamdu.Calc.Infer
     ( InferEnv(..), ieNominals, ieScope, ieScopeLevel
@@ -38,6 +37,7 @@ import           Control.Monad.Trans.Maybe
 import           Control.Monad.Trans.RWS (RWST)
 import           Control.Monad.Trans.Reader (ReaderT)
 import           Control.Monad.Trans.Writer (WriterT)
+import           Data.Constraint (Constraint)
 import           Data.Map (Map)
 import           Data.Proxy (Proxy(..))
 import           Data.STRef
@@ -211,6 +211,12 @@ instance Unify (STInfer s) T.Row where
     unifyError _ = empty
     {-# INLINE structureMismatch #-}
     structureMismatch = T.rStructureMismatch
+
+type DepsE c v =
+    ((c (Tree v T.Type), c (Tree v T.Row), c (Tree ScopeTypes v)) :: Constraint)
+deriving instance DepsE Eq   v => Eq   (InferEnv v)
+deriving instance DepsE Ord  v => Ord  (InferEnv v)
+deriving instance DepsE Show v => Show (InferEnv v)
 
 {-# SPECIALIZE semiPruneLookup :: Tree UVar T.Type -> PureInfer (Tree UVar T.Type, Tree (UTerm UVar) T.Type) #-}
 {-# SPECIALIZE semiPruneLookup :: Tree UVar T.Row -> PureInfer (Tree UVar T.Row, Tree (UTerm UVar) T.Row) #-}
