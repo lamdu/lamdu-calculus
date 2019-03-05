@@ -184,6 +184,14 @@ instance Pretty (Tree Row Pure) where
             go sep (RExtend (RowExtend f t (Pure r))) =
                 sep PP.<> pPrint f <+> PP.text ":" <+> pPrint t PP.<> go (PP.text ", ") r
 
+instance Pretty RConstraints where
+    pPrint _ = PP.text "[TODO: Pretty RConstraints]"
+
+instance Pretty (Tree TypeError Pure) where
+    pPrint (TypeError x) = pPrint x
+    pPrint (RowError x) = pPrint x
+    pPrint (NominalNotFound x) = PP.text "Nominal not found:" <+> pPrint x
+
 type instance NomVarTypes Type = Types
 
 instance (c Type, c Row) => Recursive c Type
