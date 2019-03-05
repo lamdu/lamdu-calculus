@@ -24,14 +24,15 @@ module Lamdu.Calc.Lens
     , payloadsOf
     , HasTIds(..), tIds
     , itermAnn
+    , flatRow
     ) where
 
-import           AST (Tree, Children(..), Recursive(..), recursiveChildren)
+import           AST (Tree, Pure(..), _Pure, Children(..), Recursive(..), recursiveChildren)
 import           AST.Class.Children.Mono (monoChildren)
 import           AST.Infer (ITerm(..), IResult)
 import           AST.Knot.Ann (Ann(..), annotations, val)
 import           AST.Term.Nominal (ToNom(..), NominalInst(..))
-import           AST.Term.Row (RowExtend(..))
+import           AST.Term.Row (RowExtend(..), FlatRowExtends(..), flattenRow, unflattenRow)
 import           AST.Term.Scheme (_QVarInstances)
 import           Control.Lens (Traversal', Prism', Iso', iso)
 import qualified Control.Lens as Lens
@@ -236,3 +237,17 @@ itermAnn =
             term & monoChildren %~ fromAnn & ITerm pl ires
         toAnn (ITerm pl ires term) =
             term & monoChildren %~ toAnn & Ann (pl, ires)
+
+flatRow ::
+    Lens.Iso'
+    (Tree Pure T.Row)
+    (Tree (FlatRowExtends T.Tag T.Type T.Row) Pure)
+flatRow =
+    Lens.iso flatten unflatten
+    where
+        flatten =
+            Lens.runIdentity .
+            flattenRow (Lens.Identity . (^? _Pure . T._RExtend))
+        unflatten =
+            Lens.runIdentity .
+            unflattenRow (Lens.Identity . Pure . T.RExtend)
