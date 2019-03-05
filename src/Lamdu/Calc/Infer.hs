@@ -86,7 +86,7 @@ Lens.makePrisms ''PureInferT
 
 type PureInfer = PureInferT (Either (Tree Pure T.TypeError))
 
-type instance UVarOf PureInfer = UVar
+type instance UVarOf (PureInferT m) = UVar
 
 loadDeps ::
     (Unify m T.Row, Unify m T.Type) =>
