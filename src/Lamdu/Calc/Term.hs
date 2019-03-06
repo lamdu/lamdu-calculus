@@ -18,6 +18,8 @@ module Lamdu.Calc.Term
     , Lam(..), lamIn, lamOut
     , Var(..)
     , ScopeTypes(..), _ScopeTypes
+    , Scope(..), scopeNominals, scopeVarTypes, scopeLevel
+    , emptyScope
     , ToNom(..), FromNom(..), RowExtend(..)
     ) where
 
@@ -27,6 +29,7 @@ import           AST.Knot.Flip (_Flip)
 import           AST.Term.Apply (Apply(..), applyFunc, applyArg)
 import           AST.Term.FuncType (FuncType(..))
 import           AST.Term.Lam (Lam(..), lamIn, lamOut)
+import           AST.Term.Nominal
 import           AST.Term.Nominal (ToNom(..), FromNom(..), NominalInst(..), MonadNominals)
 import           AST.Term.Row (RowExtend(..), rowElementInfer)
 import           AST.Term.Scheme (QVarInstances(..))
@@ -34,12 +37,14 @@ import qualified AST.Term.Var as TermVar
 import           AST.Unify
 import qualified AST.Unify.Generalize as G
 import           AST.Unify.Term (UTerm(..))
+import           Algebra.Lattice (BoundedJoinSemiLattice(..))
 import           Control.DeepSeq (NFData(..))
 import qualified Control.Lens as Lens
 import           Control.Lens.Operators
 import           Data.Binary (Binary)
 import           Data.ByteString (ByteString)
 import qualified Data.ByteString.Char8 as BS8
+import           Data.Constraint (Constraint)
 import           Data.Constraint (withDict)
 import           Data.Hashable (Hashable(..))
 import           Data.Map (Map)
@@ -177,16 +182,32 @@ instance Children ScopeTypes where
         & traverse
         & _ScopeTypes
 
-type instance ScopeOf Term = ScopeTypes
+data Scope v = Scope
+    { _scopeNominals :: Map T.NominalId (LoadedNominalDecl T.Type v)
+    , _scopeVarTypes :: ScopeTypes v
+    , _scopeLevel :: ScopeLevel
+    }
+Lens.makeLenses ''Scope
+
+emptyScope :: Scope v
+emptyScope = Scope mempty (ScopeTypes mempty) bottom
+
+type instance ScopeOf Term = Scope
 type instance TypeOf Term = T.Type
+
+type ScopeDeps c v =
+    ((c (Tie v T.Type), c (Tie v T.Row), c (ScopeTypes v)) :: Constraint)
+deriving instance ScopeDeps Eq   v => Eq   (Scope v)
+deriving instance ScopeDeps Ord  v => Ord  (Scope v)
+deriving instance ScopeDeps Show v => Show (Scope v)
 
 instance TermVar.VarType Var Term where
     {-# INLINE varType #-}
-    varType _ v (ScopeTypes x) = x ^?! Lens.ix v & G.instantiate
+    varType _ v x = x ^?! scopeVarTypes . _ScopeTypes . Lens.ix v & G.instantiate
 
 instance
     ( MonadNominals T.NominalId T.Type m
-    , HasScope m ScopeTypes
+    , HasScope m Scope
     , Unify m T.Type, Unify m T.Row
     , LocalScopeType Var (Tree (UVarOf m) T.Type) m
     ) =>

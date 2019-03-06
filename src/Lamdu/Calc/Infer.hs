@@ -1,12 +1,11 @@
 {-# LANGUAGE NoImplicitPrelude, TemplateHaskell, GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE UndecidableInstances, MultiParamTypeClasses, TypeFamilies #-}
 {-# LANGUAGE FlexibleInstances, LambdaCase, DataKinds, FlexibleContexts #-}
-{-# LANGUAGE TypeApplications, RankNTypes, StandaloneDeriving, ConstraintKinds #-}
+{-# LANGUAGE TypeApplications, RankNTypes #-}
 
 module Lamdu.Calc.Infer
-    ( Scope(..), ieNominals, ieScope, ieScopeLevel
-    , InferState(..), isBinding, isQVarGen
-    , emptyScope, emptyPureInferState
+    ( InferState(..), isBinding, isQVarGen
+    , emptyPureInferState
     , PureInferT(..), _PureInferT, runPureInferT
     , PureInfer
     , STInfer(..), _STInfer
@@ -23,7 +22,6 @@ import           AST.Unify.Binding
 import           AST.Unify.Binding.ST
 import           AST.Unify.Generalize
 import           AST.Unify.Term
-import           Algebra.Lattice
 import           Control.Applicative (Alternative(..))
 import qualified Control.Lens as Lens
 import           Control.Lens (LensLike')
@@ -37,8 +35,6 @@ import           Control.Monad.Trans.Maybe
 import           Control.Monad.Trans.RWS (RWST(..))
 import           Control.Monad.Trans.Reader (ReaderT)
 import           Control.Monad.Trans.Writer (WriterT)
-import           Data.Constraint (Constraint)
-import           Data.Map (Map)
 import           Data.Proxy (Proxy(..))
 import           Data.STRef
 import           Data.String (IsString(..))
@@ -47,16 +43,6 @@ import           Lamdu.Calc.Term
 import qualified Lamdu.Calc.Type as T
 
 import           Prelude.Compat
-
-data Scope v = Scope
-    { _ieNominals :: Map T.NominalId (LoadedNominalDecl T.Type v)
-    , _ieScope :: ScopeTypes v
-    , _ieScopeLevel :: ScopeLevel
-    }
-Lens.makeLenses ''Scope
-
-emptyScope :: Scope v
-emptyScope = Scope mempty (ScopeTypes mempty) bottom
 
 data QVarGen = QVarGen
     { _nextTV :: !Int
@@ -73,8 +59,7 @@ data InferState = InferState
     } deriving (Eq, Ord)
 Lens.makeLenses ''InferState
 
-newtype PureInferT m a = PureInferT
-    (RWST (Tree Scope UVar) () InferState m a)
+newtype PureInferT m a = PureInferT (RWST (Tree Scope UVar) () InferState m a)
     deriving
     ( Functor, Alternative, Applicative, Monad
     , MonadReader (Tree Scope UVar)
@@ -102,26 +87,26 @@ loadDeps deps =
         loadedSchemes <- deps ^. depsGlobalTypes & traverse loadScheme
         pure $ \env ->
             env
-            & ieScope . _ScopeTypes <>~ loadedSchemes
-            & ieNominals <>~ loadedNoms
+            & scopeVarTypes . _ScopeTypes <>~ loadedSchemes
+            & scopeNominals <>~ loadedNoms
 
 instance MonadNominals T.NominalId T.Type PureInfer where
     {-# INLINE getNominalDecl #-}
     getNominalDecl n =
-        Lens.view (ieNominals . Lens.at n)
+        Lens.view (scopeNominals . Lens.at n)
         >>= maybe (throwError (Pure (T.NominalNotFound n))) pure
 
-instance HasScope PureInfer ScopeTypes where
+instance HasScope PureInfer Scope where
     {-# INLINE getScope #-}
-    getScope = Lens.view ieScope
+    getScope = Lens.view id
 
 instance LocalScopeType Var (Tree UVar T.Type) PureInfer where
     {-# INLINE localScopeType #-}
-    localScopeType k v = local (ieScope . _ScopeTypes . Lens.at k ?~ GMono v)
+    localScopeType k v = local (scopeVarTypes . _ScopeTypes . Lens.at k ?~ GMono v)
 
 instance MonadScopeConstraints ScopeLevel PureInfer where
     {-# INLINE scopeConstraints #-}
-    scopeConstraints = Lens.view ieScopeLevel
+    scopeConstraints = Lens.view scopeLevel
 
 nextTVNamePure ::
     (MonadState InferState m, IsString a) =>
@@ -171,20 +156,20 @@ type instance UVarOf (STInfer s) = STUVar s
 instance MonadNominals T.NominalId T.Type (STInfer s) where
     {-# INLINE getNominalDecl #-}
     getNominalDecl n =
-        Lens.view (Lens._1 . ieNominals . Lens.at n) >>= maybe empty pure
+        Lens.view (Lens._1 . scopeNominals . Lens.at n) >>= maybe empty pure
 
-instance HasScope (STInfer s) ScopeTypes where
+instance HasScope (STInfer s) Scope where
     {-# INLINE getScope #-}
-    getScope = Lens.view (Lens._1 . ieScope)
+    getScope = Lens.view Lens._1
 
 instance LocalScopeType Var (Tree (STUVar s) T.Type) (STInfer s) where
     {-# INLINE localScopeType #-}
     localScopeType k v =
-        local (Lens._1 . ieScope . _ScopeTypes . Lens.at k ?~ GMono v)
+        local (Lens._1 . scopeVarTypes . _ScopeTypes . Lens.at k ?~ GMono v)
 
 instance MonadScopeConstraints ScopeLevel (STInfer s) where
     {-# INLINE scopeConstraints #-}
-    scopeConstraints = Lens.view (Lens._1 . ieScopeLevel)
+    scopeConstraints = Lens.view (Lens._1 . scopeLevel)
 
 nextTVNameST :: IsString a => Char -> Lens.ALens' QVarGen Int -> STInfer s a
 nextTVNameST prefix lens =
@@ -216,12 +201,6 @@ instance Unify (STInfer s) T.Row where
     unifyError _ = empty
     {-# INLINE structureMismatch #-}
     structureMismatch = T.rStructureMismatch
-
-type DepsE c v =
-    ((c (Tie v T.Type), c (Tie v T.Row), c (ScopeTypes v)) :: Constraint)
-deriving instance DepsE Eq   v => Eq   (Scope v)
-deriving instance DepsE Ord  v => Ord  (Scope v)
-deriving instance DepsE Show v => Show (Scope v)
 
 {-# SPECIALIZE semiPruneLookup :: Tree UVar T.Type -> PureInfer (Tree UVar T.Type, Tree (UTerm UVar) T.Type) #-}
 {-# SPECIALIZE semiPruneLookup :: Tree UVar T.Row -> PureInfer (Tree UVar T.Row, Tree (UTerm UVar) T.Row) #-}

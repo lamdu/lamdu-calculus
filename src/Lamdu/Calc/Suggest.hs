@@ -29,8 +29,7 @@ value r@(IResult (Pure (T.TVariant (Pure (T.RExtend v)))) scope) =
 value r = valueNoSplit r <&> (:[])
 
 valueNoSplit :: MonadGenVar m => IResult Pure Term -> m (Tree (ITerm () Pure) Term)
-valueNoSplit (IResult (Pure (T.TRecord r)) scope) =
-    suggestRecord r scope
+valueNoSplit (IResult (Pure (T.TRecord r)) scope) = suggestRecord r scope
 valueNoSplit r@(IResult (Pure (T.TFun f)) scope) =
     case f ^. funcIn . _Pure of
     T.TVariant v -> suggestCase v (IResult (f ^. funcOut) scope)
@@ -42,7 +41,9 @@ valueNoSplit r@(IResult (Pure (T.TFun f)) scope) =
         <&> ITerm () r
 valueNoSplit r = BLeaf LHole & ITerm () r & pure
 
-suggestRecord :: MonadGenVar m => Tree Pure T.Row -> Tree ScopeTypes Pure -> m (Tree (ITerm () Pure) Term)
+suggestRecord ::
+    MonadGenVar m =>
+    Tree Pure T.Row -> Tree Scope Pure -> m (Tree (ITerm () Pure) Term)
 suggestRecord (Pure r) scope =
     case r of
     T.RVar{} -> BLeaf LHole & pure
