@@ -4,7 +4,7 @@ import           AST.Infer
 import           AST.Unify
 import           Control.DeepSeq (rnf)
 import           Control.Exception (evaluate)
-import           Control.Lens (ASetter', _Right, _Left)
+import           Control.Lens (ASetter', _Right)
 import           Control.Lens.Operators
 import           Control.Lens.Tuple
 import           Control.Monad.Reader
@@ -33,16 +33,15 @@ localInitEnv inferEnv e action =
 
 benchInferPure :: Val () -> Benchmarkable
 benchInferPure e =
-    runPureInferT action emptyScope (InferState emptyPureInferState varGen)
+    inferNode e
+    <&> (^. iType)
+    >>= applyBindings
+    & localInitEnv id e
+    & runPureInfer emptyScope (InferState emptyPureInferState varGen)
     & _Right %~ (^. _1)
-    & _Left %~ (\x -> x :: Tree Pure T.TypeError)
     & rnf
     & evaluate
     & whnfIO
-    where
-        action =
-            localInitEnv id e
-            (inferNode e <&> (^. iType) >>= applyBindings)
 
 benchInferST :: Val () -> Benchmarkable
 benchInferST e =

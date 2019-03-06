@@ -6,8 +6,7 @@
 module Lamdu.Calc.Infer
     ( InferState(..), isBinding, isQVarGen
     , emptyPureInferState
-    , PureInferT(..), _PureInferT, runPureInferT
-    , PureInfer
+    , PureInfer(..), _PureInfer, runPureInfer
     , STInfer(..), _STInfer
     , loadDeps
     , varGen
@@ -59,24 +58,24 @@ data InferState = InferState
     } deriving (Eq, Ord)
 Lens.makeLenses ''InferState
 
-newtype PureInferT m a = PureInferT (RWST (Tree Scope UVar) () InferState m a)
+newtype PureInfer a =
+    PureInfer
+    (RWST (Tree Scope UVar) () InferState (Either (Tree Pure T.TypeError)) a)
     deriving
-    ( Functor, Alternative, Applicative, Monad
+    ( Functor, Applicative, Monad
     , MonadReader (Tree Scope UVar)
-    , MonadError e
+    , MonadError (Tree Pure T.TypeError)
     , MonadState InferState
-    , MonadTrans
     )
-Lens.makePrisms ''PureInferT
+Lens.makePrisms ''PureInfer
 
-runPureInferT ::
-    Functor f => PureInferT f a -> Tree Scope UVar -> InferState -> f (a, InferState)
-runPureInferT (PureInferT act) env st =
+runPureInfer ::
+    Tree Scope UVar -> InferState -> PureInfer a ->
+    Either (Tree Pure T.TypeError) (a, InferState)
+runPureInfer env st (PureInfer act) =
     runRWST act env st <&> \(x, s, ~()) -> (x, s)
 
-type PureInfer = PureInferT (Either (Tree Pure T.TypeError))
-
-type instance UVarOf (PureInferT m) = UVar
+type instance UVarOf PureInfer = UVar
 
 loadDeps ::
     (Unify m T.Row, Unify m T.Type) =>
