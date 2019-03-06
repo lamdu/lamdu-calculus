@@ -49,8 +49,8 @@ import qualified Lamdu.Calc.Type as T
 import           Prelude.Compat
 
 data Scope v = Scope
-    { _ieNominals :: Map T.NominalId (Tree (LoadedNominalDecl T.Type) v)
-    , _ieScope :: Tree ScopeTypes v
+    { _ieNominals :: Map T.NominalId (LoadedNominalDecl T.Type v)
+    , _ieScope :: ScopeTypes v
     , _ieScopeLevel :: ScopeLevel
     }
 Lens.makeLenses ''Scope
@@ -74,10 +74,10 @@ data InferState = InferState
 Lens.makeLenses ''InferState
 
 newtype PureInferT m a = PureInferT
-    (RWST (Scope UVar) () InferState m a)
+    (RWST (Tree Scope UVar) () InferState m a)
     deriving
     ( Functor, Alternative, Applicative, Monad
-    , MonadReader (Scope UVar)
+    , MonadReader (Tree Scope UVar)
     , MonadError e
     , MonadState InferState
     , MonadTrans
@@ -85,7 +85,7 @@ newtype PureInferT m a = PureInferT
 Lens.makePrisms ''PureInferT
 
 runPureInferT ::
-    Functor f => PureInferT f a -> Scope UVar -> InferState -> f (a, InferState)
+    Functor f => PureInferT f a -> Tree Scope UVar -> InferState -> f (a, InferState)
 runPureInferT (PureInferT act) env st =
     runRWST act env st <&> \(x, s, ~()) -> (x, s)
 
@@ -95,7 +95,7 @@ type instance UVarOf (PureInferT m) = UVar
 
 loadDeps ::
     (Unify m T.Row, Unify m T.Type) =>
-    Deps -> m (Scope (UVarOf m) -> Scope (UVarOf m))
+    Deps -> m (Tree Scope (UVarOf m) -> Tree Scope (UVarOf m))
 loadDeps deps =
     do
         loadedNoms <- deps ^. depsNominals & traverse loadNominalDecl
@@ -159,10 +159,10 @@ emptyPureInferState :: Tree T.Types Binding
 emptyPureInferState = T.Types emptyBinding emptyBinding
 
 newtype STInfer s a = STInfer
-    (ReaderT (Scope (STUVar s), STRef s QVarGen) (MaybeT (ST s)) a)
+    (ReaderT (Tree Scope (STUVar s), STRef s QVarGen) (MaybeT (ST s)) a)
     deriving
     ( Functor, Alternative, Applicative, Monad, MonadST
-    , MonadReader (Scope (STUVar s), STRef s QVarGen)
+    , MonadReader (Tree Scope (STUVar s), STRef s QVarGen)
     )
 Lens.makePrisms ''STInfer
 
@@ -218,7 +218,7 @@ instance Unify (STInfer s) T.Row where
     structureMismatch = T.rStructureMismatch
 
 type DepsE c v =
-    ((c (Tree v T.Type), c (Tree v T.Row), c (Tree ScopeTypes v)) :: Constraint)
+    ((c (Tie v T.Type), c (Tie v T.Row), c (ScopeTypes v)) :: Constraint)
 deriving instance DepsE Eq   v => Eq   (Scope v)
 deriving instance DepsE Ord  v => Ord  (Scope v)
 deriving instance DepsE Show v => Show (Scope v)
