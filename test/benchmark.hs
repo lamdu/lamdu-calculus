@@ -25,7 +25,7 @@ localInitEnv ::
     ( MonadReader env m
     , Unify m T.Type, Unify m T.Row
     ) =>
-    ASetter' env (InferEnv (UVarOf m)) -> Tree (Ann z) Term -> m a -> m a
+    ASetter' env (Scope (UVarOf m)) -> Tree (Ann z) Term -> m a -> m a
 localInitEnv inferEnv e action =
     do
         addScope <- loadDeps (pruneDeps e allDeps)
@@ -33,7 +33,7 @@ localInitEnv inferEnv e action =
 
 benchInferPure :: Val () -> Benchmarkable
 benchInferPure e =
-    runPureInferT action emptyInferEnv (InferState emptyPureInferState varGen)
+    runPureInferT action emptyScope (InferState emptyPureInferState varGen)
     & _Right %~ (^. _1)
     & _Left %~ (\x -> x :: Tree Pure T.TypeError)
     & rnf
@@ -50,7 +50,7 @@ benchInferST e =
         vg <- newSTRef varGen
         localInitEnv _1 e
             (inferNode e <&> (^. iType) >>= applyBindings) ^. _STInfer
-            & (`runReaderT` (emptyInferEnv, vg))
+            & (`runReaderT` (emptyScope, vg))
             & runMaybeT
     & liftST >>= evaluate . rnf & whnfIO
 

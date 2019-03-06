@@ -4,9 +4,9 @@
 {-# LANGUAGE TypeApplications, RankNTypes, StandaloneDeriving, ConstraintKinds #-}
 
 module Lamdu.Calc.Infer
-    ( InferEnv(..), ieNominals, ieScope, ieScopeLevel
+    ( Scope(..), ieNominals, ieScope, ieScopeLevel
     , InferState(..), isBinding, isQVarGen
-    , emptyInferEnv, emptyPureInferState
+    , emptyScope, emptyPureInferState
     , PureInferT(..), _PureInferT, runPureInferT
     , PureInfer
     , STInfer(..), _STInfer
@@ -48,15 +48,15 @@ import qualified Lamdu.Calc.Type as T
 
 import           Prelude.Compat
 
-data InferEnv v = InferEnv
+data Scope v = Scope
     { _ieNominals :: Map T.NominalId (Tree (LoadedNominalDecl T.Type) v)
     , _ieScope :: Tree ScopeTypes v
     , _ieScopeLevel :: ScopeLevel
     }
-Lens.makeLenses ''InferEnv
+Lens.makeLenses ''Scope
 
-emptyInferEnv :: InferEnv v
-emptyInferEnv = InferEnv mempty (ScopeTypes mempty) bottom
+emptyScope :: Scope v
+emptyScope = Scope mempty (ScopeTypes mempty) bottom
 
 data QVarGen = QVarGen
     { _nextTV :: !Int
@@ -74,10 +74,10 @@ data InferState = InferState
 Lens.makeLenses ''InferState
 
 newtype PureInferT m a = PureInferT
-    (RWST (InferEnv UVar) () InferState m a)
+    (RWST (Scope UVar) () InferState m a)
     deriving
     ( Functor, Alternative, Applicative, Monad
-    , MonadReader (InferEnv UVar)
+    , MonadReader (Scope UVar)
     , MonadError e
     , MonadState InferState
     , MonadTrans
@@ -85,7 +85,7 @@ newtype PureInferT m a = PureInferT
 Lens.makePrisms ''PureInferT
 
 runPureInferT ::
-    Functor f => PureInferT f a -> InferEnv UVar -> InferState -> f (a, InferState)
+    Functor f => PureInferT f a -> Scope UVar -> InferState -> f (a, InferState)
 runPureInferT (PureInferT act) env st =
     runRWST act env st <&> \(x, s, ~()) -> (x, s)
 
@@ -95,7 +95,7 @@ type instance UVarOf (PureInferT m) = UVar
 
 loadDeps ::
     (Unify m T.Row, Unify m T.Type) =>
-    Deps -> m (InferEnv (UVarOf m) -> InferEnv (UVarOf m))
+    Deps -> m (Scope (UVarOf m) -> Scope (UVarOf m))
 loadDeps deps =
     do
         loadedNoms <- deps ^. depsNominals & traverse loadNominalDecl
@@ -159,10 +159,10 @@ emptyPureInferState :: Tree T.Types Binding
 emptyPureInferState = T.Types emptyBinding emptyBinding
 
 newtype STInfer s a = STInfer
-    (ReaderT (InferEnv (STUVar s), STRef s QVarGen) (MaybeT (ST s)) a)
+    (ReaderT (Scope (STUVar s), STRef s QVarGen) (MaybeT (ST s)) a)
     deriving
     ( Functor, Alternative, Applicative, Monad, MonadST
-    , MonadReader (InferEnv (STUVar s), STRef s QVarGen)
+    , MonadReader (Scope (STUVar s), STRef s QVarGen)
     )
 Lens.makePrisms ''STInfer
 
@@ -219,9 +219,9 @@ instance Unify (STInfer s) T.Row where
 
 type DepsE c v =
     ((c (Tree v T.Type), c (Tree v T.Row), c (Tree ScopeTypes v)) :: Constraint)
-deriving instance DepsE Eq   v => Eq   (InferEnv v)
-deriving instance DepsE Ord  v => Ord  (InferEnv v)
-deriving instance DepsE Show v => Show (InferEnv v)
+deriving instance DepsE Eq   v => Eq   (Scope v)
+deriving instance DepsE Ord  v => Ord  (Scope v)
+deriving instance DepsE Show v => Show (Scope v)
 
 {-# SPECIALIZE semiPruneLookup :: Tree UVar T.Type -> PureInfer (Tree UVar T.Type, Tree (UTerm UVar) T.Type) #-}
 {-# SPECIALIZE semiPruneLookup :: Tree UVar T.Row -> PureInfer (Tree UVar T.Row, Tree (UTerm UVar) T.Row) #-}
