@@ -17,15 +17,13 @@ module Lamdu.Calc.Term
     , Inject(..), injectVal, injectTag
     , Lam(..), lamIn, lamOut
     , Var(..)
-    , ScopeTypes(..), _ScopeTypes
     , Scope(..), scopeNominals, scopeVarTypes, scopeLevel
     , emptyScope
     , ToNom(..), FromNom(..), RowExtend(..)
     ) where
 
-import           AST (Tree, Tie, Ann, Recursive(..), RecursiveDict, makeChildren, RunKnot, Children(..))
+import           AST (Tree, Tie, Ann, Recursive(..), RecursiveDict, makeChildren, RunKnot)
 import           AST.Infer
-import           AST.Knot.Flip (_Flip)
 import           AST.Term.Apply (Apply(..), applyFunc, applyArg)
 import           AST.Term.FuncType (FuncType(..))
 import           AST.Term.Lam (Lam(..), lamIn, lamOut)
@@ -166,44 +164,28 @@ instance Pretty (Tie f Term) => Pretty (Term f) where
             where
                 prField = pPrint tag <+> PP.text "=" <+> pPrint val
 
-newtype ScopeTypes v = ScopeTypes (Map Var (Tree (G.GTerm (RunKnot v)) T.Type))
-    deriving (Semigroup, Monoid)
-Lens.makePrisms ''ScopeTypes
-
-deriving instance (Eq   (Tie v T.Type), Eq   (Tie v T.Row)) => Eq   (ScopeTypes v)
-deriving instance (Ord  (Tie v T.Type), Ord  (Tie v T.Row)) => Ord  (ScopeTypes v)
-deriving instance (Show (Tie v T.Type), Show (Tie v T.Row)) => Show (ScopeTypes v)
-
-instance Children ScopeTypes where
-    type ChildrenConstraint ScopeTypes c = (c T.Type, c T.Row)
-    children p f =
-        children p f
-        & Lens.from _Flip
-        & traverse
-        & _ScopeTypes
-
 data Scope v = Scope
     { _scopeNominals :: Map T.NominalId (LoadedNominalDecl T.Type v)
-    , _scopeVarTypes :: ScopeTypes v
+    , _scopeVarTypes :: Map Var (Tree (G.GTerm (RunKnot v)) T.Type)
     , _scopeLevel :: ScopeLevel
     }
 Lens.makeLenses ''Scope
 
 emptyScope :: Scope v
-emptyScope = Scope mempty (ScopeTypes mempty) bottom
+emptyScope = Scope mempty mempty bottom
 
 type instance ScopeOf Term = Scope
 type instance TypeOf Term = T.Type
 
 type ScopeDeps c v =
-    ((c (Tie v T.Type), c (Tie v T.Row), c (ScopeTypes v)) :: Constraint)
+    ((c (Tie v T.Type), c (Tie v T.Row)) :: Constraint)
 deriving instance ScopeDeps Eq   v => Eq   (Scope v)
 deriving instance ScopeDeps Ord  v => Ord  (Scope v)
 deriving instance ScopeDeps Show v => Show (Scope v)
 
 instance TermVar.VarType Var Term where
     {-# INLINE varType #-}
-    varType _ v x = x ^?! scopeVarTypes . _ScopeTypes . Lens.ix v & G.instantiate
+    varType _ v x = x ^?! scopeVarTypes . Lens.ix v & G.instantiate
 
 instance
     ( MonadNominals T.NominalId T.Type m

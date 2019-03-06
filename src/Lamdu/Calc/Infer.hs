@@ -87,7 +87,7 @@ loadDeps deps =
         loadedSchemes <- deps ^. depsGlobalTypes & traverse loadScheme
         pure $ \env ->
             env
-            & scopeVarTypes . _ScopeTypes <>~ loadedSchemes
+            & scopeVarTypes <>~ loadedSchemes
             & scopeNominals <>~ loadedNoms
 
 instance MonadNominals T.NominalId T.Type PureInfer where
@@ -102,7 +102,7 @@ instance HasScope PureInfer Scope where
 
 instance LocalScopeType Var (Tree UVar T.Type) PureInfer where
     {-# INLINE localScopeType #-}
-    localScopeType k v = local (scopeVarTypes . _ScopeTypes . Lens.at k ?~ GMono v)
+    localScopeType k v = local (scopeVarTypes . Lens.at k ?~ GMono v)
 
 instance MonadScopeConstraints ScopeLevel PureInfer where
     {-# INLINE scopeConstraints #-}
@@ -165,7 +165,7 @@ instance HasScope (STInfer s) Scope where
 instance LocalScopeType Var (Tree (STUVar s) T.Type) (STInfer s) where
     {-# INLINE localScopeType #-}
     localScopeType k v =
-        local (Lens._1 . scopeVarTypes . _ScopeTypes . Lens.at k ?~ GMono v)
+        local (Lens._1 . scopeVarTypes . Lens.at k ?~ GMono v)
 
 instance MonadScopeConstraints ScopeLevel (STInfer s) where
     {-# INLINE scopeConstraints #-}
