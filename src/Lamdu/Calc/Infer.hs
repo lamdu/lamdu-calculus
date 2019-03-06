@@ -7,7 +7,7 @@ module Lamdu.Calc.Infer
     ( InferEnv(..), ieNominals, ieScope, ieScopeLevel
     , InferState(..), isBinding, isQVarGen
     , emptyInferEnv, emptyPureInferState
-    , PureInferT(..), _PureInferT
+    , PureInferT(..), _PureInferT, runPureInferT
     , PureInfer
     , STInfer(..), _STInfer
     , loadDeps
@@ -34,7 +34,7 @@ import           Control.Monad.ST
 import           Control.Monad.ST.Class (MonadST(..))
 import           Control.Monad.State
 import           Control.Monad.Trans.Maybe
-import           Control.Monad.Trans.RWS (RWST)
+import           Control.Monad.Trans.RWS (RWST(..))
 import           Control.Monad.Trans.Reader (ReaderT)
 import           Control.Monad.Trans.Writer (WriterT)
 import           Data.Constraint (Constraint)
@@ -83,6 +83,11 @@ newtype PureInferT m a = PureInferT
     , MonadTrans
     )
 Lens.makePrisms ''PureInferT
+
+runPureInferT ::
+    Functor f => PureInferT f a -> InferEnv UVar -> InferState -> f (a, InferState)
+runPureInferT (PureInferT act) env st =
+    runRWST act env st <&> \(x, s, ~()) -> (x, s)
 
 type PureInfer = PureInferT (Either (Tree Pure T.TypeError))
 

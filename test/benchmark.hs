@@ -10,7 +10,6 @@ import           Control.Lens.Tuple
 import           Control.Monad.Reader
 import           Control.Monad.ST.Class
 import           Control.Monad.Trans.Maybe
-import           Control.Monad.Trans.RWS (RWST(..))
 import           Criterion (Benchmarkable, whnfIO)
 import           Criterion.Main (bench, defaultMain)
 import           Data.STRef
@@ -34,7 +33,7 @@ localInitEnv inferEnv e action =
 
 benchInferPure :: Val () -> Benchmarkable
 benchInferPure e =
-    runRWST (action ^. _PureInferT) emptyInferEnv (InferState emptyPureInferState varGen)
+    runPureInferT action emptyInferEnv (InferState emptyPureInferState varGen)
     & _Right %~ (^. _1)
     & _Left %~ (\x -> x :: Tree Pure T.TypeError)
     & rnf
