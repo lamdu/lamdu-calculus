@@ -89,6 +89,9 @@ loadDeps deps =
             & scopeVarTypes <>~ loadedSchemes
             & scopeNominals <>~ loadedNoms
 
+instance MonadScopeLevel PureInfer where
+    localLevel = local (scopeLevel . _ScopeLevel +~ 1)
+
 instance MonadNominals T.NominalId T.Type PureInfer where
     {-# INLINE getNominalDecl #-}
     getNominalDecl n =
@@ -151,6 +154,9 @@ newtype STInfer s a = STInfer
 Lens.makePrisms ''STInfer
 
 type instance UVarOf (STInfer s) = STUVar s
+
+instance MonadScopeLevel (STInfer s) where
+    localLevel = local (Lens._1 . scopeLevel . _ScopeLevel +~ 1)
 
 instance MonadNominals T.NominalId T.Type (STInfer s) where
     {-# INLINE getNominalDecl #-}

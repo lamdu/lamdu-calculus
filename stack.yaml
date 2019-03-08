@@ -2,6 +2,6 @@ packages:
 - '.'
 - location:
     git: https://github.com/lamdu/syntax-tree
-    commit: 5a9dd2ce5389ae47e060ccf51fddaa8c89324d6e
+    commit: 782a47340c0031cf0a0dc88fe2a49dacd0524d9a
   extra-dep: True
 resolver: lts-13.0

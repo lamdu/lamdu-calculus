@@ -189,6 +189,7 @@ instance TermVar.VarType Var Term where
 
 instance
     ( MonadNominals T.NominalId T.Type m
+    , MonadScopeLevel m
     , HasScope m Scope
     , Unify m T.Type, Unify m T.Row
     , LocalScopeType Var (Tree (UVarOf m) T.Type) m
