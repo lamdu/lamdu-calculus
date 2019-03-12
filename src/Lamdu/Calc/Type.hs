@@ -37,16 +37,20 @@ module Lamdu.Calc.Type
     , rStructureMismatch
 
     , TypeError(..), _TypeError, _RowError
+
+    , alphaEq
     ) where
 
 import           AST
 import           AST.Class.FromChildren
 import           AST.Class.HasChild
+import           AST.Class.Recursive
 import           AST.Infer
 import           AST.Term.FuncType
 import           AST.Term.Nominal
 import           AST.Term.Row
 import qualified AST.Term.Scheme as S
+import qualified AST.Term.Scheme.AlphaEq as S
 import           AST.Unify
 import           AST.Unify.Term
 import           Algebra.Lattice
@@ -56,6 +60,7 @@ import qualified Control.Lens as Lens
 import           Control.Lens.Operators
 import           Data.Binary (Binary)
 import           Data.Hashable (Hashable)
+import           Data.Proxy (Proxy(..))
 import           Data.Semigroup ((<>))
 import           Data.Set (Set, singleton)
 import           Data.String (IsString(..))
@@ -264,6 +269,28 @@ rStructureMismatch ::
 rStructureMismatch (UTermBody c0 (RExtend r0)) (UTermBody c1 (RExtend r1)) =
     rowExtendStructureMismatch _RExtend (c0, r0) (c1, r1)
 rStructureMismatch x y = unifyError (Mismatch (x ^. uBody) (y ^. uBody))
+
+alphaEq :: Tree Pure Scheme -> Tree Pure Scheme -> Bool
+alphaEq x y =
+    S.alphaEq (normalize x) (normalize y)
+    where
+        normalize =
+            _Pure . S.sTyp %~
+            wrap (Proxy :: Proxy SortRExtends) sortRExtends
+
+class SortRExtends ast where
+    sortRExtends :: Tree ast Pure -> Tree Pure ast
+
+instance SortRExtends Type where
+    sortRExtends = Pure
+
+instance SortRExtends Row where
+    sortRExtends
+        (RExtend (RowExtend k0 v0 (Pure (RExtend (RowExtend k1 v1 r)))))
+            | k1 < k0 =
+                RowExtend k1 v1 r & RExtend & Pure
+                & RowExtend k0 v0 & RExtend & Pure
+    sortRExtends x = Pure x
 
 deriving instance Deps Eq   k => Eq   (Row k)
 deriving instance Deps Ord  k => Ord  (Row k)
