@@ -55,7 +55,7 @@ varGen = QVarGen 0 0
 data InferState = InferState
     { _isBinding :: Tree T.Types Binding
     , _isQVarGen :: QVarGen
-    } deriving (Eq, Ord)
+    } deriving (Eq, Ord, Show)
 Lens.makeLenses ''InferState
 
 newtype PureInfer a =
