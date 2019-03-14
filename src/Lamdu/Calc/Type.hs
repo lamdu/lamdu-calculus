@@ -244,6 +244,7 @@ instance HasTypeConstraints Row where
 instance TypeConstraints RConstraints where
     {-# INLINE generalizeConstraints #-}
     generalizeConstraints = rScope .~ bottom
+    toScopeConstraints = rForbiddenFields .~ bottom
 
 instance RowConstraints RConstraints where
     type RowConstraintsKey RConstraints = Tag
