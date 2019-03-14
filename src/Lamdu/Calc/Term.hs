@@ -35,7 +35,6 @@ import qualified AST.Term.Var as TermVar
 import           AST.Unify
 import qualified AST.Unify.Generalize as G
 import           AST.Unify.Term (UTerm(..))
-import           Algebra.Lattice (BoundedJoinSemiLattice(..))
 import           Control.DeepSeq (NFData(..))
 import qualified Control.Lens as Lens
 import           Control.Lens.Operators
@@ -172,7 +171,7 @@ data Scope v = Scope
 Lens.makeLenses ''Scope
 
 emptyScope :: Scope v
-emptyScope = Scope mempty mempty bottom
+emptyScope = Scope mempty mempty (ScopeLevel 0)
 
 type instance ScopeOf Term = Scope
 type instance TypeOf Term = T.Type
