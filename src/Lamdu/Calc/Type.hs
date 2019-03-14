@@ -288,8 +288,8 @@ instance SortRExtends Row where
     sortRExtends
         (RExtend (RowExtend k0 v0 (Pure (RExtend (RowExtend k1 v1 r)))))
             | k1 < k0 =
-                RowExtend k1 v1 r & RExtend & Pure
-                & RowExtend k0 v0 & RExtend & Pure
+                RowExtend k0 v0 r & RExtend & Pure
+                & RowExtend k1 v1 & RExtend & Pure
     sortRExtends x = Pure x
 
 deriving instance Deps Eq   k => Eq   (Row k)
