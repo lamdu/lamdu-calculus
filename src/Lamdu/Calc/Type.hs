@@ -11,7 +11,7 @@
 -- * The AST for types: Nominal types, structural composite types,
 --   function types.
 {-# LANGUAGE NoImplicitPrelude, DeriveGeneric, GeneralizedNewtypeDeriving #-}
-{-# LANGUAGE TemplateHaskell, DataKinds, StandaloneDeriving #-}
+{-# LANGUAGE TemplateHaskell, DataKinds, StandaloneDeriving, TypeApplications #-}
 {-# LANGUAGE UndecidableInstances, ConstraintKinds, FlexibleContexts #-}
 {-# LANGUAGE FlexibleInstances, TypeFamilies, MultiParamTypeClasses #-}
 
@@ -38,13 +38,12 @@ module Lamdu.Calc.Type
 
     , TypeError(..), _TypeError, _RowError
 
-    , alphaEq
+    , alphaEq, flatRow
     ) where
 
 import           AST
 import           AST.Class.FromChildren
 import           AST.Class.HasChild
-import           AST.Class.Recursive
 import           AST.Infer
 import           AST.Term.FuncType
 import           AST.Term.Nominal
@@ -275,23 +274,33 @@ alphaEq :: Tree Pure Scheme -> Tree Pure Scheme -> Bool
 alphaEq x y =
     S.alphaEq (normalize x) (normalize y)
     where
-        normalize =
-            _Pure . S.sTyp %~
-            wrap (Proxy :: Proxy SortRExtends) sortRExtends
+        normalize = _Pure . S.sTyp %~ sortRExtends
 
 class SortRExtends ast where
-    sortRExtends :: Tree ast Pure -> Tree Pure ast
+    sortRExtends :: Tree Pure ast -> Tree Pure ast
 
 instance SortRExtends Type where
-    sortRExtends = Pure
+    sortRExtends = _Pure %~ overChildren (Proxy @SortRExtends) sortRExtends
 
 instance SortRExtends Row where
-    sortRExtends
-        (RExtend (RowExtend k0 v0 (Pure (RExtend (RowExtend k1 v1 r)))))
-            | k1 < k0 =
-                RowExtend k0 v0 r & RExtend & Pure
-                & RowExtend k1 v1 & RExtend & Pure
-    sortRExtends x = Pure x
+    sortRExtends x@(Pure RExtend{}) =
+        -- Simply passing via flatRow orders the fields
+        x & flatRow %~ overChildren (Proxy @SortRExtends) sortRExtends
+    sortRExtends x = x & _Pure %~ overChildren (Proxy @SortRExtends) sortRExtends
+
+flatRow ::
+    Lens.Iso'
+    (Tree Pure Row)
+    (Tree (FlatRowExtends Tag Type Row) Pure)
+flatRow =
+    Lens.iso flatten unflatten
+    where
+        flatten =
+            Lens.runIdentity .
+            flattenRow (Lens.Identity . (^? _Pure . _RExtend))
+        unflatten =
+            Lens.runIdentity .
+            unflattenRow (Lens.Identity . Pure . RExtend)
 
 deriving instance Deps Eq   k => Eq   (Row k)
 deriving instance Deps Ord  k => Ord  (Row k)
