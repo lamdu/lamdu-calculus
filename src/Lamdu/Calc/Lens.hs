@@ -1,4 +1,4 @@
-{-# LANGUAGE NoImplicitPrelude, RankNTypes, NoMonomorphismRestriction, FlexibleContexts, TypeFamilies, TypeApplications #-}
+{-# LANGUAGE NoImplicitPrelude, RankNTypes, NoMonomorphismRestriction, FlexibleContexts, TypeFamilies, TypeApplications, FlexibleInstances #-}
 module Lamdu.Calc.Lens
     ( -- Leafs
       valHole    , valBodyHole
@@ -30,9 +30,9 @@ import           AST (Tree, Children(..), Recursive(..), recursiveChildren)
 import           AST.Class.Children.Mono (monoChildren)
 import           AST.Infer (ITerm(..), IResult)
 import           AST.Knot.Ann (Ann(..), annotations, val)
-import           AST.Term.Nominal (ToNom(..), NominalInst(..))
+import           AST.Term.Nominal (ToNom(..), NominalInst(..), NominalDecl, nScheme)
 import           AST.Term.Row (RowExtend(..))
-import           AST.Term.Scheme (_QVarInstances)
+import           AST.Term.Scheme (Scheme, _QVarInstances, sTyp)
 import           Control.Lens (Traversal', Prism', Iso', iso)
 import qualified Control.Lens as Lens
 import           Control.Lens.Operators
@@ -66,6 +66,12 @@ instance HasTIds T.Type where
 instance HasTIds T.Row where
     {-# INLINE bodyTIds #-}
     bodyTIds f = children (Proxy @HasTIds) (tIds f)
+
+instance HasTIds (Scheme T.Types T.Type) where
+    bodyTIds = sTyp . tIds
+
+instance HasTIds (NominalDecl T.Type) where
+    bodyTIds = nScheme . bodyTIds
 
 {-# INLINE valApply #-}
 valApply :: Traversal' (Val a) (Tree (V.Apply V.Term) (Ann a))
