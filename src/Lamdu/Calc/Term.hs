@@ -27,8 +27,7 @@ import           AST.Infer
 import           AST.Term.Apply (Apply(..), applyFunc, applyArg)
 import           AST.Term.FuncType (FuncType(..))
 import           AST.Term.Lam (Lam(..), lamIn, lamOut)
-import           AST.Term.Nominal
-import           AST.Term.Nominal (ToNom(..), FromNom(..), NominalInst(..), MonadNominals)
+import           AST.Term.Nominal (ToNom(..), FromNom(..), NominalInst(..), MonadNominals, LoadedNominalDecl)
 import           AST.Term.Row (RowExtend(..), rowElementInfer)
 import           AST.Term.Scheme (QVarInstances(..))
 import qualified AST.Term.Var as TermVar
@@ -41,8 +40,7 @@ import           Control.Lens.Operators
 import           Data.Binary (Binary)
 import           Data.ByteString (ByteString)
 import qualified Data.ByteString.Char8 as BS8
-import           Data.Constraint (Constraint)
-import           Data.Constraint (withDict)
+import           Data.Constraint (Constraint, withDict)
 import           Data.Hashable (Hashable(..))
 import           Data.Map (Map)
 import           Data.Semigroup ((<>))
