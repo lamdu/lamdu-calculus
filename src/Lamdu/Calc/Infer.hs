@@ -96,7 +96,7 @@ instance MonadNominals T.NominalId T.Type PureInfer where
     {-# INLINE getNominalDecl #-}
     getNominalDecl n =
         Lens.view (scopeNominals . Lens.at n)
-        >>= maybe (throwError (Pure (T.NominalNotFound n))) pure
+        >>= maybe (throwError (_Pure # T.NominalNotFound n)) pure
 
 instance HasScope PureInfer Scope where
     {-# INLINE getScope #-}
@@ -131,14 +131,14 @@ instance Unify PureInfer T.Type where
     binding = bindingDict (isBinding . T.tType)
     unifyError e =
         children (Proxy @(Recursive (Unify PureInfer))) applyBindings e
-        >>= throwError . Pure . T.TypeError
+        >>= throwError . MkPure . T.TypeError
 
 instance Unify PureInfer T.Row where
     {-# INLINE binding #-}
     binding = bindingDict (isBinding . T.tRow)
     unifyError e =
         children (Proxy @(Recursive (Unify PureInfer))) applyBindings e
-        >>= throwError . Pure . T.RowError
+        >>= throwError . MkPure . T.RowError
     {-# INLINE structureMismatch #-}
     structureMismatch = T.rStructureMismatch
 

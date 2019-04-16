@@ -163,7 +163,7 @@ instance FromChildren Types where
 -- | A convenience infix alias for 'TFun'
 infixr 2 ~>
 (~>) :: Tree Pure Type -> Tree Pure Type -> Tree Pure Type
-x ~> y = FuncType x y & TFun & Pure
+x ~> y = _Pure # TFun (FuncType x y)
 
 type Deps c k = ((c (Tie k Type), c (Tie k Row)) :: Constraint)
 
@@ -185,7 +185,7 @@ instance Pretty (Tree Row Pure) where
         where
             go _   REmpty = PP.empty
             go sep (RVar tv) = sep <> pPrint tv <> PP.text "..."
-            go sep (RExtend (RowExtend f t (Pure r))) =
+            go sep (RExtend (RowExtend f t (MkPure r))) =
                 sep PP.<> pPrint f <+> PP.text ":" <+> pPrint t PP.<> go (PP.text ", ") r
 
 instance Pretty RConstraints where
@@ -283,7 +283,7 @@ instance SortRExtends Type where
     sortRExtends = _Pure %~ overChildren (Proxy @SortRExtends) sortRExtends
 
 instance SortRExtends Row where
-    sortRExtends x@(Pure RExtend{}) =
+    sortRExtends x@(MkPure RExtend{}) =
         -- Simply passing via flatRow orders the fields
         x & flatRow %~ overChildren (Proxy @SortRExtends) sortRExtends
     sortRExtends x = x & _Pure %~ overChildren (Proxy @SortRExtends) sortRExtends
@@ -300,7 +300,7 @@ flatRow =
             flattenRow (Lens.Identity . (^? _Pure . _RExtend))
         unflatten =
             Lens.runIdentity .
-            unflattenRow (Lens.Identity . Pure . RExtend)
+            unflattenRow (Lens.Identity . (_Pure . _RExtend #))
 
 deriving instance Deps Eq   k => Eq   (Row k)
 deriving instance Deps Ord  k => Ord  (Row k)
