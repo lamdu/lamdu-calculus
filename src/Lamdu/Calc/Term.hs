@@ -193,11 +193,11 @@ instance
     ) =>
     Infer m Term where
 
-    {-# INLINE infer #-}
-    infer (BApp x) = infer x <&> Lens._2 %~ BApp
-    infer (BLam x) = infer x <&> Lens._2 %~ BLam
-    infer (BToNom x) = infer x <&> Lens._2 %~ BToNom
-    infer (BLeaf leaf) =
+    {-# INLINE inferBody #-}
+    inferBody (BApp x) = inferBody x <&> Lens._2 %~ BApp
+    inferBody (BLam x) = inferBody x <&> Lens._2 %~ BLam
+    inferBody (BToNom x) = inferBody x <&> Lens._2 %~ BToNom
+    inferBody (BLeaf leaf) =
         case leaf of
         LHole -> newUnbound
         LRecEmpty -> newTerm T.REmpty >>= newTerm . T.TRecord
@@ -211,29 +211,29 @@ instance
             & NominalInst t
             & T.TInst & newTerm
         LVar x ->
-            infer (TermVar.Var x :: Tree (TermVar.Var Var Term) (Ann a))
+            inferBody (TermVar.Var x :: Tree (TermVar.Var Var Term) (Ann a))
             <&> (^. Lens._1)
         LFromNom x ->
-            infer (FromNom x :: Tree (FromNom T.NominalId Term) (Ann a))
+            inferBody (FromNom x :: Tree (FromNom T.NominalId Term) (Ann a))
             <&> (^. Lens._1)
         <&> (, BLeaf leaf)
-    infer (BGetField (GetField w k)) =
+    inferBody (BGetField (GetField w k)) =
         do
             (rT, wR) <- rowElementInfer T.RExtend k
-            wI <- inferNode w
+            wI <- infer w
             _ <- T.TRecord wR & newTerm >>= unify (wI ^. iType)
             pure (rT, BGetField (GetField wI k))
-    infer (BInject (Inject k p)) =
+    inferBody (BInject (Inject k p)) =
         do
             (rT, wR) <- rowElementInfer T.RExtend k
-            pI <- inferNode p
+            pI <- infer p
             _ <- unify rT (pI ^. iType)
             T.TVariant wR & newTerm <&> (, BInject (Inject k pI))
-    infer (BRecExtend (RowExtend k v r)) =
+    inferBody (BRecExtend (RowExtend k v r)) =
         withDict (recursive :: RecursiveDict (Unify m) T.Type) $
         do
-            vI <- inferNode v
-            rI <- inferNode r
+            vI <- infer v
+            rI <- infer r
             restR <-
                 scopeConstraints <&> T.rForbiddenFields . Lens.contains k .~ True
                 >>= newVar binding . UUnbound
@@ -241,10 +241,10 @@ instance
             RowExtend k (vI ^. iType) restR & T.RExtend & newTerm
                 >>= newTerm . T.TRecord
                 <&> (, BRecExtend (RowExtend k vI rI))
-    infer (BCase (RowExtend tag handler rest)) =
+    inferBody (BCase (RowExtend tag handler rest)) =
         do
-            handlerI <- inferNode handler
-            restI <- inferNode rest
+            handlerI <- infer handler
+            restI <- infer rest
             fieldT <- newUnbound
             restR <- newUnbound
             result <- newUnbound

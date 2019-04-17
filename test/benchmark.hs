@@ -33,7 +33,7 @@ localInitEnv inferEnv e action =
 
 benchInferPure :: Val () -> Benchmarkable
 benchInferPure e =
-    inferNode e
+    infer e
     <&> (^. iType)
     >>= applyBindings
     & localInitEnv id e
@@ -48,7 +48,7 @@ benchInferST e =
     do
         vg <- newSTRef varGen
         localInitEnv _1 e
-            (inferNode e <&> (^. iType) >>= applyBindings) ^. _STInfer
+            (infer e <&> (^. iType) >>= applyBindings) ^. _STInfer
             & (`runReaderT` (emptyScope, vg))
             & runMaybeT
     & liftST >>= evaluate . rnf & whnfIO
