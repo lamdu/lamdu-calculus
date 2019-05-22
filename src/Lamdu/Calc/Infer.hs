@@ -10,12 +10,14 @@ module Lamdu.Calc.Infer
     , STInfer(..), _STInfer
     , loadDeps
     , varGen
+    , alphaEq
     ) where
 
 import           AST
 import           AST.Infer
 import           AST.Term.Nominal
-import           AST.Term.Scheme (loadScheme)
+import qualified AST.Term.Scheme as S
+import qualified AST.Term.Scheme.AlphaEq as S
 import           AST.Unify
 import           AST.Unify.Binding
 import           AST.Unify.Binding.ST
@@ -32,7 +34,7 @@ import           Control.Monad.ST.Class (MonadST(..))
 import           Control.Monad.State
 import           Control.Monad.Trans.Maybe
 import           Control.Monad.Trans.RWS (RWST(..))
-import           Control.Monad.Trans.Reader (ReaderT)
+import           Control.Monad.Trans.Reader (ReaderT(..))
 import           Control.Monad.Trans.Writer (WriterT)
 import           Data.Proxy (Proxy(..))
 import           Data.STRef
@@ -83,7 +85,7 @@ loadDeps ::
 loadDeps deps =
     do
         loadedNoms <- deps ^. depsNominals & traverse loadNominalDecl
-        loadedSchemes <- deps ^. depsGlobalTypes & traverse loadScheme
+        loadedSchemes <- deps ^. depsGlobalTypes & traverse S.loadScheme
         pure $ \env ->
             env
             & scopeVarTypes <>~ loadedSchemes
@@ -206,6 +208,20 @@ instance Unify (STInfer s) T.Row where
     unifyError _ = empty
     {-# INLINE structureMismatch #-}
     structureMismatch = T.rStructureMismatch
+
+alphaEq ::
+    Tree Pure (S.Scheme T.Types T.Type) ->
+    Tree Pure (S.Scheme T.Types T.Type) ->
+    Bool
+alphaEq x y =
+    runST $
+    do
+        vg <- newSTRef varGen
+        S.alphaEq x y
+            ^. _STInfer
+            & (`runReaderT` (emptyScope, vg))
+            & runMaybeT
+    <&> Lens.has Lens._Just
 
 {-# SPECIALIZE semiPruneLookup :: Tree UVar T.Type -> PureInfer (Tree UVar T.Type, Tree (UTerm UVar) T.Type) #-}
 {-# SPECIALIZE semiPruneLookup :: Tree UVar T.Row -> PureInfer (Tree UVar T.Row, Tree (UTerm UVar) T.Row) #-}
