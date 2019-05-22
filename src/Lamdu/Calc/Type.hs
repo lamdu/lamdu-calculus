@@ -11,9 +11,9 @@
 -- * The AST for types: Nominal types, structural composite types,
 --   function types.
 {-# LANGUAGE NoImplicitPrelude, DeriveGeneric, GeneralizedNewtypeDeriving #-}
-{-# LANGUAGE TemplateHaskell, DataKinds, StandaloneDeriving, TypeApplications #-}
+{-# LANGUAGE TemplateHaskell, DataKinds, StandaloneDeriving #-}
 {-# LANGUAGE UndecidableInstances, ConstraintKinds, FlexibleContexts #-}
-{-# LANGUAGE FlexibleInstances, TypeFamilies, MultiParamTypeClasses #-}
+{-# LANGUAGE FlexibleInstances, TypeFamilies, MultiParamTypeClasses, RankNTypes #-}
 
 module Lamdu.Calc.Type
     (
@@ -38,7 +38,7 @@ module Lamdu.Calc.Type
 
     , TypeError(..), _TypeError, _RowError
 
-    , alphaEq, flatRow
+    , flatRow
     ) where
 
 import           AST
@@ -49,7 +49,6 @@ import           AST.Term.FuncType
 import           AST.Term.Nominal
 import           AST.Term.Row
 import qualified AST.Term.Scheme as S
-import qualified AST.Term.Scheme.AlphaEq as S
 import           AST.Unify
 import           AST.Unify.Term
 import           Algebra.Lattice
@@ -59,7 +58,6 @@ import qualified Control.Lens as Lens
 import           Control.Lens.Operators
 import           Data.Binary (Binary)
 import           Data.Hashable (Hashable)
-import           Data.Proxy (Proxy(..))
 import           Data.Semigroup ((<>))
 import           Data.Set (Set, singleton)
 import           Data.String (IsString(..))
@@ -265,28 +263,11 @@ instance BoundedJoinSemiLattice RConstraints where
 {-# INLINE rStructureMismatch #-}
 rStructureMismatch ::
     (Unify m Type, Unify m Row) =>
+    (forall c. Recursive (Unify m) c => Tree (UVarOf m) c -> Tree (UVarOf m) c -> m (Tree (UVarOf m) c)) ->
     Tree (UTermBody (UVarOf m)) Row -> Tree (UTermBody (UVarOf m)) Row -> m ()
-rStructureMismatch (UTermBody c0 (RExtend r0)) (UTermBody c1 (RExtend r1)) =
-    rowExtendStructureMismatch _RExtend (c0, r0) (c1, r1)
-rStructureMismatch x y = unifyError (Mismatch (x ^. uBody) (y ^. uBody))
-
-alphaEq :: Tree Pure Scheme -> Tree Pure Scheme -> Bool
-alphaEq x y =
-    S.alphaEq (normalize x) (normalize y)
-    where
-        normalize = _Pure . S.sTyp %~ sortRExtends
-
-class SortRExtends ast where
-    sortRExtends :: Tree Pure ast -> Tree Pure ast
-
-instance SortRExtends Type where
-    sortRExtends = _Pure %~ overChildren (Proxy @SortRExtends) sortRExtends
-
-instance SortRExtends Row where
-    sortRExtends x@(MkPure RExtend{}) =
-        -- Simply passing via flatRow orders the fields
-        x & flatRow %~ overChildren (Proxy @SortRExtends) sortRExtends
-    sortRExtends x = x & _Pure %~ overChildren (Proxy @SortRExtends) sortRExtends
+rStructureMismatch f (UTermBody c0 (RExtend r0)) (UTermBody c1 (RExtend r1)) =
+    rowExtendStructureMismatch f _RExtend (c0, r0) (c1, r1)
+rStructureMismatch _ x y = unifyError (Mismatch (x ^. uBody) (y ^. uBody))
 
 flatRow ::
     Lens.Iso'
