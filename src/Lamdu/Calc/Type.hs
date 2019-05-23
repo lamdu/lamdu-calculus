@@ -186,6 +186,9 @@ instance Pretty (Tree Row Pure) where
             go sep (RExtend (RowExtend f t (MkPure r))) =
                 sep PP.<> pPrint f <+> PP.text ":" <+> pPrint t PP.<> go (PP.text ", ") r
 
+instance Deps Pretty k => Pretty (Types k) where
+    pPrint (Types t r) = PP.text "{" <+> pPrint t <+> PP.text "|" <+> pPrint r <+> PP.text "}"
+
 instance Pretty RConstraints where
     pPrint _ = PP.text "[TODO: Pretty RConstraints]"
 
