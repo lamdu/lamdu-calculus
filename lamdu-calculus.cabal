@@ -20,6 +20,7 @@ library
   exposed-modules:     Lamdu.Calc.Definition
                      , Lamdu.Calc.Identifier
                      , Lamdu.Calc.Infer
+                     , Lamdu.Calc.Infer.Refragment
                      , Lamdu.Calc.Lens
                      , Lamdu.Calc.Pure
                      , Lamdu.Calc.Term
