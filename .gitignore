@@ -10,3 +10,4 @@
 *.dyn_o
 *.dyn_hi
 *.prof
+stack.yaml.lock
