@@ -19,9 +19,12 @@ import           AST.Term.Nominal
 import qualified AST.Term.Scheme as S
 import qualified AST.Term.Scheme.AlphaEq as S
 import           AST.Unify
+import           AST.Unify.Apply (applyBindings)
 import           AST.Unify.Binding
 import           AST.Unify.Binding.ST
 import           AST.Unify.Generalize
+import           AST.Unify.Lookup (semiPruneLookup)
+import           AST.Unify.QuantifiedVar
 import           AST.Unify.Term
 import           Control.Applicative (Alternative(..))
 import qualified Control.Lens as Lens

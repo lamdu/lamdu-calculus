@@ -2,6 +2,7 @@
 import           AST
 import           AST.Infer
 import           AST.Unify
+import           AST.Unify.Apply
 import           Control.DeepSeq (rnf)
 import           Control.Exception (evaluate)
 import           Control.Lens (ASetter', _Right)

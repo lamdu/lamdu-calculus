@@ -50,6 +50,7 @@ import           AST.Term.Nominal
 import           AST.Term.Row
 import qualified AST.Term.Scheme as S
 import           AST.Unify
+import           AST.Unify.QuantifiedVar
 import           AST.Unify.Term
 import           Algebra.Lattice
 import           Algebra.PartialOrd

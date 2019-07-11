@@ -5,9 +5,11 @@ module Lamdu.Calc.Infer.Refragment
     ) where
 
 import           AST (Tree, Ann(..), annotations, monoChildren)
-import           AST.Infer (Infer(..), ITerm(..), IResult(..))
-import           AST.Unify (unify, applyBindings, newUnbound)
+import           AST.Infer
+import           AST.Unify (unify)
 import           AST.Unify.Binding (UVar)
+import           AST.Unify.New (newUnbound)
+import           AST.Unify.Occurs (occursCheck)
 import qualified Control.Lens as Lens
 import           Control.Lens.Operators
 import qualified Control.Monad.Reader as Reader
@@ -23,17 +25,15 @@ inferBodies ::
     Tree (Ann a) Term ->
     PureInfer (Tree (Ann (a, Tree UVar Type, Tree UVar Type)) Term)
 inferBodies extTyp (Ann a v) =
-    v & monoChildren %~ childPre
+    v & monoChildren %~
+        (\c ->
+            do
+                t <- newUnbound
+                inferBodies t c <&> (`InferredChild` t)
+            & InferChild
+        )
     & inferBody
-    >>=
-    \(intTyp, infBody) ->
-    monoChildren childPost infBody
-    <&> Ann (a, extTyp, intTyp)
-    where
-        childPre x = Ann x (V.BLeaf V.LHole)
-        childPost (ITerm x (IResult childTyp childScope) _) =
-            inferBodies childTyp x
-            & Reader.local (id .~ childScope)
+    <&> \(InferRes infBody intTyp) -> Ann (a, extTyp, intTyp) infBody
 
 tryUnify ::
     (Bool -> a -> r) ->
@@ -45,7 +45,7 @@ tryUnify mkRes (pl, outTyp, inTyp) =
         case runPureInfer V.emptyScope s0 (unify outTyp inTyp) of
             Left{} -> pure (mkRes False pl)
             Right (t, s1) ->
-                case runPureInfer V.emptyScope s1 (applyBindings t) of
+                case runPureInfer V.emptyScope s1 (occursCheck t) of
                 Left{} -> pure (mkRes False pl)
                 Right{} -> mkRes True pl <$ put s1
 
