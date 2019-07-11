@@ -17,7 +17,6 @@ import           AST
 import           AST.Term.Nominal
 import           AST.Term.Row
 import           AST.Term.Scheme
-import           Algebra.Lattice
 import qualified Control.Lens as Lens
 import           Control.Lens.Operators
 import qualified Data.ByteString.Char8 as BS8
@@ -60,8 +59,8 @@ forAll ::
 forAll tvs mkType =
     tvs <&> T.TVar <&> (_Pure #) & mkType
     & Scheme T.Types
-    { T._tType = QVars (Map.fromList [(tv, bottom) | tv <- tvs])
-    , T._tRow = bottom
+    { T._tType = QVars (Map.fromList [(tv, mempty) | tv <- tvs])
+    , T._tRow = mempty
     }
     & MkPure
 
@@ -76,8 +75,8 @@ listTypePair =
     , _Pure # NominalDecl
         { _nParams =
             T.Types
-            { T._tType = bottom & Lens.at "elem" ?~ bottom
-            , T._tRow = bottom
+            { T._tType = mempty & Lens.at "elem" ?~ mempty
+            , T._tRow = mempty
             }
         , _nScheme =
             _Pure # T.REmpty
@@ -85,7 +84,7 @@ listTypePair =
             & RowExtend ":" (recordType [("head", tv), ("tail", listOf tv)])
             & T.RExtend & MkPure
             & T.TVariant & MkPure
-            & Scheme (T.Types bottom bottom)
+            & Scheme (T.Types mempty mempty)
         }
     )
     where
@@ -110,13 +109,13 @@ boolTypePair :: (T.NominalId, Tree Pure (NominalDecl Type))
 boolTypePair =
     ( "Bool"
     , _Pure # NominalDecl
-        { _nParams = T.Types bottom bottom
+        { _nParams = T.Types mempty mempty
         , _nScheme =
             _Pure # T.REmpty
             & RowExtend "True" (recordType []) & T.RExtend & MkPure
             & RowExtend "False" (recordType []) & T.RExtend & MkPure
             & T.TVariant & MkPure
-            & Scheme (T.Types bottom bottom)
+            & Scheme (T.Types mempty mempty)
         }
     )
 

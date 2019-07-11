@@ -35,6 +35,7 @@ library
                      , constraints
                      , containers
                      , deepseq
+                     , generic-data
                      , hashable
                      , lattices
                      , lens >= 4.1

@@ -11,7 +11,7 @@
 -- * The AST for types: Nominal types, structural composite types,
 --   function types.
 {-# LANGUAGE NoImplicitPrelude, DeriveGeneric, GeneralizedNewtypeDeriving #-}
-{-# LANGUAGE TemplateHaskell, DataKinds, StandaloneDeriving #-}
+{-# LANGUAGE TemplateHaskell, DataKinds, StandaloneDeriving, DerivingVia #-}
 {-# LANGUAGE UndecidableInstances, ConstraintKinds, FlexibleContexts #-}
 {-# LANGUAGE FlexibleInstances, TypeFamilies, MultiParamTypeClasses, RankNTypes #-}
 
@@ -52,7 +52,6 @@ import qualified AST.Term.Scheme as S
 import           AST.Unify
 import           AST.Unify.QuantifiedVar
 import           AST.Unify.Term
-import           Algebra.Lattice
 import           Algebra.PartialOrd
 import           Control.DeepSeq (NFData(..))
 import qualified Control.Lens as Lens
@@ -62,6 +61,7 @@ import           Data.Hashable (Hashable)
 import           Data.Semigroup ((<>))
 import           Data.Set (Set, singleton)
 import           Data.String (IsString(..))
+import           Generic.Data (Generically(..))
 import           GHC.Exts (Constraint)
 import           GHC.Generics (Generic)
 import           Lamdu.Calc.Identifier (Identifier)
@@ -129,6 +129,7 @@ data RConstraints = RowConstraints
     { _rForbiddenFields :: Set Tag
     , _rScope :: ScopeLevel
     } deriving (Generic, Eq, Ord, Show)
+    deriving (Semigroup, Monoid) via Generically RConstraints
 
 data TypeError k
     = TypeError (UnifyError Type k)
@@ -226,8 +227,8 @@ instance HasTypeConstraints Type where
     {-# INLINE verifyConstraints #-}
     verifyConstraints _ _ _ _ (TVar x) = TVar x & pure
     verifyConstraints _ c _ u (TFun x) = monoChildren (u c) x <&> TFun
-    verifyConstraints _ c _ u (TRecord x) = u (RowConstraints bottom c) x <&> TRecord
-    verifyConstraints _ c _ u (TVariant x) = u (RowConstraints bottom c) x <&> TVariant
+    verifyConstraints _ c _ u (TRecord x) = u (RowConstraints mempty c) x <&> TRecord
+    verifyConstraints _ c _ u (TVariant x) = u (RowConstraints mempty c) x <&> TVariant
     verifyConstraints _ c _ u (TInst (NominalInst n (Types t r))) =
         Types
         <$> (S._QVarInstances . traverse) (u c) t
@@ -241,13 +242,13 @@ instance HasTypeConstraints Row where
     verifyConstraints _ _ _ _ (RVar x) = RVar x & pure
     verifyConstraints p c e u (RExtend x) =
         applyRowExtendConstraints p c (^. rScope)
-        (e . (`RowConstraints` bottom) . singleton) u x
+        (e . (`RowConstraints` mempty) . singleton) u x
         <&> RExtend
 
 instance TypeConstraints RConstraints where
     {-# INLINE generalizeConstraints #-}
-    generalizeConstraints = rScope .~ bottom
-    toScopeConstraints = rForbiddenFields .~ bottom
+    generalizeConstraints = rScope .~ mempty
+    toScopeConstraints = rForbiddenFields .~ mempty
 
 instance RowConstraints RConstraints where
     type RowConstraintsKey RConstraints = Tag
@@ -257,14 +258,6 @@ instance RowConstraints RConstraints where
 instance PartialOrd RConstraints where
     {-# INLINE leq #-}
     RowConstraints f0 s0 `leq` RowConstraints f1 s1 = f0 `leq` f1 && s0 `leq` s1
-
-instance JoinSemiLattice RConstraints where
-    {-# INLINE (\/) #-}
-    RowConstraints f0 s0 \/ RowConstraints f1 s1 = RowConstraints (f0 \/ f1) (s0 \/ s1)
-
-instance BoundedJoinSemiLattice RConstraints where
-    {-# INLINE bottom #-}
-    bottom = RowConstraints bottom bottom
 
 {-# INLINE rStructureMismatch #-}
 rStructureMismatch ::
