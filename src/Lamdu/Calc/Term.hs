@@ -22,7 +22,8 @@ module Lamdu.Calc.Term
     , ToNom(..), FromNom(..), RowExtend(..)
     ) where
 
-import           AST (Tree, Tie, Ann, Recursive(..), RecursiveDict, makeChildren, RunKnot)
+import           AST
+import           AST.Combinator.Single
 import           AST.Infer
 import           AST.Term.Apply (Apply(..), applyFunc, applyArg)
 import           AST.Term.FuncType (FuncType(..))
@@ -124,6 +125,10 @@ instance Binary (Tie f Term) => Binary (Term f)
 
 Lens.makePrisms ''Term
 makeChildren ''Term
+
+type instance ChildrenTypesOf Term = Single Term
+instance HasChildrenTypes Term
+makeKTraversableAndBases ''Term
 
 instance c Term => Recursive c Term
 

@@ -1,4 +1,4 @@
-{-# LANGUAGE NoImplicitPrelude #-}
+{-# LANGUAGE NoImplicitPrelude, DataKinds #-}
 
 module Lamdu.Calc.Term.Eq
     ( alphaEq, couldEq
@@ -41,7 +41,7 @@ eqCommon holeIsJoker =
                 xToYConv xToY x == y
             (BLeaf x, BLeaf y) -> x == y
             (BApp x, BApp y) ->
-                zipMatchWith_ (Proxy :: Proxy ((~) Term)) (fmap guard . go xToY) x y
+                zipMatchWith_ (Proxy :: Proxy '[(~) Term]) (fmap guard . go xToY) x y
                 & Lens.has (Lens._Just . Lens._Just)
             (BGetField (GetField r0 f0), BGetField (GetField r1 f1))
                 | f0 == f1 -> go xToY r0 r1

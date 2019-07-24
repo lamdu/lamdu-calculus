@@ -42,8 +42,10 @@ module Lamdu.Calc.Type
     ) where
 
 import           AST
-import           AST.Class.FromChildren
+import           AST.Class.Has
 import           AST.Class.HasChild
+import           AST.Combinator.Pair
+import           AST.Combinator.Single
 import           AST.Infer
 import           AST.Term.FuncType
 import           AST.Term.Nominal
@@ -61,9 +63,9 @@ import           Data.Hashable (Hashable)
 import           Data.Semigroup ((<>))
 import           Data.Set (Set, singleton)
 import           Data.String (IsString(..))
-import           Generic.Data (Generically(..))
 import           GHC.Exts (Constraint)
 import           GHC.Generics (Generic)
+import           Generic.Data (Generically(..))
 import           Lamdu.Calc.Identifier (Identifier)
 import           Text.PrettyPrint ((<+>))
 import qualified Text.PrettyPrint as PP
@@ -142,9 +144,25 @@ Lens.makeLenses ''Types
 Lens.makePrisms ''Row
 Lens.makePrisms ''Type
 Lens.makePrisms ''TypeError
-makeChildrenAndZipMatch ''Row
-makeChildrenAndZipMatch ''Type
-makeChildrenAndZipMatch ''Types
+type instance ChildrenTypesOf Types = Types
+type instance ChildrenTypesOf Row = Types
+type instance ChildrenTypesOf Type = Types
+instance HasChildrenTypes Types
+instance HasChildrenTypes Row
+instance HasChildrenTypes Type
+
+makeKApplicativeBases       ''Types
+makeKTraversableAndFoldable ''Types
+makeChildrenAndZipMatch     ''Types
+
+instance KHas (Pair Type Row) Types where hasK (Types typ row) = MkPair typ row
+instance KHas (Single Type) Types where hasK (Types typ _) = MkSingle typ
+
+makeKTraversableAndBases ''Row
+makeChildrenAndZipMatch  ''Row
+
+makeKTraversableAndBases ''Type
+makeChildrenAndZipMatch  ''Type
 
 type Nominal = NominalInst NominalId Types
 type Scheme = S.Scheme Types Type
@@ -156,9 +174,6 @@ instance HasChild Types Type where
 instance HasChild Types Row where
     {-# INLINE getChild #-}
     getChild = tRow
-
-instance FromChildren Types where
-    fromChildren _ c = Types <$> c <*> c
 
 -- | A convenience infix alias for 'TFun'
 infixr 2 ~>
