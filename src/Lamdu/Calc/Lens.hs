@@ -1,4 +1,6 @@
-{-# LANGUAGE NoImplicitPrelude, RankNTypes, NoMonomorphismRestriction, FlexibleContexts, TypeFamilies, TypeApplications, FlexibleInstances #-}
+{-# LANGUAGE NoImplicitPrelude, RankNTypes, NoMonomorphismRestriction #-}
+{-# LANGUAGE FlexibleContexts, TypeFamilies, TypeApplications, FlexibleInstances #-}
+{-# LANGUAGE DataKinds, ScopedTypeVariables #-}
 module Lamdu.Calc.Lens
     ( -- Leafs
       valHole    , valBodyHole
@@ -26,8 +28,7 @@ module Lamdu.Calc.Lens
     , itermAnn
     ) where
 
-import           AST (Tree, Children(..), Recursive(..), recursiveChildren)
-import           AST.Class.Children.Mono (monoChildren)
+import           AST
 import           AST.Infer (ITerm(..), IResult)
 import           AST.Knot.Ann (Ann(..), annotations, val)
 import           AST.Term.Nominal (ToNom(..), NominalInst(..), NominalDecl, nScheme)
@@ -36,6 +37,7 @@ import           AST.Term.Scheme (Scheme, _QVarInstances, sTyp)
 import           Control.Lens (Traversal', Prism', Iso', iso)
 import qualified Control.Lens as Lens
 import           Control.Lens.Operators
+import           Data.Constraint (withDict)
 import           Data.Proxy (Proxy(..))
 import           Data.Set (Set)
 import qualified Data.Set as Set
@@ -46,26 +48,29 @@ import qualified Lamdu.Calc.Type as T
 import           Prelude.Compat
 
 tIds ::
-    (Recursive Children k, HasTIds expr) =>
+    forall k expr.
+    (Recursively KTraversable k, HasTIds expr) =>
     Traversal' (Tree k expr) T.NominalId
-tIds f = recursiveChildren (Proxy @Children) (bodyTIds f)
+tIds f =
+    withDict (recursive :: RecursiveDict k KTraversable) $
+    traverseKWith (Proxy @'[Recursively KTraversable]) (bodyTIds f)
 
 class HasTIds expr where
-    bodyTIds :: Recursive Children k => Traversal' (Tree expr k) T.NominalId
+    bodyTIds :: Recursively KTraversable k => Traversal' (Tree expr k) T.NominalId
 
 instance HasTIds T.Type where
     {-# INLINE bodyTIds #-}
     bodyTIds f (T.TInst (NominalInst tId args)) =
         NominalInst
         <$> f tId
-        <*> children (Proxy @HasTIds) (_QVarInstances %%~ traverse (tIds f))
+        <*> traverseKWith (Proxy @'[HasTIds]) (_QVarInstances %%~ traverse (tIds f))
             args
         <&> T.TInst
-    bodyTIds f x = children (Proxy @HasTIds) (tIds f) x
+    bodyTIds f x = traverseKWith (Proxy @'[HasTIds]) (tIds f) x
 
 instance HasTIds T.Row where
     {-# INLINE bodyTIds #-}
-    bodyTIds f = children (Proxy @HasTIds) (tIds f)
+    bodyTIds f = traverseKWith (Proxy @'[HasTIds]) (tIds f)
 
 instance HasTIds (Scheme T.Types T.Type) where
     bodyTIds = sTyp . tIds
@@ -74,7 +79,7 @@ instance HasTIds (NominalDecl T.Type) where
     bodyTIds = nScheme . bodyTIds
 
 {-# INLINE valApply #-}
-valApply :: Traversal' (Val a) (Tree (V.Apply V.Term) (Ann a))
+valApply :: Traversal' (Val a) (Tree (V.App V.Term) (Ann a))
 valApply = val . V._BApp
 
 {-# INLINE valAbs #-}
@@ -86,7 +91,7 @@ pureValBody :: Iso' (Val ()) (Tree V.Term (Ann ()))
 pureValBody = iso (^. val) (Ann ())
 
 {-# INLINE pureValApply #-}
-pureValApply :: Prism' (Val ()) (Tree (V.Apply V.Term) (Ann ()))
+pureValApply :: Prism' (Val ()) (Tree (V.App V.Term) (Ann ()))
 pureValApply = pureValBody . V._BApp
 
 {-# INLINE valHole #-}
@@ -130,7 +135,7 @@ valLeafs :: Lens.IndexedTraversal' a (Val a) V.Leaf
 valLeafs f (Ann pl body) =
     case body of
     V.BLeaf l -> Lens.indexed f pl l <&> V.BLeaf
-    _ -> monoChildren (valLeafs f) body
+    _ -> traverseK1 (valLeafs f) body
     <&> Ann pl
 
 {-# INLINE subExprPayloads #-}
@@ -138,14 +143,14 @@ subExprPayloads :: Lens.IndexedTraversal (Val ()) (Val a) (Val b) a b
 subExprPayloads f x@(Ann pl body) =
     Ann
     <$> Lens.indexed f (x & annotations .~ ()) pl
-    <*> (monoChildren .> subExprPayloads) f body
+    <*> (traverseK1 .> subExprPayloads) f body
 
 {-# INLINE subExprs #-}
 subExprs :: Lens.Fold (Val a) (Val a)
 subExprs =
     Lens.folding f
     where
-        f x = x : x ^.. val . monoChildren . subExprs
+        f x = x : x ^.. val . traverseK1 . subExprs
 
 {-# INLINE payloadsIndexedByPath #-}
 payloadsIndexedByPath ::
@@ -164,7 +169,7 @@ payloadsIndexedByPath f =
         go g path x@(Ann pl body) =
             Ann
             <$> Lens.indexed g newPath pl
-            <*> monoChildren (go g newPath) body
+            <*> traverseK1 (go g newPath) body
             where
                 newPath = (x & annotations .~ ()) : path
 
@@ -191,7 +196,7 @@ biTraverseBodyTags onTag onChild body =
         V.BCase <$> (RowExtend <$> onTag t <*> onChild v <*> onChild r)
     V.BRecExtend (RowExtend t v r) ->
         V.BRecExtend <$> (RowExtend <$> onTag t <*> onChild v <*> onChild r)
-    _ -> monoChildren onChild body
+    _ -> traverseK1 onChild body
 
 {-# INLINE bodyTags #-}
 bodyTags :: Lens.Traversal' (Tree V.Term (Ann a)) T.Tag
@@ -211,7 +216,7 @@ valGlobals scope f (Ann pl body) =
     V.BLam (V.Lam var lamBody) ->
         valGlobals (Set.insert var scope) f lamBody
         <&> V.Lam var <&> V.BLam
-    _ -> (monoChildren . valGlobals scope) f body
+    _ -> (traverseK1 . valGlobals scope) f body
     <&> Ann pl
 
 {-# INLINE valNominals #-}
@@ -224,7 +229,7 @@ valNominals f (Ann pl body) =
         <$> f nomId
         <*> valNominals f x
         <&> V.BToNom
-    _ -> body & monoChildren . valNominals %%~ f
+    _ -> body & traverseK1 . valNominals %%~ f
     <&> Ann pl
 
 -- Lamdu-calculus uses a uniform type for all subexpression types, so
@@ -233,12 +238,12 @@ itermAnn ::
     Lens.Iso
     (Tree (ITerm a n) V.Term)
     (Tree (ITerm b m) V.Term)
-    (Tree (Ann (a, IResult n V.Term)) V.Term)
-    (Tree (Ann (b, IResult m V.Term)) V.Term)
+    (Tree (Ann (a, Tree (IResult V.Term) n)) V.Term)
+    (Tree (Ann (b, Tree (IResult V.Term) m)) V.Term)
 itermAnn =
     Lens.iso toAnn fromAnn
     where
         fromAnn (Ann (pl, ires) term) =
-            term & monoChildren %~ fromAnn & ITerm pl ires
+            term & traverseK1 %~ fromAnn & ITerm pl ires
         toAnn (ITerm pl ires term) =
-            term & monoChildren %~ toAnn & Ann (pl, ires)
+            term & traverseK1 %~ toAnn & Ann (pl, ires)

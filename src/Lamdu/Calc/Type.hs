@@ -43,9 +43,7 @@ module Lamdu.Calc.Type
 
 import           AST
 import           AST.Class.Has
-import           AST.Class.HasChild
 import           AST.Combinator.Pair
-import           AST.Combinator.Single
 import           AST.Infer
 import           AST.Term.FuncType
 import           AST.Term.Nominal
@@ -116,15 +114,15 @@ data Type k
     | TInst (NominalInst NominalId Types k)
       -- ^ An instantiation of a nominal type of the given id with the
       -- given keyword type arguments
-    | TRecord (Tie k Row)
+    | TRecord (Node k Row)
       -- ^ Lifts a composite record type
-    | TVariant (Tie k Row)
+    | TVariant (Node k Row)
       -- ^ Lifts a composite variant type
     deriving Generic
 
 data Types k = Types
-    { _tType :: Tie k Type
-    , _tRow :: Tie k Row
+    { _tType :: Node k Type
+    , _tRow :: Node k Row
     } deriving Generic
 
 data RConstraints = RowConstraints
@@ -144,25 +142,23 @@ Lens.makeLenses ''Types
 Lens.makePrisms ''Row
 Lens.makePrisms ''Type
 Lens.makePrisms ''TypeError
-type instance ChildrenTypesOf Types = Types
-type instance ChildrenTypesOf Row = Types
-type instance ChildrenTypesOf Type = Types
-instance HasChildrenTypes Types
-instance HasChildrenTypes Row
-instance HasChildrenTypes Type
 
-makeKApplicativeBases       ''Types
+instance KNodes Types where
+    type NodeTypesOf Types = Types
+    type NodesConstraint Types = ConcatConstraintFuncs '[On Type, On Row]
+instance KNodes Type where type NodeTypesOf Type = Types
+instance KNodes Row  where type NodeTypesOf Row  = Types
+
+instance KHas (Single Type) Types where hasK (Types t _) = MkSingle t
+instance KHas (Pair Type Row) Types where hasK (Types t r) = MkPair t r
+
+makeKApplicativeBases ''Types
 makeKTraversableAndFoldable ''Types
-makeChildrenAndZipMatch     ''Types
-
-instance KHas (Pair Type Row) Types where hasK (Types typ row) = MkPair typ row
-instance KHas (Single Type) Types where hasK (Types typ _) = MkSingle typ
-
 makeKTraversableAndBases ''Row
-makeChildrenAndZipMatch  ''Row
-
 makeKTraversableAndBases ''Type
-makeChildrenAndZipMatch  ''Type
+makeZipMatch ''Row
+makeZipMatch ''Type
+makeZipMatch ''Types
 
 type Nominal = NominalInst NominalId Types
 type Scheme = S.Scheme Types Type
@@ -180,7 +176,7 @@ infixr 2 ~>
 (~>) :: Tree Pure Type -> Tree Pure Type -> Tree Pure Type
 x ~> y = _Pure # TFun (FuncType x y)
 
-type Deps c k = ((c (Tie k Type), c (Tie k Row)) :: Constraint)
+type Deps c k = ((c (Node k Type), c (Node k Row)) :: Constraint)
 
 instance Deps Pretty k => Pretty (Type k) where
     pPrintPrec lvl prec typ =
@@ -218,8 +214,8 @@ instance Pretty (Tree TypeError Pure) where
 
 type instance NomVarTypes Type = Types
 
-instance (c Type, c Row) => Recursive c Type
-instance (c Type, c Row) => Recursive c Row
+instance (c Type, c Row) => Recursively c Type
+instance (c Type, c Row) => Recursively c Row
 
 instance HasFuncType Type where
     {-# INLINE funcType #-}
@@ -241,7 +237,7 @@ instance HasTypeConstraints Type where
     type TypeConstraintsOf Type = ScopeLevel
     {-# INLINE verifyConstraints #-}
     verifyConstraints _ _ _ _ (TVar x) = TVar x & pure
-    verifyConstraints _ c _ u (TFun x) = monoChildren (u c) x <&> TFun
+    verifyConstraints _ c _ u (TFun x) = traverseK1 (u c) x <&> TFun
     verifyConstraints _ c _ u (TRecord x) = u (RowConstraints mempty c) x <&> TRecord
     verifyConstraints _ c _ u (TVariant x) = u (RowConstraints mempty c) x <&> TVariant
     verifyConstraints _ c _ u (TInst (NominalInst n (Types t r))) =
@@ -277,8 +273,10 @@ instance PartialOrd RConstraints where
 {-# INLINE rStructureMismatch #-}
 rStructureMismatch ::
     (Unify m Type, Unify m Row) =>
-    (forall c. Recursive (Unify m) c => Tree (UVarOf m) c -> Tree (UVarOf m) c -> m (Tree (UVarOf m) c)) ->
-    Tree (UTermBody (UVarOf m)) Row -> Tree (UTermBody (UVarOf m)) Row -> m ()
+    (forall c. Recursively (Unify m) c => Tree (UVarOf m) c -> Tree (UVarOf m) c -> m (Tree (UVarOf m) c)) ->
+    Tree (UTermBody (UVarOf m)) Row ->
+    Tree (UTermBody (UVarOf m)) Row ->
+    m ()
 rStructureMismatch f (UTermBody c0 (RExtend r0)) (UTermBody c1 (RExtend r1)) =
     rowExtendStructureMismatch f _RExtend (c0, r0) (c1, r1)
 rStructureMismatch _ x y = unifyError (Mismatch (x ^. uBody) (y ^. uBody))

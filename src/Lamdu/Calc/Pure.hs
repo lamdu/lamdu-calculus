@@ -36,7 +36,7 @@ recEmpty :: Monoid a => Val a
 recEmpty = Ann mempty $ V.BLeaf V.LRecEmpty
 
 app :: Monoid a => Val a -> Val a -> Val a
-app f x = Ann mempty $ V.BApp $ V.Apply f x
+app f x = Ann mempty $ V.BApp $ V.App f x
 
 recExtend :: Monoid a => T.Tag -> Val a -> Val a -> Val a
 recExtend name typ rest = Ann mempty $ V.BRecExtend $ RowExtend name typ rest

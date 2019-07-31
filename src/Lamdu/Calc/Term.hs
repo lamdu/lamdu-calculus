@@ -12,7 +12,7 @@ module Lamdu.Calc.Term
     , Term(..)
         , _BApp, _BLam, _BGetField, _BRecExtend
         , _BInject, _BCase, _BToNom, _BLeaf
-    , Apply(..), applyFunc, applyArg
+    , App(..), appFunc, appArg
     , GetField(..), getFieldRecord, getFieldTag
     , Inject(..), injectVal, injectTag
     , Lam(..), lamIn, lamOut
@@ -23,9 +23,8 @@ module Lamdu.Calc.Term
     ) where
 
 import           AST
-import           AST.Combinator.Single
 import           AST.Infer
-import           AST.Term.Apply (Apply(..), applyFunc, applyArg)
+import           AST.Term.App (App(..), appFunc, appArg)
 import           AST.Term.FuncType (FuncType(..))
 import           AST.Term.Lam (Lam(..), lamIn, lamOut)
 import           AST.Term.Nominal (ToNom(..), FromNom(..), NominalInst(..), MonadNominals, LoadedNominalDecl)
@@ -106,11 +105,11 @@ instance Hashable exp => Hashable (Inject exp)
 Lens.makeLenses ''Inject
 
 data Term k
-    = BApp {-# UNPACK #-}!(Apply Term k)
+    = BApp {-# UNPACK #-}!(App Term k)
     | BLam {-# UNPACK #-}!(Lam Var Term k)
-    | BGetField {-# UNPACK #-}!(GetField (Tie k Term))
+    | BGetField {-# UNPACK #-}!(GetField (Node k Term))
     | BRecExtend {-# UNPACK #-}!(RowExtend T.Tag Term Term k)
-    | BInject {-# UNPACK #-}!(Inject (Tie k Term))
+    | BInject {-# UNPACK #-}!(Inject (Node k Term))
     | BCase {-# UNPACK #-}!(RowExtend T.Tag Term Term k)
     | -- Convert to Nominal type
       BToNom {-# UNPACK #-}!(ToNom T.NominalId Term k)
@@ -118,21 +117,20 @@ data Term k
     deriving Generic
 
 -- NOTE: Careful of Eq, it's not alpha-eq!
-deriving instance Eq   (Tie f Term) => Eq   (Term f)
-deriving instance Ord  (Tie f Term) => Ord  (Term f)
-deriving instance Show (Tie f Term) => Show (Term f)
-instance Binary (Tie f Term) => Binary (Term f)
+deriving instance Eq   (Node f Term) => Eq   (Term f)
+deriving instance Ord  (Node f Term) => Ord  (Term f)
+deriving instance Show (Node f Term) => Show (Term f)
+instance Binary (Node f Term) => Binary (Term f)
+
+instance KNodes Term where
+    type NodeTypesOf Term = Single Term
 
 Lens.makePrisms ''Term
-makeChildren ''Term
-
-type instance ChildrenTypesOf Term = Single Term
-instance HasChildrenTypes Term
 makeKTraversableAndBases ''Term
 
-instance c Term => Recursive c Term
+instance c Term => Recursively c Term
 
-instance Pretty (Tie f Term) => Pretty (Term f) where
+instance Pretty (Node f Term) => Pretty (Term f) where
     pPrintPrec lvl prec b =
         case b of
         BLeaf (LVar var)          -> pPrint var
@@ -140,7 +138,7 @@ instance Pretty (Tie f Term) => Pretty (Term f) where
         BLeaf LHole               -> PP.text "?"
         BLeaf LAbsurd             -> PP.text "absurd"
         BLeaf (LFromNom ident)    -> PP.text "[" <+> PP.text "unpack" <+> pPrint ident <+> PP.text "]"
-        BApp (Apply e1 e2)        -> maybeParens (10 < prec) $
+        BApp (App e1 e2)          -> maybeParens (10 < prec) $
                                      pPrintPrec lvl 10 e1 <+> pPrintPrec lvl 11 e2
         BLam (Lam n e)            -> maybeParens (0 < prec) $
                                      PP.char '\\' PP.<> pPrint n <+>
@@ -181,7 +179,7 @@ type instance ScopeOf Term = Scope
 type instance TypeOf Term = T.Type
 
 type ScopeDeps c v =
-    ((c (Tie v T.Type), c (Tie v T.Row)) :: Constraint)
+    ((c (Node v T.Type), c (Node v T.Row)) :: Constraint)
 deriving instance ScopeDeps Eq   v => Eq   (Scope v)
 deriving instance ScopeDeps Ord  v => Ord  (Scope v)
 deriving instance ScopeDeps Show v => Show (Scope v)
@@ -236,7 +234,7 @@ instance
             _ <- unify rT pT
             T.TVariant wR & newTerm <&> InferRes (BInject (Inject k pI))
     inferBody (BRecExtend (RowExtend k v r)) =
-        withDict (recursive :: RecursiveDict (Unify m) T.Type) $
+        withDict (recursive :: RecursiveDict T.Type (Unify m)) $
         do
             InferredChild vI vT <- inferChild v
             InferredChild rI rT <- inferChild r

@@ -135,14 +135,14 @@ instance Unify PureInfer T.Type where
     {-# INLINE binding #-}
     binding = bindingDict (isBinding . T.tType)
     unifyError e =
-        children (Proxy @(Recursive (Unify PureInfer))) applyBindings e
+        traverseKWith (Proxy @'[Recursively (Unify PureInfer)]) applyBindings e
         >>= throwError . MkPure . T.TypeError
 
 instance Unify PureInfer T.Row where
     {-# INLINE binding #-}
     binding = bindingDict (isBinding . T.tRow)
     unifyError e =
-        children (Proxy @(Recursive (Unify PureInfer))) applyBindings e
+        traverseKWith (Proxy @'[Recursively (Unify PureInfer)]) applyBindings e
         >>= throwError . MkPure . T.RowError
     {-# INLINE structureMismatch #-}
     structureMismatch = T.rStructureMismatch
@@ -250,7 +250,7 @@ alphaEq x y =
 {-# SPECIALIZE applyBindings :: Tree UVar T.Row -> PureInfer (Tree Pure T.Row) #-}
 {-# SPECIALIZE applyBindings :: Tree (STUVar s) T.Type -> STInfer s (Tree Pure T.Type) #-}
 {-# SPECIALIZE applyBindings :: Tree (STUVar s) T.Row -> STInfer s (Tree Pure T.Row) #-}
-{-# SPECIALIZE instantiateH :: Tree (GTerm UVar) T.Type -> WriterT [PureInfer ()] PureInfer (Tree UVar T.Type) #-}
-{-# SPECIALIZE instantiateH :: Tree (GTerm UVar) T.Row -> WriterT [PureInfer ()] PureInfer (Tree UVar T.Row) #-}
-{-# SPECIALIZE instantiateH :: Tree (GTerm (STUVar s)) T.Type -> WriterT [STInfer s ()] (STInfer s) (Tree (STUVar s) T.Type) #-}
-{-# SPECIALIZE instantiateH :: Tree (GTerm (STUVar s)) T.Row -> WriterT [STInfer s ()] (STInfer s) (Tree (STUVar s) T.Row) #-}
+{-# SPECIALIZE instantiateH :: Tree (RecursiveNodes T.Type) (KDict '[Unify PureInfer]) -> Tree (GTerm UVar) T.Type -> WriterT [PureInfer ()] PureInfer (Tree UVar T.Type) #-}
+{-# SPECIALIZE instantiateH :: Tree (RecursiveNodes T.Row) (KDict '[Unify PureInfer]) -> Tree (GTerm UVar) T.Row -> WriterT [PureInfer ()] PureInfer (Tree UVar T.Row) #-}
+{-# SPECIALIZE instantiateH :: Tree (RecursiveNodes T.Type) (KDict '[Unify (STInfer s)]) -> Tree (GTerm (STUVar s)) T.Type -> WriterT [STInfer s ()] (STInfer s) (Tree (STUVar s) T.Type) #-}
+{-# SPECIALIZE instantiateH :: Tree (RecursiveNodes T.Row) (KDict '[Unify (STInfer s)]) -> Tree (GTerm (STUVar s)) T.Row -> WriterT [STInfer s ()] (STInfer s) (Tree (STUVar s) T.Row) #-}
