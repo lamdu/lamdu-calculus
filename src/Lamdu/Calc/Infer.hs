@@ -250,7 +250,7 @@ alphaEq x y =
 {-# SPECIALIZE applyBindings :: Tree UVar T.Row -> PureInfer (Tree Pure T.Row) #-}
 {-# SPECIALIZE applyBindings :: Tree (STUVar s) T.Type -> STInfer s (Tree Pure T.Type) #-}
 {-# SPECIALIZE applyBindings :: Tree (STUVar s) T.Row -> STInfer s (Tree Pure T.Row) #-}
-{-# SPECIALIZE instantiateH :: Tree (RecursiveNodes T.Type) (KDict '[Unify PureInfer]) -> Tree (GTerm UVar) T.Type -> WriterT [PureInfer ()] PureInfer (Tree UVar T.Type) #-}
-{-# SPECIALIZE instantiateH :: Tree (RecursiveNodes T.Row) (KDict '[Unify PureInfer]) -> Tree (GTerm UVar) T.Row -> WriterT [PureInfer ()] PureInfer (Tree UVar T.Row) #-}
-{-# SPECIALIZE instantiateH :: Tree (RecursiveNodes T.Type) (KDict '[Unify (STInfer s)]) -> Tree (GTerm (STUVar s)) T.Type -> WriterT [STInfer s ()] (STInfer s) (Tree (STUVar s) T.Type) #-}
-{-# SPECIALIZE instantiateH :: Tree (RecursiveNodes T.Row) (KDict '[Unify (STInfer s)]) -> Tree (GTerm (STUVar s)) T.Row -> WriterT [STInfer s ()] (STInfer s) (Tree (STUVar s) T.Row) #-}
+{-# SPECIALIZE instantiateH :: Tree (RecursiveNodes T.Type) (KDict '[Unify PureInfer]) -> (forall n. TypeConstraintsOf n -> Tree (UTerm UVar) n) -> Tree (GTerm UVar) T.Type -> WriterT [PureInfer ()] PureInfer (Tree UVar T.Type) #-}
+{-# SPECIALIZE instantiateH :: Tree (RecursiveNodes T.Row) (KDict '[Unify PureInfer]) -> (forall n. TypeConstraintsOf n -> Tree (UTerm UVar) n) -> Tree (GTerm UVar) T.Row -> WriterT [PureInfer ()] PureInfer (Tree UVar T.Row) #-}
+{-# SPECIALIZE instantiateH :: Tree (RecursiveNodes T.Type) (KDict '[Unify (STInfer s)]) -> (forall n. TypeConstraintsOf n -> Tree (UTerm (STUVar s)) n) -> Tree (GTerm (STUVar s)) T.Type -> WriterT [STInfer s ()] (STInfer s) (Tree (STUVar s) T.Type) #-}
+{-# SPECIALIZE instantiateH :: Tree (RecursiveNodes T.Row) (KDict '[Unify (STInfer s)]) -> (forall n. TypeConstraintsOf n -> Tree (UTerm (STUVar s)) n) -> Tree (GTerm (STUVar s)) T.Row -> WriterT [STInfer s ()] (STInfer s) (Tree (STUVar s) T.Row) #-}

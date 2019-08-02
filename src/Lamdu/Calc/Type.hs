@@ -43,7 +43,6 @@ module Lamdu.Calc.Type
 
 import           AST
 import           AST.Class.Has
-import           AST.Combinator.Pair
 import           AST.Infer
 import           AST.Term.FuncType
 import           AST.Term.Nominal
@@ -149,8 +148,9 @@ instance KNodes Types where
 instance KNodes Type where type NodeTypesOf Type = Types
 instance KNodes Row  where type NodeTypesOf Row  = Types
 
-instance KHas (Single Type) Types where hasK (Types t _) = MkSingle t
-instance KHas (Pair Type Row) Types where hasK (Types t r) = MkPair t r
+instance KHas (ANode Type) Types where hasK (Types t _) = MkANode t
+instance KHas (Product (ANode Type) (ANode Row)) Types where
+    hasK (Types t r) = Pair (MkANode t) (MkANode r)
 
 makeKApplicativeBases ''Types
 makeKTraversableAndFoldable ''Types
