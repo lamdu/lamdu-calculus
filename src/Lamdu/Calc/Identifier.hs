@@ -1,6 +1,6 @@
 -- | This module defines the 'Identifier' type and is meant to be
 -- cheaply importable without creaeting import cycles.
-{-# LANGUAGE NoImplicitPrelude, DeriveGeneric, GeneralizedNewtypeDeriving #-}
+{-# LANGUAGE NoImplicitPrelude, DeriveGeneric, GeneralizedNewtypeDeriving, DerivingStrategies #-}
 module Lamdu.Calc.Identifier
     (
     -- * Identifier type
@@ -31,7 +31,8 @@ import           Prelude.Compat
 -- | A low-level identifier data-type. This is used to identify
 -- variables, type variables, tags and more.
 newtype Identifier = Identifier ByteString
-    deriving (Eq, Ord, Generic, Show, Binary, Hashable)
+    deriving stock (Generic, Show)
+    deriving newtype (Eq, Ord, Binary, Hashable)
 instance NFData Identifier
 instance Pretty Identifier    where
     pPrint (Identifier x)

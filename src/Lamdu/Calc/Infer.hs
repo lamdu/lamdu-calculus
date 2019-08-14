@@ -1,7 +1,7 @@
 {-# LANGUAGE NoImplicitPrelude, TemplateHaskell, GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE UndecidableInstances, MultiParamTypeClasses, TypeFamilies #-}
 {-# LANGUAGE FlexibleInstances, LambdaCase, DataKinds, FlexibleContexts #-}
-{-# LANGUAGE TypeApplications, RankNTypes #-}
+{-# LANGUAGE TypeApplications, RankNTypes, DerivingStrategies #-}
 
 module Lamdu.Calc.Infer
     ( InferState(..), isBinding, isQVarGen
@@ -67,7 +67,7 @@ Lens.makeLenses ''InferState
 newtype PureInfer a =
     PureInfer
     (RWST (Tree Scope UVar) () InferState (Either (Tree Pure T.TypeError)) a)
-    deriving
+    deriving newtype
     ( Functor, Applicative, Monad
     , MonadReader (Tree Scope UVar)
     , MonadError (Tree Pure T.TypeError)
@@ -153,7 +153,7 @@ emptyPureInferState = T.Types emptyBinding emptyBinding
 
 newtype STInfer s a = STInfer
     (ReaderT (Tree Scope (STUVar s), STRef s QVarGen) (MaybeT (ST s)) a)
-    deriving
+    deriving newtype
     ( Functor, Alternative, Applicative, Monad, MonadST
     , MonadReader (Tree Scope (STUVar s), STRef s QVarGen)
     )

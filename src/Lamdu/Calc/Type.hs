@@ -72,16 +72,19 @@ import           Prelude.Compat
 
 -- | A type varible of some kind ('Var' 'Type', 'Var' 'Variant', or 'Var' 'Record')
 newtype Var (t :: Knot -> *) = Var { tvName :: Identifier }
-    deriving (Eq, Ord, Show, NFData, IsString, Pretty, Binary, Hashable)
+    deriving stock Show
+    deriving newtype (Eq, Ord, NFData, IsString, Pretty, Binary, Hashable)
 
 -- | An identifier for a nominal type
 newtype NominalId = NominalId { nomId :: Identifier }
-    deriving (Eq, Ord, Show, NFData, IsString, Pretty, Binary, Hashable)
+    deriving stock Show
+    deriving newtype (Eq, Ord, NFData, IsString, Pretty, Binary, Hashable)
 
 -- | An identifier for a component in a variant type (aka data
 -- constructor) or a component(field) in a record
 newtype Tag = Tag { tagName :: Identifier }
-    deriving (Eq, Ord, Show, NFData, IsString, Pretty, Binary, Hashable)
+    deriving stock Show
+    deriving newtype (Eq, Ord, NFData, IsString, Pretty, Binary, Hashable)
 
 -- | A row type variable that represents a set of
 -- typed fields in a row

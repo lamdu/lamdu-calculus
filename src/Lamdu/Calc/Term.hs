@@ -3,7 +3,7 @@
 {-# LANGUAGE GeneralizedNewtypeDeriving, TemplateHaskell, FlexibleContexts #-}
 {-# LANGUAGE UndecidableInstances, StandaloneDeriving, TypeFamilies #-}
 {-# LANGUAGE MultiParamTypeClasses, FlexibleInstances, ConstraintKinds #-}
-{-# LANGUAGE TupleSections, ScopedTypeVariables #-}
+{-# LANGUAGE TupleSections, ScopedTypeVariables, DerivingStrategies #-}
 
 module Lamdu.Calc.Term
     ( Val
@@ -59,7 +59,8 @@ import           Prelude.Compat
 {-# ANN module ("HLint: ignore Use const"::String) #-}
 
 newtype Var = Var { vvName :: Identifier }
-    deriving (Eq, Ord, Show, NFData, IsString, Pretty, Binary, Hashable)
+    deriving stock Show
+    deriving newtype (Eq, Ord, NFData, IsString, Pretty, Binary, Hashable)
 
 data PrimVal = PrimVal
     { _primType :: {-# UNPACK #-} !T.NominalId
