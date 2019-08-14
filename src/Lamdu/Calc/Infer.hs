@@ -231,3 +231,4 @@ alphaEq x y =
 
 {-# SPECIALIZE unify :: Tree UVar T.Type -> Tree UVar T.Type -> PureInfer (Tree UVar T.Type) #-}
 {-# SPECIALIZE updateConstraints :: ScopeLevel -> Tree UVar T.Type -> Tree (UTerm UVar) T.Type -> PureInfer () #-}
+{-# SPECIALIZE updateTermConstraints :: Tree UVar T.Type -> Tree (UTermBody UVar) T.Type -> ScopeLevel -> PureInfer () #-}
