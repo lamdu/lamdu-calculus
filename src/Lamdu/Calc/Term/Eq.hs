@@ -5,7 +5,7 @@ module Lamdu.Calc.Term.Eq
     ) where
 
 import           AST (Ann(..))
-import           AST.Class.ZipMatch (zipMatchWith_)
+import           AST.Class.ZipMatch (zipMatch1_)
 import           AST.Term.Nominal (ToNom(..))
 import           AST.Term.Row (RowExtend(..))
 import qualified Control.Lens as Lens
@@ -13,7 +13,6 @@ import           Control.Lens.Operators
 import           Control.Monad (guard)
 import qualified Data.Map as Map
 import           Data.Maybe (fromMaybe)
-import           Data.Proxy (Proxy(..))
 import           Lamdu.Calc.Term
 
 import           Prelude.Compat
@@ -41,7 +40,7 @@ eqCommon holeIsJoker =
                 xToYConv xToY x == y
             (BLeaf x, BLeaf y) -> x == y
             (BApp x, BApp y) ->
-                zipMatchWith_ (Proxy :: Proxy '[(~) Term]) (fmap guard . go xToY) x y
+                zipMatch1_ (fmap guard . go xToY) x y
                 & Lens.has (Lens._Just . Lens._Just)
             (BGetField (GetField r0 f0), BGetField (GetField r1 f1))
                 | f0 == f1 -> go xToY r0 r1
