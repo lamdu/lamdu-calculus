@@ -29,7 +29,7 @@ module Lamdu.Calc.Lens
     ) where
 
 import           AST
-import           AST.Infer (ITerm(..), IResult)
+import           AST.Infer (ITerm(..))
 import           AST.Knot.Ann (Ann(..), annotations, val)
 import           AST.Term.Nominal (ToNom(..), NominalInst(..), NominalDecl, nScheme)
 import           AST.Term.Row (RowExtend(..))
@@ -238,8 +238,8 @@ itermAnn ::
     Lens.Iso
     (Tree (ITerm a n) V.Term)
     (Tree (ITerm b m) V.Term)
-    (Tree (Ann (a, Tree (IResult V.Term) n)) V.Term)
-    (Tree (Ann (b, Tree (IResult V.Term) m)) V.Term)
+    (Tree (Ann (a, Tree V.IResult n)) V.Term)
+    (Tree (Ann (b, Tree V.IResult m)) V.Term)
 itermAnn =
     Lens.iso toAnn fromAnn
     where

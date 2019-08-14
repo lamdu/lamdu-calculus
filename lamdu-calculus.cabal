@@ -15,7 +15,7 @@ cabal-version:       >=1.10
 
 library
   ghc-options:         -O2 -Wall -Wnoncanonical-monad-instances -Wcompat -Wincomplete-record-updates -Wincomplete-uni-patterns -Wredundant-constraints
-  ghc-prof-options: -O2
+  ghc-prof-options: -O2 -flate-specialise -fspecialise-aggressively -fdicts-cheap -fexpose-all-unfoldings
   hs-source-dirs:      src
   exposed-modules:     Lamdu.Calc.Definition
                      , Lamdu.Calc.Identifier
@@ -51,7 +51,7 @@ source-repository head
   location: https://github.com/lamdu/lamdu-calculus.git
 
 benchmark bench-builder-all
-  ghc-options: -O2
+  ghc-options: -O2 -flate-specialise -fspecialise-aggressively -fdicts-cheap -fexpose-all-unfoldings
   ghc-prof-options: -O2
   type:             exitcode-stdio-1.0
   hs-source-dirs:   test

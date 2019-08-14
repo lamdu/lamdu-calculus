@@ -19,6 +19,7 @@ module Lamdu.Calc.Term
     , Var(..)
     , Scope(..), scopeNominals, scopeVarTypes, scopeLevel
     , emptyScope
+    , IResult(..), iType, iScope
     , ToNom(..), FromNom(..), RowExtend(..)
     ) where
 
@@ -175,10 +176,16 @@ Lens.makeLenses ''Scope
 emptyScope :: Scope v
 emptyScope = Scope mempty mempty (ScopeLevel 0)
 
-type instance ScopeOf Term = Scope
+data IResult v = IResult
+    { _iScope :: Maybe (Scope v)
+    , _iType :: Node v T.Type
+    }
+Lens.makeLenses ''IResult
+
+type instance TermVar.ScopeOf Term = Scope
 type instance TypeOf Term = T.Type
-type instance InferOf Term = IResult Term
-instance HasInferredType Term where inferredType _ = irType
+type instance InferOf Term = IResult
+instance HasInferredType Term where inferredType _ = iType
 
 type ScopeDeps c v =
     ((c (Node v T.Type), c (Node v T.Row)) :: Constraint)
@@ -193,7 +200,7 @@ instance TermVar.VarType Var Term where
 instance
     ( MonadNominals T.NominalId T.Type m
     , MonadScopeLevel m
-    , HasScope m Scope
+    , TermVar.HasScope m Scope
     , Unify m T.Type, Unify m T.Row
     , LocalScopeType Var (Tree (UVarOf m) T.Type) m
     ) =>
@@ -201,62 +208,66 @@ instance
 
     {-# INLINE inferBody #-}
     inferBody (BApp x) =
-        do
-            InferRes xI xT <- inferBody x
-            getScope <&> IResult (xT ^. _ANode) <&> InferRes (BApp xI)
+        inferBody x <&>
+        \(InferRes xI xT) ->
+        IResult Nothing (xT ^. _ANode) & InferRes (BApp xI)
     inferBody (BLam x) =
         do
             InferRes xI xT <- inferBody x
-            IResult
-                <$> (T.TFun xT & newTerm)
-                <*> getScope
+            T.TFun xT & newTerm
+                <&> IResult Nothing
                 <&> InferRes (BLam xI)
     inferBody (BToNom x) =
         do
             InferRes xI xT <- inferBody x
-            IResult
-                <$> (T.TInst xT & newTerm)
-                <*> getScope
+            T.TInst xT & newTerm
+                <&> IResult Nothing
                 <&> InferRes (BToNom xI)
     inferBody (BLeaf leaf) =
-        IResult <$>
         case leaf of
-        LHole -> newUnbound
-        LRecEmpty -> newTerm T.REmpty >>= newTerm . T.TRecord
+        LHole ->
+            IResult
+            <$> (TermVar.getScope <&> Just)
+            <*> newUnbound
+            <&> InferRes (BLeaf LHole)
+        LRecEmpty -> newTerm T.REmpty >>= newTerm . T.TRecord <&> r
         LAbsurd ->
             FuncType
             <$> (newTerm T.REmpty >>= newTerm . T.TVariant)
             <*> newUnbound
             >>= newTerm . T.TFun
+            <&> r
         LLiteral (PrimVal t _) ->
             T.Types (QVarInstances mempty) (QVarInstances mempty)
             & NominalInst t
             & T.TInst & newTerm
+            <&> r
         LVar x ->
             inferBody (TermVar.Var x :: Tree (TermVar.Var Var Term) (InferChild k w))
             <&> (^. inferResVal . _ANode)
+            <&> r
         LFromNom x ->
             inferBody (FromNom x :: Tree (FromNom T.NominalId Term) (InferChild k w))
             <&> (^. inferResVal)
             >>= newTerm . T.TFun
-        <*> getScope
-        <&> InferRes (BLeaf leaf)
+            <&> r
+        where
+            r = InferRes (BLeaf leaf) . IResult Nothing
     inferBody (BGetField (GetField w k)) =
         do
             (rT, wR) <- rowElementInfer T.RExtend k
             InferredChild wI wT <- inferChild w
-            _ <- T.TRecord wR & newTerm >>= unify (wT ^. irType)
-            getScope
-                <&> IResult rT
-                <&> InferRes (BGetField (GetField wI k))
+            _ <- T.TRecord wR & newTerm >>= unify (wT ^. iType)
+            IResult Nothing rT
+                & InferRes (BGetField (GetField wI k))
+                & pure
     inferBody (BInject (Inject k p)) =
         do
             (rT, wR) <- rowElementInfer T.RExtend k
             InferredChild pI pT <- inferChild p
-            _ <- unify rT (pT ^. irType)
-            IResult
-                <$> (T.TVariant wR & newTerm)
-                <*> getScope
+            _ <- unify rT (pT ^. iType)
+            T.TVariant wR & newTerm
+                <&> IResult Nothing
                 <&> InferRes (BInject (Inject k pI))
     inferBody (BRecExtend (RowExtend k v r)) =
         withDict (recursive :: RecursiveDict T.Type (Unify m)) $
@@ -266,11 +277,10 @@ instance
             restR <-
                 scopeConstraints <&> T.rForbiddenFields . Lens.contains k .~ True
                 >>= newVar binding . UUnbound
-            _ <- T.TRecord restR & newTerm >>= unify (rR ^. irType)
-            IResult
-                <$> ( RowExtend k (vR ^. irType) restR & T.RExtend & newTerm
-                        >>= newTerm . T.TRecord)
-                <*> getScope
+            _ <- T.TRecord restR & newTerm >>= unify (rR ^. iType)
+            RowExtend k (vR ^. iType) restR & T.RExtend & newTerm
+                >>= newTerm . T.TRecord
+                <&> IResult Nothing
                 <&> InferRes (BRecExtend (RowExtend k vI rI))
     inferBody (BCase (RowExtend tag handler rest)) =
         do
@@ -281,15 +291,14 @@ instance
             result <- newUnbound
             _ <-
                 FuncType fieldT result & T.TFun & newTerm
-                >>= unify (handlerT ^. irType)
+                >>= unify (handlerT ^. iType)
             restVarT <- T.TVariant restR & newTerm
             _ <-
                 FuncType restVarT result & T.TFun & newTerm
-                >>= unify (restT ^. irType)
+                >>= unify (restT ^. iType)
             whole <- RowExtend tag fieldT restR & T.RExtend & newTerm >>= newTerm . T.TVariant
-            IResult
-                <$> (FuncType whole result & T.TFun & newTerm)
-                <*> getScope
+            FuncType whole result & T.TFun & newTerm
+                <&> IResult Nothing
                 <&> InferRes (BCase (RowExtend tag handlerI restI))
 
 -- Type synonym to ease the transition

@@ -16,6 +16,7 @@ module Lamdu.Calc.Infer
 import           AST
 import           AST.Infer
 import           AST.Term.Nominal
+import qualified AST.Term.Var as TermVar
 import qualified AST.Term.Scheme as S
 import qualified AST.Term.Scheme.AlphaEq as S
 import           AST.Unify
@@ -103,7 +104,7 @@ instance MonadNominals T.NominalId T.Type PureInfer where
         Lens.view (scopeNominals . Lens.at n)
         >>= maybe (throwError (_Pure # T.NominalNotFound n)) pure
 
-instance HasScope PureInfer Scope where
+instance TermVar.HasScope PureInfer Scope where
     {-# INLINE getScope #-}
     getScope = Lens.view id
 
@@ -168,7 +169,7 @@ instance MonadNominals T.NominalId T.Type (STInfer s) where
     getNominalDecl n =
         Lens.view (Lens._1 . scopeNominals . Lens.at n) >>= maybe empty pure
 
-instance HasScope (STInfer s) Scope where
+instance TermVar.HasScope (STInfer s) Scope where
     {-# INLINE getScope #-}
     getScope = Lens.view Lens._1
 
