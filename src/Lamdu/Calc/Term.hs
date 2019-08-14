@@ -174,6 +174,7 @@ data Scope v = Scope
     }
 Lens.makeLenses ''Scope
 
+{-# INLINE emptyScope #-}
 emptyScope :: Scope v
 emptyScope = Scope mempty mempty (ScopeLevel 0)
 

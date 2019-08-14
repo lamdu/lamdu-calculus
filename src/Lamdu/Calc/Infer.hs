@@ -83,6 +83,8 @@ runPureInfer env st (PureInfer act) =
 
 type instance UVarOf PureInfer = UVar
 
+{-# SPECIALIZE loadDeps :: Deps -> PureInfer (Tree Scope UVar -> Tree Scope UVar) #-}
+{-# SPECIALIZE loadDeps :: Deps -> STInfer s (Tree Scope (STUVar s) -> Tree Scope (STUVar s)) #-}
 loadDeps ::
     (Unify m T.Row, Unify m T.Type) =>
     Deps -> m (Tree Scope (UVarOf m) -> Tree Scope (UVarOf m))
@@ -227,31 +229,5 @@ alphaEq x y =
             & runMaybeT
     <&> Lens.has Lens._Just
 
-{-# SPECIALIZE semiPruneLookup :: Tree UVar T.Type -> PureInfer (Tree UVar T.Type, Tree (UTerm UVar) T.Type) #-}
-{-# SPECIALIZE semiPruneLookup :: Tree UVar T.Row -> PureInfer (Tree UVar T.Row, Tree (UTerm UVar) T.Row) #-}
-{-# SPECIALIZE semiPruneLookup :: Tree (STUVar s) T.Type -> STInfer s (Tree (STUVar s) T.Type, Tree (UTerm (STUVar s)) T.Type) #-}
-{-# SPECIALIZE semiPruneLookup :: Tree (STUVar s) T.Row -> STInfer s (Tree (STUVar s) T.Row, Tree (UTerm (STUVar s)) T.Row) #-}
-{-# SPECIALIZE updateConstraints :: ScopeLevel -> Tree UVar T.Type -> Tree (UTerm UVar) T.Type -> PureInfer () #-}
-{-# SPECIALIZE updateConstraints :: T.RConstraints -> Tree UVar T.Row -> Tree (UTerm UVar) T.Row -> PureInfer () #-}
-{-# SPECIALIZE updateConstraints :: ScopeLevel -> Tree (STUVar s) T.Type -> Tree (UTerm (STUVar s)) T.Type -> STInfer s () #-}
-{-# SPECIALIZE updateConstraints :: T.RConstraints -> Tree (STUVar s) T.Row -> Tree (UTerm (STUVar s)) T.Row -> STInfer s () #-}
 {-# SPECIALIZE unify :: Tree UVar T.Type -> Tree UVar T.Type -> PureInfer (Tree UVar T.Type) #-}
-{-# SPECIALIZE unify :: Tree UVar T.Row -> Tree UVar T.Row -> PureInfer (Tree UVar T.Row) #-}
-{-# SPECIALIZE unify :: Tree (STUVar s) T.Type -> Tree (STUVar s) T.Type -> STInfer s (Tree (STUVar s) T.Type) #-}
-{-# SPECIALIZE unify :: Tree (STUVar s) T.Row -> Tree (STUVar s) T.Row -> STInfer s (Tree (STUVar s) T.Row) #-}
-{-# SPECIALIZE unifyUnbound :: Tree UVar T.Type -> ScopeLevel -> Tree UVar T.Type -> Tree (UTerm UVar) T.Type -> PureInfer (Tree UVar T.Type) #-}
-{-# SPECIALIZE unifyUnbound :: Tree UVar T.Row -> T.RConstraints -> Tree UVar T.Row -> Tree (UTerm UVar) T.Row -> PureInfer (Tree UVar T.Row) #-}
-{-# SPECIALIZE unifyUnbound :: Tree (STUVar s) T.Type -> ScopeLevel -> Tree (STUVar s) T.Type -> Tree (UTerm (STUVar s)) T.Type -> STInfer s (Tree (STUVar s) T.Type) #-}
-{-# SPECIALIZE unifyUnbound :: Tree (STUVar s) T.Row -> T.RConstraints -> Tree (STUVar s) T.Row -> Tree (UTerm (STUVar s)) T.Row -> STInfer s (Tree (STUVar s) T.Row) #-}
-{-# SPECIALIZE unifyUTerms :: Tree UVar T.Type -> Tree (UTerm UVar) T.Type -> Tree UVar T.Type -> Tree (UTerm UVar) T.Type -> PureInfer (Tree UVar T.Type) #-}
-{-# SPECIALIZE unifyUTerms :: Tree UVar T.Row -> Tree (UTerm UVar) T.Row -> Tree UVar T.Row -> Tree (UTerm UVar) T.Row -> PureInfer (Tree UVar T.Row) #-}
-{-# SPECIALIZE unifyUTerms :: Tree (STUVar s) T.Type -> Tree (UTerm (STUVar s)) T.Type -> Tree (STUVar s) T.Type -> Tree (UTerm (STUVar s)) T.Type -> STInfer s (Tree (STUVar s) T.Type) #-}
-{-# SPECIALIZE unifyUTerms :: Tree (STUVar s) T.Row -> Tree (UTerm (STUVar s)) T.Row -> Tree (STUVar s) T.Row -> Tree (UTerm (STUVar s)) T.Row -> STInfer s (Tree (STUVar s) T.Row) #-}
-{-# SPECIALIZE applyBindings :: Tree UVar T.Type -> PureInfer (Tree Pure T.Type) #-}
-{-# SPECIALIZE applyBindings :: Tree UVar T.Row -> PureInfer (Tree Pure T.Row) #-}
-{-# SPECIALIZE applyBindings :: Tree (STUVar s) T.Type -> STInfer s (Tree Pure T.Type) #-}
-{-# SPECIALIZE applyBindings :: Tree (STUVar s) T.Row -> STInfer s (Tree Pure T.Row) #-}
-{-# SPECIALIZE instantiateH :: Tree (RecursiveNodes T.Type) (KDict '[Unify PureInfer]) -> (forall n. TypeConstraintsOf n -> Tree (UTerm UVar) n) -> Tree (GTerm UVar) T.Type -> WriterT [PureInfer ()] PureInfer (Tree UVar T.Type) #-}
-{-# SPECIALIZE instantiateH :: Tree (RecursiveNodes T.Row) (KDict '[Unify PureInfer]) -> (forall n. TypeConstraintsOf n -> Tree (UTerm UVar) n) -> Tree (GTerm UVar) T.Row -> WriterT [PureInfer ()] PureInfer (Tree UVar T.Row) #-}
-{-# SPECIALIZE instantiateH :: Tree (RecursiveNodes T.Type) (KDict '[Unify (STInfer s)]) -> (forall n. TypeConstraintsOf n -> Tree (UTerm (STUVar s)) n) -> Tree (GTerm (STUVar s)) T.Type -> WriterT [STInfer s ()] (STInfer s) (Tree (STUVar s) T.Type) #-}
-{-# SPECIALIZE instantiateH :: Tree (RecursiveNodes T.Row) (KDict '[Unify (STInfer s)]) -> (forall n. TypeConstraintsOf n -> Tree (UTerm (STUVar s)) n) -> Tree (GTerm (STUVar s)) T.Row -> WriterT [STInfer s ()] (STInfer s) (Tree (STUVar s) T.Row) #-}
+{-# SPECIALIZE updateConstraints :: ScopeLevel -> Tree UVar T.Type -> Tree (UTerm UVar) T.Type -> PureInfer () #-}
