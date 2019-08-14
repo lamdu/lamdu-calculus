@@ -3,7 +3,7 @@
 {-# LANGUAGE GeneralizedNewtypeDeriving, TemplateHaskell, FlexibleContexts #-}
 {-# LANGUAGE UndecidableInstances, StandaloneDeriving, TypeFamilies #-}
 {-# LANGUAGE MultiParamTypeClasses, FlexibleInstances, ConstraintKinds #-}
-{-# LANGUAGE TupleSections, ScopedTypeVariables, DerivingStrategies #-}
+{-# LANGUAGE TupleSections, ScopedTypeVariables, DerivingStrategies, DataKinds #-}
 
 module Lamdu.Calc.Term
     ( Val
@@ -106,7 +106,7 @@ instance Hashable exp => Hashable (Inject exp)
 
 Lens.makeLenses ''Inject
 
-data Term k
+data Term (k :: Knot)
     = BApp {-# UNPACK #-}!(App Term k)
     | BLam {-# UNPACK #-}!(Lam Var Term k)
     | BGetField {-# UNPACK #-}!(GetField (Node k Term))

@@ -97,7 +97,7 @@ type TypeVar = Var Type
 -- example: RExtend "a" int (RExtend "b" bool (RVar "c")) represents
 -- the composite type:
 -- > { a : int, b : bool | c }
-data Row k
+data Row (k :: Knot)
     = RExtend (RowExtend Tag Type Row k)
       -- ^ Extend a row type with an extra component (field /
       -- data constructor).
@@ -108,7 +108,7 @@ data Row k
     deriving Generic
 
 -- | The AST for any Lamdu Calculus type
-data Type k
+data Type (k :: Knot)
     = TVar TypeVar
       -- ^ A type variable
     | TFun (FuncType Type k)
