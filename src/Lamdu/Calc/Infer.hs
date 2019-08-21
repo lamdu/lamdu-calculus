@@ -24,7 +24,9 @@ import           AST.Unify.Apply (applyBindings)
 import           AST.Unify.Binding
 import           AST.Unify.Binding.ST
 import           AST.Unify.Generalize
+import           AST.Unify.Lookup (semiPruneLookup)
 import           AST.Unify.QuantifiedVar
+import           AST.Unify.Term (UTerm, UTermBody)
 import           Control.Applicative (Alternative(..))
 import qualified Control.Lens as Lens
 import           Control.Lens (LensLike')
@@ -37,6 +39,7 @@ import           Control.Monad.State
 import           Control.Monad.Trans.Maybe
 import           Control.Monad.Trans.RWS (RWST(..))
 import           Control.Monad.Trans.Reader (ReaderT(..))
+import           Control.Monad.Trans.Writer (WriterT)
 import           Data.Proxy (Proxy(..))
 import           Data.STRef
 import           Data.String (IsString(..))
@@ -223,3 +226,12 @@ alphaEq x y =
             & (`runReaderT` (emptyScope, vg))
             & runMaybeT
     <&> Lens.has Lens._Just
+
+{-# SPECIALIZE unify :: Tree UVar T.Row -> Tree UVar T.Row -> PureInfer (Tree UVar T.Row) #-}
+{-# SPECIALIZE unify :: Tree (STUVar s) T.Row -> Tree (STUVar s) T.Row -> STInfer s (Tree (STUVar s) T.Row) #-}
+{-# SPECIALIZE updateTermConstraints :: Tree UVar T.Row -> Tree (UTermBody UVar) T.Row -> T.RConstraints -> PureInfer () #-}
+{-# SPECIALIZE updateTermConstraints :: Tree (STUVar s) T.Row -> Tree (UTermBody (STUVar s)) T.Row -> T.RConstraints -> STInfer s () #-}
+{-# SPECIALIZE instantiateH :: (forall n. TypeConstraintsOf n -> Tree (UTerm UVar) n) -> Tree (GTerm UVar) T.Row -> WriterT [PureInfer ()] PureInfer (Tree UVar T.Row) #-}
+{-# SPECIALIZE instantiateH :: (forall n. TypeConstraintsOf n -> Tree (UTerm (STUVar s)) n) -> Tree (GTerm (STUVar s)) T.Row -> WriterT [STInfer s ()] (STInfer s) (Tree (STUVar s) T.Row) #-}
+{-# SPECIALIZE semiPruneLookup :: Tree (STUVar s) T.Row -> STInfer s (Tree (STUVar s) T.Row, Tree (UTerm (STUVar s)) T.Row) #-}
+{-# SPECIALIZE unifyUTerms :: Tree (STUVar s) T.Row -> Tree (UTerm (STUVar s)) T.Row -> Tree (STUVar s) T.Row -> Tree (UTerm (STUVar s)) T.Row -> STInfer s (Tree (STUVar s) T.Row) #-}
