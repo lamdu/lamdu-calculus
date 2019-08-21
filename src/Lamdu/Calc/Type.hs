@@ -145,23 +145,20 @@ Lens.makePrisms ''Row
 Lens.makePrisms ''Type
 Lens.makePrisms ''TypeError
 
-instance KNodes Types where
-    type NodeTypesOf Types = Types
-    type NodesConstraint Types = ConcatConstraintFuncs '[On Type, On Row]
-instance KNodes Type where type NodeTypesOf Type = Types
-instance KNodes Row  where type NodeTypesOf Row  = Types
-
-instance KHas (ANode Type) Types where hasK (Types t _) = MkANode t
-instance KHas (Product (ANode Type) (ANode Row)) Types where
-    hasK (Types t r) = Pair (MkANode t) (MkANode r)
-
-makeKApplicativeBases ''Types
-makeKTraversableAndFoldable ''Types
+makeKTraversableApplyAndBases ''Types
 makeKTraversableAndBases ''Row
 makeKTraversableAndBases ''Type
 makeZipMatch ''Row
 makeZipMatch ''Type
 makeZipMatch ''Types
+instance RNodes Row
+instance RNodes Type
+instance RFunctor Row
+instance RFunctor Type
+instance RFoldable Row
+instance RFoldable Type
+instance RTraversable Row
+instance RTraversable Type
 
 type Nominal = NominalInst NominalId Types
 type Scheme = S.Scheme Types Type
@@ -173,6 +170,9 @@ instance HasChild Types Type where
 instance HasChild Types Row where
     {-# INLINE getChild #-}
     getChild = tRow
+
+instance (Unify m Type, Unify m Row) => S.HasScheme Types m Type
+instance (Unify m Type, Unify m Row) => S.HasScheme Types m Row
 
 -- | A convenience infix alias for 'TFun'
 infixr 2 ~>
@@ -217,9 +217,6 @@ instance Pretty (Tree TypeError Pure) where
 
 type instance NomVarTypes Type = Types
 
-instance (c Type, c Row) => Recursively c Type
-instance (c Type, c Row) => Recursively c Row
-
 instance HasFuncType Type where
     {-# INLINE funcType #-}
     funcType = _TFun
@@ -236,26 +233,28 @@ instance HasQuantifiedVar Row where
     type QVar Row = RowVar
     quantifiedVar = _RVar
 
+type instance TypeConstraintsOf Type = ScopeLevel
+
 instance HasTypeConstraints Type where
-    type TypeConstraintsOf Type = ScopeLevel
     {-# INLINE verifyConstraints #-}
-    verifyConstraints _ _ _ _ (TVar x) = TVar x & pure
-    verifyConstraints _ c _ u (TFun x) = traverseK1 (u c) x <&> TFun
-    verifyConstraints _ c _ u (TRecord x) = u (RowConstraints mempty c) x <&> TRecord
-    verifyConstraints _ c _ u (TVariant x) = u (RowConstraints mempty c) x <&> TVariant
-    verifyConstraints _ c _ u (TInst (NominalInst n (Types t r))) =
+    verifyConstraints _ _ _ (TVar x) = TVar x & pure
+    verifyConstraints c _ u (TFun x) = traverseK1 (u c) x <&> TFun
+    verifyConstraints c _ u (TRecord x) = u (RowConstraints mempty c) x <&> TRecord
+    verifyConstraints c _ u (TVariant x) = u (RowConstraints mempty c) x <&> TVariant
+    verifyConstraints c _ u (TInst (NominalInst n (Types t r))) =
         Types
         <$> (S._QVarInstances . traverse) (u c) t
         <*> (S._QVarInstances . traverse) (u (RowConstraints mempty c)) r
         <&> NominalInst n <&> TInst
 
+type instance TypeConstraintsOf Row = RConstraints
+
 instance HasTypeConstraints Row where
-    type TypeConstraintsOf Row = RConstraints
     {-# INLINE verifyConstraints #-}
-    verifyConstraints _ _ _ _ REmpty = pure REmpty
-    verifyConstraints _ _ _ _ (RVar x) = RVar x & pure
-    verifyConstraints p c e u (RExtend x) =
-        applyRowExtendConstraints p c (^. rScope)
+    verifyConstraints _ _ _ REmpty = pure REmpty
+    verifyConstraints _ _ _ (RVar x) = RVar x & pure
+    verifyConstraints c e u (RExtend x) =
+        applyRowExtendConstraints c (^. rScope)
         (e . (`RowConstraints` mempty) . singleton) u x
         <&> RExtend
 
@@ -276,7 +275,7 @@ instance PartialOrd RConstraints where
 {-# INLINE rStructureMismatch #-}
 rStructureMismatch ::
     (Unify m Type, Unify m Row) =>
-    (forall c. Recursively (Unify m) c => Tree (UVarOf m) c -> Tree (UVarOf m) c -> m (Tree (UVarOf m) c)) ->
+    (forall c. Unify m c => Tree (UVarOf m) c -> Tree (UVarOf m) c -> m (Tree (UVarOf m) c)) ->
     Tree (UTermBody (UVarOf m)) Row ->
     Tree (UTermBody (UVarOf m)) Row ->
     m ()

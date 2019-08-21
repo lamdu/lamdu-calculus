@@ -49,28 +49,28 @@ import           Prelude.Compat
 
 tIds ::
     forall k expr.
-    (Recursively KTraversable k, HasTIds expr) =>
+    (RTraversable k, HasTIds expr) =>
     Traversal' (Tree k expr) T.NominalId
 tIds f =
-    withDict (recursive :: RecursiveDict k KTraversable) $
-    traverseKWith (Proxy @'[Recursively KTraversable]) (bodyTIds f)
+    withDict (recurse (Proxy @(RTraversable k))) $
+    traverseKWith (Proxy @RTraversable) (bodyTIds f)
 
 class HasTIds expr where
-    bodyTIds :: Recursively KTraversable k => Traversal' (Tree expr k) T.NominalId
+    bodyTIds :: RTraversable k => Traversal' (Tree expr k) T.NominalId
 
 instance HasTIds T.Type where
     {-# INLINE bodyTIds #-}
     bodyTIds f (T.TInst (NominalInst tId args)) =
         NominalInst
         <$> f tId
-        <*> traverseKWith (Proxy @'[HasTIds]) (_QVarInstances %%~ traverse (tIds f))
+        <*> traverseKWith (Proxy @HasTIds) (_QVarInstances %%~ traverse (tIds f))
             args
         <&> T.TInst
-    bodyTIds f x = traverseKWith (Proxy @'[HasTIds]) (tIds f) x
+    bodyTIds f x = traverseKWith (Proxy @HasTIds) (tIds f) x
 
 instance HasTIds T.Row where
     {-# INLINE bodyTIds #-}
-    bodyTIds f = traverseKWith (Proxy @'[HasTIds]) (tIds f)
+    bodyTIds f = traverseKWith (Proxy @HasTIds) (tIds f)
 
 instance HasTIds (Scheme T.Types T.Type) where
     bodyTIds = sTyp . tIds

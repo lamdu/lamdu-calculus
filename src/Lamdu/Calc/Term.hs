@@ -4,6 +4,7 @@
 {-# LANGUAGE UndecidableInstances, StandaloneDeriving, TypeFamilies #-}
 {-# LANGUAGE MultiParamTypeClasses, FlexibleInstances, ConstraintKinds #-}
 {-# LANGUAGE TupleSections, ScopedTypeVariables, DerivingStrategies, DataKinds #-}
+{-# LANGUAGE PolyKinds #-}
 
 module Lamdu.Calc.Term
     ( Val
@@ -24,6 +25,7 @@ module Lamdu.Calc.Term
     ) where
 
 import           AST
+import           AST.Combinator.Flip (_Flip)
 import           AST.Infer
 import           AST.Term.App (App(..), appFunc, appArg)
 import           AST.Term.FuncType (FuncType(..))
@@ -32,6 +34,7 @@ import           AST.Term.Nominal (ToNom(..), FromNom(..), NominalInst(..), Mona
 import           AST.Term.Row (RowExtend(..), rowElementInfer)
 import           AST.Term.Scheme (QVarInstances(..))
 import qualified AST.Term.Var as TermVar
+import           AST.TH.Nodes (makeKNodes)
 import           AST.Unify
 import qualified AST.Unify.Generalize as G
 import           AST.Unify.New (newTerm, newUnbound)
@@ -42,7 +45,7 @@ import           Control.Lens.Operators
 import           Data.Binary (Binary)
 import           Data.ByteString (ByteString)
 import qualified Data.ByteString.Char8 as BS8
-import           Data.Constraint (Constraint, withDict)
+import           Data.Constraint (Constraint)
 import           Data.Hashable (Hashable(..))
 import           Data.Map (Map)
 import           Data.Semigroup ((<>))
@@ -124,13 +127,12 @@ deriving instance Ord  (Node f Term) => Ord  (Term f)
 deriving instance Show (Node f Term) => Show (Term f)
 instance Binary (Node f Term) => Binary (Term f)
 
-instance KNodes Term where
-    type NodeTypesOf Term = ANode Term
-
 Lens.makePrisms ''Term
 makeKTraversableAndBases ''Term
-
-instance c Term => Recursively c Term
+instance RNodes Term
+instance RFunctor Term
+instance RFoldable Term
+instance RTraversable Term
 
 instance Pretty (Node f Term) => Pretty (Term f) where
     pPrintPrec lvl prec b =
@@ -173,6 +175,23 @@ data Scope v = Scope
     , _scopeLevel :: ScopeLevel
     }
 Lens.makeLenses ''Scope
+makeKNodes ''Scope
+
+instance KFunctor Scope where
+    mapKWith p f (Scope n v l) =
+        Scope (n <&> mapKWith p f) (v <&> Lens.from _Flip %~ mapKWith p f) l
+
+instance KFoldable Scope where
+    foldMapKWith p f (Scope n v _) =
+        (n ^. Lens.folded . Lens.to (foldMapKWith p f)) <>
+        (v ^. Lens.folded . Lens.from _Flip . Lens.to (foldMapKWith p f))
+
+instance KTraversable Scope where
+    sequenceK (Scope n v l) =
+        Scope
+        <$> traverse sequenceK n
+        <*> (traverse . Lens.from _Flip) sequenceK v
+        ?? l
 
 {-# INLINE emptyScope #-}
 emptyScope :: Scope v
@@ -183,10 +202,12 @@ data IResult v = IResult
     , _iType :: Node v T.Type
     }
 Lens.makeLenses ''IResult
+makeKTraversableAndBases ''IResult
 
 type instance TermVar.ScopeOf Term = Scope
 type instance TypeOf Term = T.Type
-type instance InferOf Term = IResult
+instance Inferrable Term where
+    type instance InferOf Term = IResult
 instance HasInferredType Term where inferredType _ = iType
 
 type ScopeDeps c v =
@@ -272,7 +293,6 @@ instance
                 <&> IResult Nothing
                 <&> InferRes (BInject (Inject k pI))
     inferBody (BRecExtend (RowExtend k v r)) =
-        withDict (recursive :: RecursiveDict T.Type (Unify m)) $
         do
             InferredChild vI vR <- inferChild v
             InferredChild rI rR <- inferChild r

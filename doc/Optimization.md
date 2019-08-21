@@ -5,7 +5,7 @@ This document is work-in-progress! I need help!
 Run the benchmark while dumping GHC core:
 
 * If building after not changing the code, force recomplication of `benchmark.hs` by adding a space or something
-* `stack bench --ghc-options "-dumpdir . -ddump-simpl -dsuppress-coercions -dsuppress-idinfo -dsuppress-module-prefixes -dsuppress-timestamps"`
+* `stack bench --ghc-options "-dumpdir dumps -ddump-simpl -dsuppress-coercions -dsuppress-idinfo -dsuppress-module-prefixes -dsuppress-timestamps"`
 * Open `test/benchmark.dump-simpl` in your editor
 * Skim over `benchInferPure` and some of its calls
 * Now look for usages of type applications

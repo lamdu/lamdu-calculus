@@ -24,9 +24,7 @@ import           AST.Unify.Apply (applyBindings)
 import           AST.Unify.Binding
 import           AST.Unify.Binding.ST
 import           AST.Unify.Generalize
-import           AST.Unify.Lookup (semiPruneLookup)
 import           AST.Unify.QuantifiedVar
-import           AST.Unify.Term
 import           Control.Applicative (Alternative(..))
 import qualified Control.Lens as Lens
 import           Control.Lens (LensLike')
@@ -39,7 +37,6 @@ import           Control.Monad.State
 import           Control.Monad.Trans.Maybe
 import           Control.Monad.Trans.RWS (RWST(..))
 import           Control.Monad.Trans.Reader (ReaderT(..))
-import           Control.Monad.Trans.Writer (WriterT)
 import           Data.Proxy (Proxy(..))
 import           Data.STRef
 import           Data.String (IsString(..))
@@ -83,10 +80,8 @@ runPureInfer env st (PureInfer act) =
 
 type instance UVarOf PureInfer = UVar
 
-{-# SPECIALIZE loadDeps :: Deps -> PureInfer (Tree Scope UVar -> Tree Scope UVar) #-}
-{-# SPECIALIZE loadDeps :: Deps -> STInfer s (Tree Scope (STUVar s) -> Tree Scope (STUVar s)) #-}
 loadDeps ::
-    (Unify m T.Row, Unify m T.Type) =>
+    (Unify m T.Row, S.HasScheme T.Types m T.Type) =>
     Deps -> m (Tree Scope (UVarOf m) -> Tree Scope (UVarOf m))
 loadDeps deps =
     do
@@ -138,14 +133,14 @@ instance Unify PureInfer T.Type where
     {-# INLINE binding #-}
     binding = bindingDict (isBinding . T.tType)
     unifyError e =
-        traverseKWith (Proxy @'[Recursively (Unify PureInfer)]) applyBindings e
+        traverseKWith (Proxy @(Unify PureInfer)) applyBindings e
         >>= throwError . MkPure . T.TypeError
 
 instance Unify PureInfer T.Row where
     {-# INLINE binding #-}
     binding = bindingDict (isBinding . T.tRow)
     unifyError e =
-        traverseKWith (Proxy @'[Recursively (Unify PureInfer)]) applyBindings e
+        traverseKWith (Proxy @(Unify PureInfer)) applyBindings e
         >>= throwError . MkPure . T.RowError
     {-# INLINE structureMismatch #-}
     structureMismatch = T.rStructureMismatch
@@ -228,7 +223,3 @@ alphaEq x y =
             & (`runReaderT` (emptyScope, vg))
             & runMaybeT
     <&> Lens.has Lens._Just
-
-{-# SPECIALIZE unify :: Tree UVar T.Type -> Tree UVar T.Type -> PureInfer (Tree UVar T.Type) #-}
-{-# SPECIALIZE updateConstraints :: ScopeLevel -> Tree UVar T.Type -> Tree (UTerm UVar) T.Type -> PureInfer () #-}
-{-# SPECIALIZE updateTermConstraints :: Tree UVar T.Type -> Tree (UTermBody UVar) T.Type -> ScopeLevel -> PureInfer () #-}
