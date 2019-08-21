@@ -37,7 +37,6 @@ import           AST.Term.Scheme (Scheme, _QVarInstances, sTyp)
 import           Control.Lens (Traversal', Prism', Iso', iso)
 import qualified Control.Lens as Lens
 import           Control.Lens.Operators
-import           Data.Constraint (withDict)
 import           Data.Proxy (Proxy(..))
 import           Data.Set (Set)
 import qualified Data.Set as Set
@@ -52,7 +51,7 @@ tIds ::
     (RTraversable k, HasTIds expr) =>
     Traversal' (Tree k expr) T.NominalId
 tIds f =
-    withDict (recurse (Proxy @(RTraversable k))) $
+    recurse (Proxy @(RTraversable k)) $
     traverseKWith (Proxy @RTraversable) (bodyTIds f)
 
 class HasTIds expr where
