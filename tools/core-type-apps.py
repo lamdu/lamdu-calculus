@@ -1,4 +1,4 @@
-c = open('test/benchmark.dump-simpl').read()
+c = open('dumps/test/benchmark.dump-simpl').read()
 
 c = c.split('------ Local rules for imported ids --------', 1)[0]
 
@@ -15,7 +15,7 @@ def take_word():
         if stack and x == stack[-1]:
             stack.pop()
             continue
-        if x == ')':
+        if x == ')' or x == ',':
             break
         if x == '(':
             stack.append(')')
@@ -55,30 +55,43 @@ def last_word(d):
             break
     return normalize(d[-i:])
 
-apps = set()
+cant = set('''
+>>=
+<*>
+<$
+fmap
+pure
+leq
+liftA2
+'''.split())
 
 ok = set('''
+$fMonadPureInfer_$s$fMonadRWST_$c>>=
+$fNFDataTypeError_$crnf
+$fNFDataType_$crnf
+$fOrdVar
+$fUnifyPureInferType_$cunifyError
+$fRecursiveUnify_$crecurse
 []
 :
 ++
->>=
-$wpruneDeps
 absentError
 emptyScope
 error
-fmap
 heq_sel
 newMutVar#
-pure
-pureK
+pruneDeps1
 readMutVar#
 runMainIO1
 rwhnf
 seq#
+unifyError
 whnfIO'
 writeMutVar#
 '''.split())
+ok.update(cant)
 
+apps = set()
 while '@' in c:
     pre, post = c.split('@', 1)
     c = post.strip()
@@ -101,7 +114,7 @@ while '@' in c:
     w = []
     for x in p:
         w += x.replace('(', ' ').replace('[', ' ').split()
-    if [x for x in w if x[:1].islower() or x == 'RealWorld']:
+    if [x for x in w if x[:1].islower() or x in ['RealWorld', 'Any']]:
         # Skip specializations with type variables,
         # find only the top-level specializations
         continue
