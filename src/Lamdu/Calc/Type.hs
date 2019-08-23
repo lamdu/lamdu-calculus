@@ -58,7 +58,7 @@ import           Control.Lens.Operators
 import           Data.Binary (Binary)
 import           Data.Hashable (Hashable)
 import           Data.Semigroup ((<>))
-import           Data.Set (Set, singleton)
+import           Data.Set (Set)
 import           Data.String (IsString(..))
 import           GHC.Exts (Constraint)
 import           GHC.Generics (Generic)
@@ -233,30 +233,27 @@ instance HasQuantifiedVar Row where
     type QVar Row = RowVar
     quantifiedVar = _RVar
 
-type instance TypeConstraintsOf Type = ScopeLevel
-
 instance HasTypeConstraints Type where
+    type instance TypeConstraintsOf Type = ScopeLevel
     {-# INLINE verifyConstraints #-}
-    verifyConstraints _ _ _ (TVar x) = TVar x & pure
-    verifyConstraints c _ u (TFun x) = traverseK1 (u c) x <&> TFun
-    verifyConstraints c _ u (TRecord x) = u (RowConstraints mempty c) x <&> TRecord
-    verifyConstraints c _ u (TVariant x) = u (RowConstraints mempty c) x <&> TVariant
-    verifyConstraints c _ u (TInst (NominalInst n (Types t r))) =
+    verifyConstraints _ (TVar x) = TVar x & Just
+    verifyConstraints c (TFun x) = mapK1 (WithConstraint c) x & TFun & Just
+    verifyConstraints c (TRecord x) =
+        WithConstraint (RowConstraints mempty c) x & TRecord & Just
+    verifyConstraints c (TVariant x) =
+        WithConstraint (RowConstraints mempty c) x & TVariant & Just
+    verifyConstraints c (TInst (NominalInst n (Types t r))) =
         Types
-        <$> (S._QVarInstances . traverse) (u c) t
-        <*> (S._QVarInstances . traverse) (u (RowConstraints mempty c)) r
-        <&> NominalInst n <&> TInst
-
-type instance TypeConstraintsOf Row = RConstraints
+        (t & S._QVarInstances . traverse %~ WithConstraint c)
+        (r & S._QVarInstances . traverse %~ WithConstraint (RowConstraints mempty c))
+        & NominalInst n & TInst & Just
 
 instance HasTypeConstraints Row where
+    type instance TypeConstraintsOf Row = RConstraints
     {-# INLINE verifyConstraints #-}
-    verifyConstraints _ _ _ REmpty = pure REmpty
-    verifyConstraints _ _ _ (RVar x) = RVar x & pure
-    verifyConstraints c e u (RExtend x) =
-        applyRowExtendConstraints c (^. rScope)
-        (e . (`RowConstraints` mempty) . singleton) u x
-        <&> RExtend
+    verifyConstraints _ REmpty = Just REmpty
+    verifyConstraints _ (RVar x) = RVar x & Just
+    verifyConstraints c (RExtend x) = verifyRowExtendConstraints (^. rScope) c x <&> RExtend
 
 instance TypeConstraints RConstraints where
     {-# INLINE generalizeConstraints #-}
