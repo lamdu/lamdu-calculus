@@ -3,4 +3,4 @@ packages:
 - '.'
 extra-deps:
 - github: lamdu/syntax-tree
-  commit: ce6d47bffa8c7c84a271964bdbeb5284af961453
+  commit: 8b782a7e2c6d9cf1791c1c2b50d63bdab516279f

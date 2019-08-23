@@ -227,11 +227,15 @@ alphaEq x y =
             & runMaybeT
     <&> Lens.has Lens._Just
 
+{-# SPECIALIZE inferH :: Tree (Ann a) Term -> Tree (InferChild PureInfer (ITerm a UVar)) Term #-}
 {-# SPECIALIZE unify :: Tree UVar T.Row -> Tree UVar T.Row -> PureInfer (Tree UVar T.Row) #-}
 {-# SPECIALIZE unify :: Tree (STUVar s) T.Row -> Tree (STUVar s) T.Row -> STInfer s (Tree (STUVar s) T.Row) #-}
+{-# SPECIALIZE updateConstraints :: ScopeLevel -> Tree (STUVar s) T.Type -> Tree (UTerm (STUVar s)) T.Type -> STInfer s () #-}
+{-# SPECIALIZE updateConstraints :: T.RConstraints -> Tree (STUVar s) T.Row -> Tree (UTerm (STUVar s)) T.Row -> STInfer s () #-}
 {-# SPECIALIZE updateTermConstraints :: Tree UVar T.Row -> Tree (UTermBody UVar) T.Row -> T.RConstraints -> PureInfer () #-}
 {-# SPECIALIZE updateTermConstraints :: Tree (STUVar s) T.Row -> Tree (UTermBody (STUVar s)) T.Row -> T.RConstraints -> STInfer s () #-}
 {-# SPECIALIZE instantiateH :: (forall n. TypeConstraintsOf n -> Tree (UTerm UVar) n) -> Tree (GTerm UVar) T.Row -> WriterT [PureInfer ()] PureInfer (Tree UVar T.Row) #-}
 {-# SPECIALIZE instantiateH :: (forall n. TypeConstraintsOf n -> Tree (UTerm (STUVar s)) n) -> Tree (GTerm (STUVar s)) T.Row -> WriterT [STInfer s ()] (STInfer s) (Tree (STUVar s) T.Row) #-}
+{-# SPECIALIZE semiPruneLookup :: Tree (STUVar s) T.Type -> STInfer s (Tree (STUVar s) T.Type, Tree (UTerm (STUVar s)) T.Type) #-}
 {-# SPECIALIZE semiPruneLookup :: Tree (STUVar s) T.Row -> STInfer s (Tree (STUVar s) T.Row, Tree (UTerm (STUVar s)) T.Row) #-}
 {-# SPECIALIZE unifyUTerms :: Tree (STUVar s) T.Row -> Tree (UTerm (STUVar s)) T.Row -> Tree (STUVar s) T.Row -> Tree (UTerm (STUVar s)) T.Row -> STInfer s (Tree (STUVar s) T.Row) #-}

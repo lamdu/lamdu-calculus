@@ -1,7 +1,3 @@
-c = open('dumps/test/benchmark.dump-simpl').read()
-
-c = c.split('------ Local rules for imported ids --------', 1)[0]
-
 def normalize(x):
     x = x.strip().replace('\n', ' ')
     while '  ' in x:
@@ -79,6 +75,7 @@ absentError
 emptyScope
 error
 heq_sel
+map
 newMutVar#
 pruneDeps1
 readMutVar#
@@ -92,33 +89,35 @@ writeMutVar#
 ok.update(cant)
 
 apps = set()
-while '@' in c:
-    pre, post = c.split('@', 1)
-    c = post.strip()
-    if pre.strip().endswith('\\'):
-        # Lambda. Skip type parameters
-        params()
-        continue
-    if post.startswith('~'):
-        # Not a type application
-        continue
-    var = last_word(pre.strip())
-    while var.startswith('('):
-        var = var[1:]
-    p = params()
-    if var[:1].isupper():
-        # Skip data constructors
-        continue
-    if var in ok:
-        continue
-    w = []
-    for x in p:
-        w += x.replace('(', ' ').replace('[', ' ').split()
-    if [x for x in w if x[:1].islower() or x in ['RealWorld', 'Any']]:
-        # Skip specializations with type variables,
-        # find only the top-level specializations
-        continue
-    apps.add((var, tuple(p)))
+for x in ['test/benchmark', 'src/Lamdu/Calc/Infer', 'src/Lamdu/Calc/Term']:
+    c = open('dumps/'+x+'.dump-simpl').read().split('------ Local rules for imported ids --------', 1)[0]
+    while '@' in c:
+        pre, post = c.split('@', 1)
+        c = post.strip()
+        if pre.strip().endswith('\\'):
+            # Lambda. Skip type parameters
+            params()
+            continue
+        if post.startswith('~'):
+            # Not a type application
+            continue
+        var = last_word(pre.strip())
+        while var.startswith('('):
+            var = var[1:]
+        p = params()
+        if var[:1].isupper():
+            # Skip data constructors
+            continue
+        if var in ok:
+            continue
+        w = []
+        for x in p:
+            w += x.replace('(', ' ').replace('[', ' ').split()
+        if [x for x in w if x[:1].islower() or x in ['RealWorld', 'Any']]:
+            # Skip specializations with type variables,
+            # find only the top-level specializations
+            continue
+        apps.add((var, tuple(p)))
 
 for var, p in sorted(apps):
     print(' '.join([var] + ['@'+x for x in p]))
