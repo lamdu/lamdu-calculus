@@ -27,6 +27,7 @@ module Lamdu.Calc.Term
 import           AST
 import           AST.Combinator.Flip (_Flip)
 import           AST.Infer
+import           AST.Infer.Blame (Blamable)
 import           AST.Term.App (App(..), appFunc, appArg)
 import           AST.Term.FuncType (FuncType(..))
 import           AST.Term.Lam (Lam(..), lamIn, lamOut)
@@ -204,6 +205,18 @@ data IResult v = IResult
 Lens.makeLenses ''IResult
 makeKTraversableAndBases ''IResult
 
+instance KPointed IResult where
+    pureKWith _ = IResult Nothing
+
+-- Note: The KApply instances is needed for blame,
+-- to unify the type variables within the result.
+-- We prefer to skip the scopes for that and this hacky
+-- instance does that, but it's probably better
+--to use a different class for this.
+instance KApply IResult where
+    zipK (IResult _ t0) (IResult _ t1) =
+        IResult Nothing (Pair t0 t1)
+
 type instance TermVar.ScopeOf Term = Scope
 type instance TypeOf Term = T.Type
 instance Inferrable Term where
@@ -322,6 +335,8 @@ instance
             FuncType whole result & T.TFun & newTerm
                 <&> IResult Nothing
                 <&> InferRes (BCase (RowExtend tag handlerI restI))
+
+instance Infer m Term => Blamable m Term
 
 -- Type synonym to ease the transition
 
