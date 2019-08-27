@@ -199,14 +199,14 @@ emptyScope :: Scope v
 emptyScope = Scope mempty mempty (ScopeLevel 0)
 
 data IResult v = IResult
-    { _iScope :: Maybe (Scope v)
+    { _iScope :: Scope v
     , _iType :: Node v T.Type
     }
 Lens.makeLenses ''IResult
 makeKTraversableAndBases ''IResult
 
 instance KPointed IResult where
-    pureKWith _ = IResult Nothing
+    pureKWith _ = IResult emptyScope
 
 -- Note: The KApply instances is needed for blame,
 -- to unify the type variables within the result.
@@ -215,7 +215,7 @@ instance KPointed IResult where
 --to use a different class for this.
 instance KApply IResult where
     zipK (IResult _ t0) (IResult _ t1) =
-        IResult Nothing (Pair t0 t1)
+        IResult emptyScope (Pair t0 t1)
 
 type instance TermVar.ScopeOf Term = Scope
 type instance TypeOf Term = T.Type
@@ -233,6 +233,12 @@ instance TermVar.VarType Var Term where
     {-# INLINE varType #-}
     varType _ v x = x ^?! scopeVarTypes . Lens.ix v & G.instantiate
 
+mkResult ::
+    (Functor m, TermVar.HasScope m Scope) =>
+    m (Tree (UVarOf m) T.Type ->
+    Tree IResult (UVarOf m))
+mkResult = TermVar.getScope <&> IResult
+
 instance
     ( MonadNominals T.NominalId T.Type m
     , MonadScopeLevel m
@@ -244,66 +250,60 @@ instance
 
     {-# INLINE inferBody #-}
     inferBody (BApp x) =
-        inferBody x <&>
-        \(InferRes xI xT) ->
-        IResult Nothing (xT ^. _ANode) & InferRes (BApp xI)
+        do
+            (InferRes xI xT) <- inferBody x
+            mkResult
+                ?? xT ^. _ANode
+                <&> InferRes (BApp xI)
     inferBody (BLam x) =
         do
             InferRes xI xT <- inferBody x
-            T.TFun xT & newTerm
-                <&> IResult Nothing
+            mkResult
+                <*> newTerm (T.TFun xT)
                 <&> InferRes (BLam xI)
     inferBody (BToNom x) =
         do
             InferRes xI xT <- inferBody x
-            T.TInst xT & newTerm
-                <&> IResult Nothing
+            mkResult
+                <*> newTerm (T.TInst xT)
                 <&> InferRes (BToNom xI)
     inferBody (BLeaf leaf) =
+        mkResult <*>
         case leaf of
-        LHole ->
-            IResult
-            <$> (TermVar.getScope <&> Just)
-            <*> newUnbound
-            <&> InferRes (BLeaf LHole)
-        LRecEmpty -> newTerm T.REmpty >>= newTerm . T.TRecord <&> r
+        LHole -> newUnbound
+        LRecEmpty -> newTerm T.REmpty >>= newTerm . T.TRecord
         LAbsurd ->
             FuncType
             <$> (newTerm T.REmpty >>= newTerm . T.TVariant)
             <*> newUnbound
             >>= newTerm . T.TFun
-            <&> r
         LLiteral (PrimVal t _) ->
             T.Types (QVarInstances mempty) (QVarInstances mempty)
             & NominalInst t
             & T.TInst & newTerm
-            <&> r
         LVar x ->
             inferBody (TermVar.Var x :: Tree (TermVar.Var Var Term) (InferChild k w))
             <&> (^. inferResVal . _ANode)
-            <&> r
         LFromNom x ->
             inferBody (FromNom x :: Tree (FromNom T.NominalId Term) (InferChild k w))
             <&> (^. inferResVal)
             >>= newTerm . T.TFun
-            <&> r
-        where
-            r = InferRes (BLeaf leaf) . IResult Nothing
+        <&> InferRes (BLeaf leaf)
     inferBody (BGetField (GetField w k)) =
         do
             (rT, wR) <- rowElementInfer T.RExtend k
             InferredChild wI wT <- inferChild w
             _ <- T.TRecord wR & newTerm >>= unify (wT ^. iType)
-            IResult Nothing rT
-                & InferRes (BGetField (GetField wI k))
-                & pure
+            mkResult
+                ?? rT
+                <&> InferRes (BGetField (GetField wI k))
     inferBody (BInject (Inject k p)) =
         do
             (rT, wR) <- rowElementInfer T.RExtend k
             InferredChild pI pT <- inferChild p
             _ <- unify rT (pT ^. iType)
-            T.TVariant wR & newTerm
-                <&> IResult Nothing
+            mkResult
+                <*> newTerm (T.TVariant wR)
                 <&> InferRes (BInject (Inject k pI))
     inferBody (BRecExtend (RowExtend k v r)) =
         do
@@ -313,9 +313,9 @@ instance
                 scopeConstraints <&> T.rForbiddenFields . Lens.contains k .~ True
                 >>= newVar binding . UUnbound
             _ <- T.TRecord restR & newTerm >>= unify (rR ^. iType)
-            RowExtend k (vR ^. iType) restR & T.RExtend & newTerm
-                >>= newTerm . T.TRecord
-                <&> IResult Nothing
+            mkResult
+                <*> ( RowExtend k (vR ^. iType) restR & T.RExtend & newTerm
+                        >>= newTerm . T.TRecord)
                 <&> InferRes (BRecExtend (RowExtend k vI rI))
     inferBody (BCase (RowExtend tag handler rest)) =
         do
@@ -332,8 +332,8 @@ instance
                 FuncType restVarT result & T.TFun & newTerm
                 >>= unify (restT ^. iType)
             whole <- RowExtend tag fieldT restR & T.RExtend & newTerm >>= newTerm . T.TVariant
-            FuncType whole result & T.TFun & newTerm
-                <&> IResult Nothing
+            mkResult
+                <*> (FuncType whole result & T.TFun & newTerm)
                 <&> InferRes (BCase (RowExtend tag handlerI restI))
 
 instance Infer m Term => Blamable m Term
