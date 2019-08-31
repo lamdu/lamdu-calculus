@@ -137,14 +137,14 @@ instance Unify PureInfer T.Type where
     binding = bindingDict (isBinding . T.tType)
     unifyError e =
         traverseKWith (Proxy @(Unify PureInfer)) applyBindings e
-        >>= throwError . MkPure . T.TypeError
+        >>= throwError . (&# T.TypeError)
 
 instance Unify PureInfer T.Row where
     {-# INLINE binding #-}
     binding = bindingDict (isBinding . T.tRow)
     unifyError e =
         traverseKWith (Proxy @(Unify PureInfer)) applyBindings e
-        >>= throwError . MkPure . T.RowError
+        >>= throwError . (&# T.RowError)
     {-# INLINE structureMismatch #-}
     structureMismatch = T.rStructureMismatch
 

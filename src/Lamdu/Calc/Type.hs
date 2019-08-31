@@ -199,8 +199,8 @@ instance Pretty (Tree Row Pure) where
         where
             go _   REmpty = PP.empty
             go sep (RVar tv) = sep <> pPrint tv <> PP.text "..."
-            go sep (RExtend (RowExtend f t (MkPure r))) =
-                sep PP.<> pPrint f <+> PP.text ":" <+> pPrint t PP.<> go (PP.text ", ") r
+            go sep (RExtend (RowExtend f t r)) =
+                sep PP.<> pPrint f <+> PP.text ":" <+> pPrint t PP.<> go (PP.text ", ") (r ^. _Pure)
 
 instance Deps Pretty k => Pretty (Types k) where
     pPrint (Types t r) = PP.text "{" <+> pPrint t <+> PP.text "|" <+> pPrint r <+> PP.text "}"
@@ -237,7 +237,7 @@ instance HasTypeConstraints Type where
     type instance TypeConstraintsOf Type = ScopeLevel
     {-# INLINE verifyConstraints #-}
     verifyConstraints _ (TVar x) = TVar x & Just
-    verifyConstraints c (TFun x) = mapK1 (WithConstraint c) x & TFun & Just
+    verifyConstraints c (TFun x) = x & mappedK1 %~ WithConstraint c & TFun & Just
     verifyConstraints c (TRecord x) =
         WithConstraint (RowConstraints mempty c) x & TRecord & Just
     verifyConstraints c (TVariant x) =
