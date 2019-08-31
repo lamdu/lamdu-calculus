@@ -27,7 +27,7 @@ module Lamdu.Calc.Term
 import           AST
 import           AST.Combinator.Flip (_Flip)
 import           AST.Infer
-import           AST.Infer.Blame (Blamable(..))
+import           AST.Infer.Blame (Blame(..))
 import           AST.Term.App (App(..), appFunc, appArg)
 import           AST.Term.FuncType (FuncType(..))
 import           AST.Term.Lam (Lam(..), lamIn, lamOut)
@@ -344,7 +344,7 @@ instance
     , Unify m T.Type, Unify m T.Row
     , LocalScopeType Var (Tree (UVarOf m) T.Type) m
     ) =>
-    Blamable m Term where
+    Blame m Term where
     inferOfNewUnbound _ = mkResult <*> newUnbound
     inferOfUnify _ x y = () <$ unify (x ^. iType) (y ^. iType)
     inferOfMatches _ x y =
