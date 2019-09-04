@@ -206,18 +206,6 @@ data IResult v = IResult
 Lens.makeLenses ''IResult
 makeKTraversableAndBases ''IResult
 
-instance KPointed IResult where
-    pureKWith _ = IResult emptyScope
-
--- Note: The KApply instances is needed for blame,
--- to unify the type variables within the result.
--- We prefer to skip the scopes for that and this hacky
--- instance does that, but it's probably better
---to use a different class for this.
-instance KApply IResult where
-    zipK (IResult _ t0) (IResult _ t1) =
-        IResult emptyScope (Pair t0 t1)
-
 type instance TermVar.ScopeOf Term = Scope
 type instance InferOf Term = IResult
 instance HasInferredType Term where
