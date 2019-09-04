@@ -1,5 +1,5 @@
 -- | Val AST
-{-# LANGUAGE NoImplicitPrelude, DeriveGeneric, DeriveTraversable #-}
+{-# LANGUAGE NoImplicitPrelude, DeriveGeneric, DeriveTraversable, GADTs #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving, TemplateHaskell, FlexibleContexts #-}
 {-# LANGUAGE UndecidableInstances, StandaloneDeriving, TypeFamilies #-}
 {-# LANGUAGE MultiParamTypeClasses, FlexibleInstances, ConstraintKinds #-}
@@ -25,7 +25,7 @@ module Lamdu.Calc.Term
     ) where
 
 import           AST
-import           AST.Combinator.Flip (_Flip)
+import           AST.Combinator.Flip (Flip, _Flip)
 import           AST.Infer
 import           AST.Infer.Blame (Blame(..))
 import           AST.Term.App (App(..), appFunc, appArg)
@@ -35,7 +35,6 @@ import           AST.Term.Nominal (ToNom(..), FromNom(..), NominalInst(..), Mona
 import           AST.Term.Row (RowExtend(..), rowElementInfer)
 import           AST.Term.Scheme (QVarInstances(..))
 import qualified AST.Term.Var as TermVar
-import           AST.TH.Nodes (makeKNodes)
 import           AST.Unify
 import qualified AST.Unify.Generalize as G
 import           AST.Unify.Lookup (semiPruneLookup)
@@ -47,7 +46,7 @@ import           Control.Lens.Operators
 import           Data.Binary (Binary)
 import           Data.ByteString (ByteString)
 import qualified Data.ByteString.Char8 as BS8
-import           Data.Constraint (Constraint)
+import           Data.Constraint
 import           Data.Hashable (Hashable(..))
 import           Data.Map (Map)
 import           Data.Semigroup ((<>))
@@ -177,16 +176,26 @@ data Scope v = Scope
     , _scopeLevel :: ScopeLevel
     }
 Lens.makeLenses ''Scope
-makeKNodes ''Scope
+
+instance KNodes Scope where
+    data KWitness Scope n where
+        KWitness_Scope_E0 :: KWitness (LoadedNominalDecl T.Type) n -> KWitness Scope n
+        KWitness_Scope_E1 :: KWitness (Flip G.GTerm T.Type) n -> KWitness Scope n
+    type NodesConstraint Scope c = (Recursive c, c T.Type, c T.Row)
+    kLiftConstraint p r (KWitness_Scope_E0 w) = kLiftConstraint p r w
+    kLiftConstraint p r (KWitness_Scope_E1 w) = kLiftConstraint p r w
+    kCombineConstraints _ = Dict
 
 instance KFunctor Scope where
-    mapKWith p f (Scope n v l) =
-        Scope (n <&> mapKWith p f) (v <&> Lens.from _Flip %~ mapKWith p f) l
+    mapK f (Scope n v l) =
+        Scope
+        (n <&> mapK (f . KWitness_Scope_E0))
+        (v <&> Lens.from _Flip %~ mapK (f . KWitness_Scope_E1)) l
 
 instance KFoldable Scope where
-    foldMapKWith p f (Scope n v _) =
-        (n ^. Lens.folded . Lens.to (foldMapKWith p f)) <>
-        (v ^. Lens.folded . Lens.from _Flip . Lens.to (foldMapKWith p f))
+    foldMapK f (Scope n v _) =
+        (n ^. Lens.folded . Lens.to (foldMapK (f . KWitness_Scope_E0))) <>
+        (v ^. Lens.folded . Lens.from _Flip . Lens.to (foldMapK (f . KWitness_Scope_E1)))
 
 instance KTraversable Scope where
     sequenceK (Scope n v l) =

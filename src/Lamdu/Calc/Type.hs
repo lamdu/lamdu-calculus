@@ -12,7 +12,7 @@
 --   function types.
 {-# LANGUAGE NoImplicitPrelude, DeriveGeneric, GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE TemplateHaskell, DataKinds, StandaloneDeriving, DerivingVia #-}
-{-# LANGUAGE UndecidableInstances, ConstraintKinds, FlexibleContexts #-}
+{-# LANGUAGE UndecidableInstances, ConstraintKinds, FlexibleContexts, GADTs #-}
 {-# LANGUAGE FlexibleInstances, TypeFamilies, MultiParamTypeClasses, RankNTypes #-}
 
 module Lamdu.Calc.Type
