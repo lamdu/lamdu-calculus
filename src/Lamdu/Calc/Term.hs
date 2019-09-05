@@ -22,6 +22,7 @@ module Lamdu.Calc.Term
     , emptyScope
     , IResult(..), iType, iScope
     , ToNom(..), FromNom(..), RowExtend(..)
+    , KWitness(..)
     ) where
 
 import           AST

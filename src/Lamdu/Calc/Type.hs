@@ -22,7 +22,7 @@ module Lamdu.Calc.Type
     -- * Typed identifiers of the Type AST
     , Var(..), NominalId(..), Tag(..)
     -- * Rows
-    , Row(..)
+    , Row(..), KWitness(..)
     -- * Row Prisms
     , _RExtend, _REmpty, _RVar
     -- * Type AST
