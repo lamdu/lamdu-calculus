@@ -179,23 +179,22 @@ Lens.makeLenses ''Scope
 
 instance KNodes Scope where
     data KWitness Scope n where
-        KWitness_Scope_E0 :: KWitness (LoadedNominalDecl T.Type) n -> KWitness Scope n
-        KWitness_Scope_E1 :: KWitness (Flip G.GTerm T.Type) n -> KWitness Scope n
-    type NodesConstraint Scope c = (Recursive c, c T.Type, c T.Row)
-    kLiftConstraint p r (KWitness_Scope_E0 w) = kLiftConstraint p r w
-    kLiftConstraint p r (KWitness_Scope_E1 w) = kLiftConstraint p r w
-    kCombineConstraints _ = Dict
+        KW_Scope_E0 :: KWitness (LoadedNominalDecl T.Type) n -> KWitness Scope n
+        KW_Scope_E1 :: KWitness (Flip G.GTerm T.Type) n -> KWitness Scope n
+    type KNodesConstraint Scope c = (Recursive c, c T.Type, c T.Row)
+    kLiftConstraint (KW_Scope_E0 w) = kLiftConstraint w
+    kLiftConstraint (KW_Scope_E1 w) = kLiftConstraint w
 
 instance KFunctor Scope where
     mapK f (Scope n v l) =
         Scope
-        (n <&> mapK (f . KWitness_Scope_E0))
-        (v <&> Lens.from _Flip %~ mapK (f . KWitness_Scope_E1)) l
+        (n <&> mapK (f . KW_Scope_E0))
+        (v <&> Lens.from _Flip %~ mapK (f . KW_Scope_E1)) l
 
 instance KFoldable Scope where
     foldMapK f (Scope n v _) =
-        (n ^. Lens.folded . Lens.to (foldMapK (f . KWitness_Scope_E0))) <>
-        (v ^. Lens.folded . Lens.from _Flip . Lens.to (foldMapK (f . KWitness_Scope_E1)))
+        (n ^. Lens.folded . Lens.to (foldMapK (f . KW_Scope_E0))) <>
+        (v ^. Lens.folded . Lens.from _Flip . Lens.to (foldMapK (f . KW_Scope_E1)))
 
 instance KTraversable Scope where
     sequenceK (Scope n v l) =

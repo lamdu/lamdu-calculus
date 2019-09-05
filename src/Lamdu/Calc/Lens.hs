@@ -53,7 +53,7 @@ tIds ::
     Traversal' (Tree k expr) T.NominalId
 tIds f =
     withDict (recurse (Proxy @(RTraversable k))) $
-    traverseKWith (Proxy @RTraversable) (bodyTIds f)
+    traverseK (Proxy @RTraversable #> bodyTIds f)
 
 class HasTIds expr where
     bodyTIds :: RTraversable k => Traversal' (Tree expr k) T.NominalId
@@ -63,14 +63,14 @@ instance HasTIds T.Type where
     bodyTIds f (T.TInst (NominalInst tId args)) =
         NominalInst
         <$> f tId
-        <*> traverseKWith (Proxy @HasTIds) (_QVarInstances %%~ traverse (tIds f))
+        <*> traverseK (Proxy @HasTIds #> _QVarInstances %%~ traverse (tIds f))
             args
         <&> T.TInst
-    bodyTIds f x = traverseKWith (Proxy @HasTIds) (tIds f) x
+    bodyTIds f x = traverseK (Proxy @HasTIds #> tIds f) x
 
 instance HasTIds T.Row where
     {-# INLINE bodyTIds #-}
-    bodyTIds f = traverseKWith (Proxy @HasTIds) (tIds f)
+    bodyTIds f = traverseK (Proxy @HasTIds #> tIds f)
 
 instance HasTIds (Scheme T.Types T.Type) where
     bodyTIds = sTyp . tIds
