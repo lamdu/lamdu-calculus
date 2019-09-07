@@ -47,11 +47,11 @@ import           Control.Lens.Operators
 import           Data.Binary (Binary)
 import           Data.ByteString (ByteString)
 import qualified Data.ByteString.Char8 as BS8
-import           Data.Constraint
 import           Data.Hashable (Hashable(..))
 import           Data.Map (Map)
 import           Data.Semigroup ((<>))
 import           Data.String (IsString(..))
+import           Generics.Constraints (makeDerivings, makeInstances)
 import           GHC.Generics (Generic)
 import           Lamdu.Calc.Identifier (Identifier)
 import qualified Lamdu.Calc.Type as T
@@ -123,12 +123,6 @@ data Term (k :: Knot)
     | BLeaf Leaf
     deriving Generic
 
--- NOTE: Careful of Eq, it's not alpha-eq!
-deriving instance Eq   (Node f Term) => Eq   (Term f)
-deriving instance Ord  (Node f Term) => Ord  (Term f)
-deriving instance Show (Node f Term) => Show (Term f)
-instance Binary (Node f Term) => Binary (Term f)
-
 Lens.makePrisms ''Term
 makeKTraversableAndBases ''Term
 instance RNodes Term
@@ -175,7 +169,7 @@ data Scope v = Scope
     { _scopeNominals :: Map T.NominalId (LoadedNominalDecl T.Type v)
     , _scopeVarTypes :: Map Var (Tree (G.GTerm (RunKnot v)) T.Type)
     , _scopeLevel :: ScopeLevel
-    }
+    } deriving Generic
 Lens.makeLenses ''Scope
 
 instance KNodes Scope where
@@ -221,11 +215,8 @@ instance HasInferredType Term where
     type instance TypeOf Term = T.Type
     inferredType _ = iType
 
-type ScopeDeps c v =
-    ((c (Node v T.Type), c (Node v T.Row)) :: Constraint)
-deriving instance ScopeDeps Eq   v => Eq   (Scope v)
-deriving instance ScopeDeps Ord  v => Ord  (Scope v)
-deriving instance ScopeDeps Show v => Show (Scope v)
+makeDerivings [''Eq, ''Ord, ''Show] [''Term, ''Scope]
+makeInstances [''Binary] [''Term, ''Scope]
 
 instance TermVar.VarType Var Term where
     {-# INLINE varType #-}

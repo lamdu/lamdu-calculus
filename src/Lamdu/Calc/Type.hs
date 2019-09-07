@@ -60,9 +60,10 @@ import           Data.Hashable (Hashable)
 import           Data.Semigroup ((<>))
 import           Data.Set (Set)
 import           Data.String (IsString(..))
+import           Generic.Data (Generically(..))
+import           Generics.Constraints (makeDerivings, makeInstances)
 import           GHC.Exts (Constraint)
 import           GHC.Generics (Generic)
-import           Generic.Data (Generically(..))
 import           Lamdu.Calc.Identifier (Identifier)
 import           Text.PrettyPrint ((<+>))
 import qualified Text.PrettyPrint as PP
@@ -294,28 +295,8 @@ flatRow =
             Lens.runIdentity .
             unflattenRow (Lens.Identity . (_Pure . _RExtend #))
 
-deriving instance Deps Eq   k => Eq   (Row k)
-deriving instance Deps Ord  k => Ord  (Row k)
-deriving instance Deps Show k => Show (Row k)
-instance Deps NFData k => NFData (Row k)
-instance Deps Binary k => Binary (Row k)
-
-deriving instance Deps Eq   k => Eq   (Type k)
-deriving instance Deps Ord  k => Ord  (Type k)
-deriving instance Deps Show k => Show (Type k)
-instance Deps NFData k => NFData (Type k)
-instance Deps Binary k => Binary (Type k)
-
-deriving instance Deps Eq   k => Eq   (Types k)
-deriving instance Deps Ord  k => Ord  (Types k)
-deriving instance Deps Show k => Show (Types k)
-instance Deps NFData k => NFData (Types k)
-instance Deps Binary k => Binary (Types k)
-
-deriving instance Deps Eq   k => Eq   (TypeError k)
-deriving instance Deps Show k => Show (TypeError k)
-instance Deps NFData k => NFData (TypeError k)
-instance Deps Binary k => Binary (TypeError k)
+makeDerivings [''Eq, ''Ord, ''Show] [''Row, ''Type, ''Types, ''TypeError]
+makeInstances [''Binary, ''NFData] [''Row, ''Type, ''Types, ''TypeError]
 
 instance NFData RConstraints
 instance Binary RConstraints

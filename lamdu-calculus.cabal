@@ -34,6 +34,7 @@ library
                      , constraints
                      , containers
                      , deepseq
+                     , generic-constraints
                      , generic-data
                      , hashable
                      , lattices
