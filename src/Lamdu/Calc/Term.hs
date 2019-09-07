@@ -1,7 +1,7 @@
 -- | Val AST
 {-# LANGUAGE NoImplicitPrelude, DeriveGeneric, DeriveTraversable, GADTs #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving, TemplateHaskell, FlexibleContexts #-}
-{-# LANGUAGE UndecidableInstances, StandaloneDeriving, TypeFamilies #-}
+{-# LANGUAGE UndecidableInstances, StandaloneDeriving, TypeFamilies, TypeOperators #-}
 {-# LANGUAGE MultiParamTypeClasses, FlexibleInstances, ConstraintKinds #-}
 {-# LANGUAGE TupleSections, ScopedTypeVariables, DerivingStrategies, DataKinds #-}
 {-# LANGUAGE PolyKinds #-}
@@ -114,9 +114,9 @@ Lens.makeLenses ''Inject
 data Term (k :: Knot)
     = BApp {-# UNPACK #-}!(App Term k)
     | BLam {-# UNPACK #-}!(Lam Var Term k)
-    | BGetField {-# UNPACK #-}!(GetField (Node k Term))
+    | BGetField {-# UNPACK #-}!(GetField (k # Term))
     | BRecExtend {-# UNPACK #-}!(RowExtend T.Tag Term Term k)
-    | BInject {-# UNPACK #-}!(Inject (Node k Term))
+    | BInject {-# UNPACK #-}!(Inject (k # Term))
     | BCase {-# UNPACK #-}!(RowExtend T.Tag Term Term k)
     | -- Convert to Nominal type
       BToNom {-# UNPACK #-}!(ToNom T.NominalId Term k)
@@ -130,7 +130,7 @@ instance RFunctor Term
 instance RFoldable Term
 instance RTraversable Term
 
-instance Pretty (Node f Term) => Pretty (Term f) where
+instance Pretty (f # Term) => Pretty (Term f) where
     pPrintPrec lvl prec b =
         case b of
         BLeaf (LVar var)          -> pPrint var
@@ -167,7 +167,7 @@ instance Pretty (Node f Term) => Pretty (Term f) where
 
 data Scope v = Scope
     { _scopeNominals :: Map T.NominalId (LoadedNominalDecl T.Type v)
-    , _scopeVarTypes :: Map Var (Tree (G.GTerm (RunKnot v)) T.Type)
+    , _scopeVarTypes :: Map Var (Tree (G.GTerm (GetKnot v)) T.Type)
     , _scopeLevel :: ScopeLevel
     } deriving Generic
 Lens.makeLenses ''Scope
@@ -204,7 +204,7 @@ emptyScope = Scope mempty mempty (ScopeLevel 0)
 
 data IResult v = IResult
     { _iScope :: Scope v
-    , _iType :: Node v T.Type
+    , _iType :: v # T.Type
     }
 Lens.makeLenses ''IResult
 makeKTraversableAndBases ''IResult

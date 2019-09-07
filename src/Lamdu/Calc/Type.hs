@@ -11,7 +11,7 @@
 -- * The AST for types: Nominal types, structural composite types,
 --   function types.
 {-# LANGUAGE NoImplicitPrelude, DeriveGeneric, GeneralizedNewtypeDeriving #-}
-{-# LANGUAGE TemplateHaskell, DataKinds, StandaloneDeriving, DerivingVia #-}
+{-# LANGUAGE TemplateHaskell, DataKinds, StandaloneDeriving, DerivingVia, TypeOperators #-}
 {-# LANGUAGE UndecidableInstances, ConstraintKinds, FlexibleContexts, GADTs #-}
 {-# LANGUAGE FlexibleInstances, TypeFamilies, MultiParamTypeClasses, RankNTypes #-}
 
@@ -117,15 +117,15 @@ data Type (k :: Knot)
     | TInst (NominalInst NominalId Types k)
       -- ^ An instantiation of a nominal type of the given id with the
       -- given keyword type arguments
-    | TRecord (Node k Row)
+    | TRecord (k # Row)
       -- ^ Lifts a composite record type
-    | TVariant (Node k Row)
+    | TVariant (k # Row)
       -- ^ Lifts a composite variant type
     deriving Generic
 
 data Types k = Types
-    { _tType :: Node k Type
-    , _tRow :: Node k Row
+    { _tType :: k # Type
+    , _tRow :: k # Row
     } deriving Generic
 
 data RConstraints = RowConstraints
@@ -180,7 +180,7 @@ infixr 2 ~>
 (~>) :: Tree Pure Type -> Tree Pure Type -> Tree Pure Type
 x ~> y = _Pure # TFun (FuncType x y)
 
-type Deps c k = ((c (Node k Type), c (Node k Row)) :: Constraint)
+type Deps c k = ((c (k # Type), c (k # Row)) :: Constraint)
 
 instance Deps Pretty k => Pretty (Type k) where
     pPrintPrec lvl prec typ =
