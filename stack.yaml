@@ -3,5 +3,5 @@ packages:
 - '.'
 extra-deps:
 - github: lamdu/syntax-tree
-  commit: d99e1fa6b9a0640d2863012d3e6125645f7baf36
+  commit: 25464889d78623ad42bfef8ce38f6ad2a2e91f09
 - generic-constraints-1.1.1.1

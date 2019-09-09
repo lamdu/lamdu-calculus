@@ -126,8 +126,7 @@ data Term (k :: Knot)
 Lens.makePrisms ''Term
 makeKTraversableAndBases ''Term
 instance RNodes Term
-instance RFunctor Term
-instance RFoldable Term
+instance c Term => Recursively c Term
 instance RTraversable Term
 
 instance Pretty (f # Term) => Pretty (Term f) where

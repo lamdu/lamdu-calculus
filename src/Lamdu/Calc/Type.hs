@@ -154,10 +154,8 @@ makeZipMatch ''Type
 makeZipMatch ''Types
 instance RNodes Row
 instance RNodes Type
-instance RFunctor Row
-instance RFunctor Type
-instance RFoldable Row
-instance RFoldable Type
+instance (c Type, c Row) => Recursively c Type
+instance (c Type, c Row) => Recursively c Row
 instance RTraversable Row
 instance RTraversable Type
 
