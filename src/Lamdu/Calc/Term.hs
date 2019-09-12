@@ -29,6 +29,7 @@ import           AST
 import           AST.Combinator.Flip (Flip, _Flip)
 import           AST.Infer
 import           AST.Infer.Blame (Blame(..))
+import           AST.Recurse
 import           AST.Term.App (App(..), appFunc, appArg)
 import           AST.Term.FuncType (FuncType(..))
 import           AST.Term.Lam (Lam(..), lamIn, lamOut)
@@ -208,6 +209,9 @@ data IResult v = IResult
 Lens.makeLenses ''IResult
 makeKTraversableAndBases ''IResult
 
+instance KPointed IResult where
+    pureK f = IResult emptyScope (f W_IResult_Type)
+
 type instance TermVar.ScopeOf Term = Scope
 type instance InferOf Term = IResult
 instance HasInferredType Term where
@@ -332,7 +336,6 @@ instance
     , LocalScopeType Var (Tree (UVarOf m) T.Type) m
     ) =>
     Blame m Term where
-    inferOfNewUnbound _ = mkResult <*> newUnbound
     inferOfUnify _ x y = () <$ unify (x ^. iType) (y ^. iType)
     inferOfMatches _ x y =
         (==)

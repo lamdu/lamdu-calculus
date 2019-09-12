@@ -31,6 +31,7 @@ module Lamdu.Calc.Lens
 import           AST
 import           AST.Infer (ITerm(..))
 import           AST.Knot.Ann (Ann(..), annotations, val)
+import           AST.Recurse
 import           AST.Term.Nominal (ToNom(..), NominalInst(..), NominalDecl, nScheme)
 import           AST.Term.Row (RowExtend(..))
 import           AST.Term.Scheme (Scheme, _QVarInstances, sTyp)
