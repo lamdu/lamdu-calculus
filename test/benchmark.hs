@@ -1,5 +1,7 @@
 {-# LANGUAGE NoImplicitPrelude, OverloadedStrings, ScopedTypeVariables, FlexibleContexts #-}
+
 import           AST
+import           AST.Knot.Ann (addAnnotations)
 import           AST.Infer
 import           AST.Unify
 import           AST.Unify.Apply
@@ -32,27 +34,34 @@ localInitEnv inferEnv e action =
         addScope <- loadDeps (pruneDeps e allDeps)
         local (inferEnv %~ addScope) action
 
-benchInferPure :: Val () -> Benchmarkable
+toAnn :: KPlain Term -> Tree (Ann ()) Term
+toAnn = addAnnotations (const (const ())) . (^. kPlain)
+
+benchInferPure :: KPlain Term -> Benchmarkable
 benchInferPure e =
-    infer e
+    infer x
     <&> (^. iRes . iType)
     >>= applyBindings
-    & localInitEnv id e
+    & localInitEnv id x
     & runPureInfer emptyScope (InferState emptyPureInferState varGen)
     & _Right %~ (^. _1)
     & rnf
     & evaluate
     & whnfIO
+    where
+        x = toAnn e
 
-benchInferST :: Val () -> Benchmarkable
+benchInferST :: KPlain Term -> Benchmarkable
 benchInferST e =
     do
         vg <- newSTRef varGen
-        localInitEnv _1 e
-            (infer e <&> (^. iRes . iType) >>= applyBindings) ^. _STInfer
+        localInitEnv _1 x
+            (infer x <&> (^. iRes . iType) >>= applyBindings) ^. _STInfer
             & (`runReaderT` (emptyScope, vg))
             & runMaybeT
     & liftST >>= evaluate . rnf & whnfIO
+    where
+        x = toAnn e
 
 benches :: [(String, Benchmarkable)]
 benches =

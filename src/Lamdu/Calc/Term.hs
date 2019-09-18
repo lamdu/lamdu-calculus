@@ -22,7 +22,7 @@ module Lamdu.Calc.Term
     , emptyScope
     , IResult(..), iType, iScope
     , ToNom(..), FromNom(..), RowExtend(..)
-    , KWitness(..)
+    , KWitness(..), KPlain(..)
     ) where
 
 import           AST
@@ -126,9 +126,13 @@ data Term (k :: Knot)
 
 Lens.makePrisms ''Term
 makeKTraversableAndBases ''Term
+makeKHasPlain [''Term]
 instance RNodes Term
 instance c Term => Recursively c Term
 instance RTraversable Term
+
+instance IsString (KPlain Term) where
+    fromString = BLeafP . LVar . fromString
 
 instance Pretty (f # Term) => Pretty (Term f) where
     pPrintPrec lvl prec b =

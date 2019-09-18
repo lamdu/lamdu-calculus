@@ -3,13 +3,10 @@
 
 module TestVals
     ( allDeps
-    , list
     , factorialVal, euler1Val, solveDepressedQuarticVal
     , factorsVal
-    , letItem, recordType
-    , infixArgs
-    , eLet
-    , litInt, intType
+    , recordType
+    , intType
     , listTypePair, boolTypePair
     ) where
 
@@ -22,10 +19,7 @@ import           Control.Lens.Operators
 import qualified Data.ByteString.Char8 as BS8
 import qualified Data.Map as Map
 import           Lamdu.Calc.Definition (Deps(..))
-import           Lamdu.Calc.Pure (($$), ($$:))
-import qualified Lamdu.Calc.Pure as P
-import           Lamdu.Calc.Term (Val)
-import qualified Lamdu.Calc.Term as V
+import           Lamdu.Calc.Term
 import           Lamdu.Calc.Type (Type, (~>))
 import qualified Lamdu.Calc.Type as T
 
@@ -35,14 +29,6 @@ import           Prelude.Compat
 
 -- TODO: $$ to be type-classed for TApp vs BApp
 -- TODO: TCon "->" instead of TFun
-
-eLet :: V.Var -> Val () -> (Val () -> Val ()) -> Val ()
-eLet name val mkBody = P.app (P.abs name body) val
-    where
-        body = mkBody $ P.var name
-
-letItem :: V.Var -> Val () -> (Val () -> Val ()) -> Val ()
-letItem name val mkBody = P.lambda name mkBody $$ val
 
 recExtends :: Tree Pure T.Row -> [(T.Tag, Tree Pure Type)] -> Tree Pure Type
 recExtends recTail fields =
@@ -127,9 +113,6 @@ maybeOf t =
 infixType :: Tree Pure Type -> Tree Pure Type -> Tree Pure Type -> Tree Pure Type
 infixType a b c = recordType [("l", a), ("r", b)] ~> c
 
-infixArgs :: Val () -> Val () -> Val ()
-infixArgs l r = P.record [("l", l), ("r", r)]
-
 allDeps :: Deps
 allDeps =
     Deps
@@ -171,120 +154,117 @@ allDeps =
         ]
     }
 
-list :: [Val ()] -> Val ()
-list = foldr cons (P.toNom "List" $ P.inject "[]" P.recEmpty)
+litInt :: Integer -> KPlain Term
+litInt = BLeafP . LLiteral . PrimVal "Int" . BS8.pack . show
 
-cons :: Val () -> Val () -> Val ()
-cons h t = P.toNom "List" $ P.inject ":" $ P.record [("head", h), ("tail", t)]
+record :: [(T.Tag, KPlain Term)] -> KPlain Term
+record = foldr (uncurry BRecExtendP) (BLeafP LRecEmpty)
 
-litInt :: Integer -> Val ()
-litInt = P.lit "Int" . BS8.pack . show
+($$:) :: KPlain Term -> [(T.Tag, KPlain Term)] -> KPlain Term
+f $$: args = BAppP f (record args)
 
-factorialVal :: Val ()
+inf :: KPlain Term -> KPlain Term -> KPlain Term -> KPlain Term
+inf l f r = f $$: [("l", l), ("r", r)]
+
+factorialVal :: KPlain Term
 factorialVal =
-    P.var "fix" $$
-    P.lambda "loop"
-    ( \loop ->
-        P.lambda "x" $ \x ->
-        P.var "if" $$:
-        [ ( "condition", P.var "==" $$
-                infixArgs x (litInt 0) )
-        , ( "then", litInt 1 )
-        , ( "else", P.var "*" $$
-                infixArgs x (loop $$ (P.var "-" $$ infixArgs x (litInt 1)))
-            )
-        ]
-    )
+    BAppP "fix" $
+    BLamP "loop" $
+    BLamP "x" $
+    "if" $$:
+    [ ("condition", inf "x" "==" (litInt 0))
+    , ("then", litInt 1)
+    , ("else", inf "x" "*" (BAppP "loop" $ inf "x" "-" (litInt 1)))
+    ]
 
-euler1Val :: Val ()
+euler1Val :: KPlain Term
 euler1Val =
-    P.var "sum" $$
-    ( P.var "filter" $$:
-        [ ("from", P.var ".." $$ infixArgs (litInt 1) (litInt 1000))
-        , ( "predicate",
-                P.lambda "x" $ \x ->
-                P.var "||" $$ infixArgs
-                ( P.var "==" $$ infixArgs
-                    (litInt 0) (P.var "%" $$ infixArgs x (litInt 3)) )
-                ( P.var "==" $$ infixArgs
-                    (litInt 0) (P.var "%" $$ infixArgs x (litInt 5)) )
-            )
-        ]
-    )
-
-solveDepressedQuarticVal :: Val ()
-solveDepressedQuarticVal =
-    P.lambdaRecord "params" ["e", "d", "c"] $ \[e, d, c] ->
-    letItem "solvePoly" (P.var "id")
-    $ \solvePoly ->
-    letItem "sqrts"
-    ( P.lambda "x" $ \x ->
-        letItem "r"
-        ( P.var "sqrt" $$ x
-        ) $ \r ->
-        list [r, P.var "negate" $$ r]
-    )
-    $ \sqrts ->
-    P.var "if" $$:
-    [ ("condition", P.var "==" $$ infixArgs d (litInt 0))
-    , ( "then",
-            P.var "concat" $$
-            ( P.var "map" $$:
-                [ ("list", solvePoly $$ list [e, c, litInt 1])
-                , ("mapping", sqrts)
-                ]
-            )
-        )
-    , ( "else",
-            P.var "concat" $$
-            ( P.var "map" $$:
-                [ ( "list", sqrts $$ (P.var "head" $$ (solvePoly $$ list
-                        [ P.var "negate" $$ (d %* d)
-                        , (c %* c) %- (litInt 4 %* e)
-                        , litInt 2 %* c
-                        , litInt 1
-                        ]))
-                    )
-                , ( "mapping",
-                        P.lambda "x" $ \x ->
-                        solvePoly $$ list
-                        [ (c %+ (x %* x)) %- (d %/ x)
-                        , litInt 2 %* x
-                        , litInt 2
-                        ]
-                    )
-                ]
-            )
+    BAppP "sum" $
+    "filter" $$:
+    [ ("from", inf (litInt 1) ".." (litInt 1000))
+    , ("predicate",
+        BLamP "x" $
+        inf
+        (inf (litInt 0) "==" (inf "x" "%" (litInt 3)))
+        "||"
+        (inf (litInt 0) "==" (inf "x" "%" (litInt 5)))
         )
     ]
+
+let_ :: Var -> KPlain Term -> KPlain Term -> KPlain Term
+let_ k v r = BAppP (BLamP k r) v
+
+cons :: KPlain Term -> KPlain Term -> KPlain Term
+cons h t = BToNomP "List" $ BInjectP ":" $ record [("head", h), ("tail", t)]
+
+list :: [KPlain Term] -> KPlain Term
+list = foldr cons (BToNomP "List" (BInjectP "[]" (BLeafP LRecEmpty)))
+
+solveDepressedQuarticVal :: KPlain Term
+solveDepressedQuarticVal =
+    BLamP "params" $
+    let_ "solvePoly" "id" $
+    let_ "sqrts"
+    ( BLamP "x" $
+        let_ "r" (BAppP "sqrt" "x") $
+        list ["r", BAppP "negate" "r"]
+    ) $
+    "if" $$:
+    [ ("condition", inf d "==" (litInt 0))
+    , ( "then",
+        BAppP "concat" $
+        "map" $$:
+        [ ("list", BAppP "solvePoly" $ list [e, c, litInt 1])
+        , ("mapping", "sqrts")
+        ])
+    , ( "else",
+        BAppP "concat" $
+        "map" $$:
+        [ ( "list",
+            BAppP "sqrts" $ BAppP "head" $ BAppP "solvePoly" $
+            list
+            [ BAppP "negate" (d %* d)
+            , (c %* c) %- (litInt 4 %* e)
+            , litInt 2 %* c
+            , litInt 1
+            ])
+        , ( "mapping",
+            BLamP "x" $
+            BAppP "solvePoly" $
+            list
+            [ (c %+ ("x" %* "x")) %- (d %/ "x")
+            , litInt 2 %* "x"
+            , litInt 2
+            ])
+        ])
+    ]
     where
-        (%+) = inf "+"
-        (%-) = inf "-"
-        (%*) = inf "*"
-        (%/) = inf "/"
+        c = BGetFieldP "params" "c"
+        d = BGetFieldP "params" "d"
+        e = BGetFieldP "params" "e"
 
-inf :: V.Var -> Val () -> Val () -> Val ()
-inf str x y = P.var str $$ infixArgs x y
+(%+), (%-), (%*), (%/), (%//), (%>), (%%), (%==) :: KPlain Term -> KPlain Term -> KPlain Term
+x %+ y = inf x "+" y
+x %- y = inf x "-" y
+x %* y = inf x "*" y
+x %/ y = inf x "/" y
+x %// y = inf x "//" y
+x %> y = inf x ">" y
+x %% y = inf x "%" y
+x %== y = inf x "==" y
 
-factorsVal :: Val ()
+factorsVal :: KPlain Term
 factorsVal =
-    fix_ $ \loop ->
-    P.lambdaRecord "params" ["n", "min"] $ \ [n, m] ->
+    BAppP "fix" $
+    BLamP "loop" $
+    BLamP "params" $
     if_ ((m %* m) %> n) (list [n]) $
     if_ ((n %% m) %== litInt 0)
-    (cons m $ loop $$: [("n", n %// m), ("min", m)]) $
-    loop $$: [ ("n", n), ("min", m %+ litInt 1) ]
+    (cons m $ "loop" $$: [("n", n %// m), ("min", m)]) $
+    "loop" $$: [("n", n), ("min", m %+ litInt 1)]
     where
-        fix_ f = P.var "fix" $$ P.lambda "loop" f
+        n = BGetFieldP "params" "n"
+        m = BGetFieldP "params" "min"
         if_ b t f =
-            nullaryCase "False" f
-            (nullaryCase "True" t P.absurd)
-            $$ (P.fromNom "Bool" $$ b)
-        nullaryCase tag handler = P._case tag (defer handler)
-        defer = P.lambda "_" . const
-        (%>) = inf ">"
-        (%%) = inf "%"
-        (%*) = inf "*"
-        (%+) = inf "+"
-        (%//) = inf "//"
-        (%==) = inf "=="
+            BCaseP "False" (BLamP "_" f) (BCaseP "True" (BLamP "_" t) (BLeafP LAbsurd))
+            `BAppP` (BLeafP (LFromNom "Bool") `BAppP` b)

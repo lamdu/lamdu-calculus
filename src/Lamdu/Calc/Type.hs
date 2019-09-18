@@ -22,7 +22,7 @@ module Lamdu.Calc.Type
     -- * Typed identifiers of the Type AST
     , Var(..), NominalId(..), Tag(..)
     -- * Rows
-    , Row(..), KWitness(..)
+    , Row(..)
     -- * Row Prisms
     , _RExtend, _REmpty, _RVar
     -- * Type AST
@@ -39,6 +39,8 @@ module Lamdu.Calc.Type
     , TypeError(..), _TypeError, _RowError
 
     , flatRow
+
+    , KWitness(..), KPlain(..)
     ) where
 
 import           AST
@@ -295,6 +297,8 @@ flatRow =
 
 makeDerivings [''Eq, ''Ord, ''Show] [''Row, ''Type, ''Types, ''TypeError]
 makeInstances [''Binary, ''NFData] [''Row, ''Type, ''Types, ''TypeError]
+
+makeKHasPlain [''Type, ''Row, ''Types]
 
 instance NFData RConstraints
 instance Binary RConstraints

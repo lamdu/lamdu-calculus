@@ -1,7 +1,6 @@
-resolver: nightly-2019-07-24
+resolver: nightly-2019-09-12
 packages:
 - '.'
 extra-deps:
 - github: lamdu/syntax-tree
-  commit: a02152f30b81f81ff846c104bf6ad092fa88995f
-- generic-constraints-1.1.1.1
+  commit: 23775a87b4aa509cfe2dd02497a2205be0c701cd

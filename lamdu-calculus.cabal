@@ -21,7 +21,6 @@ library
                      , Lamdu.Calc.Identifier
                      , Lamdu.Calc.Infer
                      , Lamdu.Calc.Lens
-                     , Lamdu.Calc.Pure
                      , Lamdu.Calc.Term
                      , Lamdu.Calc.Term.Arbitrary
                      , Lamdu.Calc.Term.Eq
