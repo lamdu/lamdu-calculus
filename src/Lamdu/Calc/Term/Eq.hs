@@ -1,64 +1,36 @@
-{-# LANGUAGE NoImplicitPrelude, DataKinds #-}
+{-# LANGUAGE NoImplicitPrelude, TypeApplications #-}
 
 module Lamdu.Calc.Term.Eq
-    ( alphaEq, couldEq
+    ( couldEq
     ) where
 
-import           AST (Ann(..))
-import           AST.Class.ZipMatch (zipMatch1_)
-import           AST.Term.Nominal (ToNom(..))
-import           AST.Term.Row (RowExtend(..))
+import           AST
+import           AST.Class.ZipMatch
 import qualified Control.Lens as Lens
 import           Control.Lens.Operators
-import           Control.Monad (guard)
+import           Control.Monad (guard, join)
+import           Data.Map (Map)
 import qualified Data.Map as Map
-import           Data.Maybe (fromMaybe)
+import           Data.Proxy (Proxy(..))
 import           Lamdu.Calc.Term
 
 import           Prelude.Compat
 
--- TODO:
--- * Is this needed?
--- * `syntax-tree` package should make this simple
+class CouldEq e where
+    go :: Map Var Var -> Tree Pure e -> Tree Pure e -> Bool
 
-eqCommon :: Bool -> Val () -> Val () -> Bool
-eqCommon holeIsJoker =
-    go Map.empty
-    where
-        xToYConv xToY x =
-            fromMaybe x $ Map.lookup x xToY
-        go xToY (Ann _ xBody) (Ann _ yBody) =
+instance CouldEq Term where
+    go xToY (Pure (BLam (Lam xvar xresult))) (Pure (BLam (Lam yvar yresult))) =
+        go (xToY & Lens.at xvar ?~ yvar) xresult yresult
+    go xToY (Pure xBody) (Pure yBody) =
+        case join (zipMatch_ (Proxy @CouldEq #> \x -> guard . go xToY x) xBody yBody) of
+        Just () -> True
+        Nothing ->
             case (xBody, yBody) of
-            (BLeaf LHole, _) | holeIsJoker -> True
-            (_, BLeaf LHole) | holeIsJoker -> True
-            (BLam (Lam xvar xresult),
-              BLam (Lam yvar yresult)) ->
-                go (Map.insert xvar yvar xToY) xresult yresult
-            (BLeaf (LVar x), BLeaf (LVar y)) ->
-                -- TODO: This is probably not 100% correct for various
-                -- shadowing corner cases
-                xToYConv xToY x == y
-            (BLeaf x, BLeaf y) -> x == y
-            (BApp x, BApp y) ->
-                zipMatch1_ (fmap guard . go xToY) x y
-                & Lens.has (Lens._Just . Lens._Just)
-            (BGetField (GetField r0 f0), BGetField (GetField r1 f1))
-                | f0 == f1 -> go xToY r0 r1
-            (BRecExtend (RowExtend t0 f0 r0), BRecExtend (RowExtend t1 f1 r1))
-                -- TODO: this is wrong actually, fields can have different order!
-                | t0 == t1 -> go xToY f0 f1 && go xToY r0 r1
-            (BCase (RowExtend t0 a0 r0), BCase (RowExtend t1 a1 r1))
-                -- TODO: this is wrong actually, fields can have different order!
-                | t0 == t1 -> go xToY a0 a1 && go xToY r0 r1
-            (BInject (Inject t0 v0), BInject (Inject t1 v1))
-                | t0 == t1 -> go xToY v0 v1
-            (BToNom (ToNom n0 v0), BToNom (ToNom n1 v1))
-                | n0 == n1 -> go xToY v0 v1
-            (_, _) -> False
+            (BLeaf LHole, _) -> True
+            (_, BLeaf LHole) -> True
+            (BLeaf (LVar x), BLeaf (LVar y)) -> xToY ^. Lens.at x == Just y
+            _ -> False
 
-alphaEq :: Val () -> Val () -> Bool
-alphaEq = eqCommon False
-
--- could be equal if holes will be filled the same
-couldEq :: Val () -> Val () -> Bool
-couldEq = eqCommon True
+couldEq :: Tree Pure Term -> Tree Pure Term -> Bool
+couldEq = go Map.empty

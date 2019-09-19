@@ -120,6 +120,8 @@ Lens.makeLenses ''Inject
 makeKTraversableAndBases ''GetField
 makeKTraversableAndBases ''Inject
 makeKTraversableAndBases ''Term
+makeZipMatch ''GetField
+makeZipMatch ''Inject
 makeZipMatch ''Term
 makeKHasPlain [''Term]
 
