@@ -92,32 +92,22 @@ instance Hashable Leaf
 
 Lens.makePrisms ''Leaf
 
-data GetField exp = GetField
-    { _getFieldRecord :: exp
+data GetField k = GetField
+    { _getFieldRecord :: k # Term
     , _getFieldTag :: T.Tag
-    } deriving (Functor, Foldable, Traversable, Generic, Show, Eq, Ord)
-instance NFData exp => NFData (GetField exp)
-instance Binary exp => Binary (GetField exp)
-instance Hashable exp => Hashable (GetField exp)
+    } deriving Generic
 
-Lens.makeLenses ''GetField
-
-data Inject exp = Inject
+data Inject k = Inject
     { _injectTag :: T.Tag
-    , _injectVal :: exp
-    } deriving (Functor, Foldable, Traversable, Generic, Show, Eq, Ord)
-instance NFData exp => NFData (Inject exp)
-instance Binary exp => Binary (Inject exp)
-instance Hashable exp => Hashable (Inject exp)
-
-Lens.makeLenses ''Inject
+    , _injectVal :: k # Term
+    } deriving Generic
 
 data Term (k :: Knot)
     = BApp {-# UNPACK #-}!(App Term k)
     | BLam {-# UNPACK #-}!(Lam Var Term k)
-    | BGetField {-# UNPACK #-}!(GetField (k # Term))
+    | BGetField {-# UNPACK #-}!(GetField k)
     | BRecExtend {-# UNPACK #-}!(RowExtend T.Tag Term Term k)
-    | BInject {-# UNPACK #-}!(Inject (k # Term))
+    | BInject {-# UNPACK #-}!(Inject k)
     | BCase {-# UNPACK #-}!(RowExtend T.Tag Term Term k)
     | -- Convert to Nominal type
       BToNom {-# UNPACK #-}!(ToNom T.NominalId Term k)
@@ -125,8 +115,14 @@ data Term (k :: Knot)
     deriving Generic
 
 Lens.makePrisms ''Term
+Lens.makeLenses ''GetField
+Lens.makeLenses ''Inject
+makeKTraversableAndBases ''GetField
+makeKTraversableAndBases ''Inject
 makeKTraversableAndBases ''Term
+makeZipMatch ''Term
 makeKHasPlain [''Term]
+
 instance RNodes Term
 instance c Term => Recursively c Term
 instance RTraversable Term
@@ -222,8 +218,8 @@ instance HasInferredType Term where
     type instance TypeOf Term = T.Type
     inferredType _ = iType
 
-makeDerivings [''Eq, ''Ord, ''Show] [''Term, ''Scope]
-makeInstances [''Binary] [''Term, ''Scope]
+makeDerivings [''Eq, ''Ord, ''Show] [''Term, ''Scope, ''GetField, ''Inject]
+makeInstances [''Binary, ''NFData, ''Hashable] [''Term, ''Scope, ''GetField, ''Inject]
 
 instance TermVar.VarType Var Term where
     {-# INLINE varType #-}

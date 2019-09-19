@@ -112,7 +112,7 @@ valLiteral :: Traversal' (Val a) V.PrimVal
 valLiteral = val . valBodyLiteral
 
 {-# INLINE valGetField #-}
-valGetField  :: Traversal' (Val a) (V.GetField (Val a))
+valGetField  :: Traversal' (Val a) (Tree V.GetField (Ann a))
 valGetField = val . V._BGetField
 
 {-# INLINE valBodyHole #-}
