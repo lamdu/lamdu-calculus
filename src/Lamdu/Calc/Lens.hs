@@ -21,7 +21,6 @@ module Lamdu.Calc.Lens
     , valNominals
     -- Subexpressions:
     , subExprPayloads
-    , subExprs
     , payloadsIndexedByPath
     , payloadsOf
     , HasTIds(..), tIds
@@ -145,13 +144,6 @@ subExprPayloads f x@(Ann pl body) =
     Ann
     <$> Lens.indexed f (x & annotations .~ ()) pl
     <*> (traverseK1 .> subExprPayloads) f body
-
-{-# INLINE subExprs #-}
-subExprs :: Lens.Fold (Val a) (Val a)
-subExprs =
-    Lens.folding f
-    where
-        f x = x : x ^.. val . traverseK1 . subExprs
 
 {-# INLINE payloadsIndexedByPath #-}
 payloadsIndexedByPath ::
