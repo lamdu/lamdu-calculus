@@ -22,26 +22,26 @@ module Lamdu.Calc.Term
     , emptyScope
     , IResult(..), iType, iScope
     , ToNom(..), FromNom(..), RowExtend(..)
-    , KWitness(..), KPlain(..)
+    , HWitness(..), HPlain(..)
     ) where
 
-import           AST
-import           AST.Combinator.Flip (Flip, _Flip)
-import           AST.Infer
-import           AST.Infer.Blame (Blame(..))
-import           AST.Recurse
-import           AST.Term.App (App(..), appFunc, appArg)
-import           AST.Term.FuncType (FuncType(..))
-import           AST.Term.Lam (Lam(..), lamIn, lamOut)
-import           AST.Term.Nominal (ToNom(..), FromNom(..), NominalInst(..), MonadNominals, LoadedNominalDecl)
-import           AST.Term.Row (RowExtend(..), rowElementInfer)
-import           AST.Term.Scheme (QVarInstances(..))
-import qualified AST.Term.Var as TermVar
-import           AST.Unify
-import qualified AST.Unify.Generalize as G
-import           AST.Unify.Lookup (semiPruneLookup)
-import           AST.Unify.New (newTerm, newUnbound)
-import           AST.Unify.Term (UTerm(..))
+import           Hyper
+import           Hyper.Type.Combinator.Flip (Flip, _Flip)
+import           Hyper.Infer
+import           Hyper.Infer.Blame (Blame(..))
+import           Hyper.Recurse
+import           Hyper.Type.AST.App (App(..), appFunc, appArg)
+import           Hyper.Type.AST.FuncType (FuncType(..))
+import           Hyper.Type.AST.Lam (Lam(..), lamIn, lamOut)
+import           Hyper.Type.AST.Nominal (ToNom(..), FromNom(..), NominalInst(..), MonadNominals, LoadedNominalDecl)
+import           Hyper.Type.AST.Row (RowExtend(..), rowElementInfer)
+import           Hyper.Type.AST.Scheme (QVarInstances(..))
+import qualified Hyper.Type.AST.Var as TermVar
+import           Hyper.Unify
+import qualified Hyper.Unify.Generalize as G
+import           Hyper.Unify.Lookup (semiPruneLookup)
+import           Hyper.Unify.New (newTerm, newUnbound)
+import           Hyper.Unify.Term (UTerm(..))
 import           Control.DeepSeq (NFData(..))
 import qualified Control.Lens as Lens
 import           Control.Lens.Operators
@@ -102,7 +102,7 @@ data Inject k = Inject
     , _injectVal :: k # Term
     } deriving Generic
 
-data Term (k :: Knot)
+data Term (k :: AHyperType)
     = BApp {-# UNPACK #-}!(App Term k)
     | BLam {-# UNPACK #-}!(Lam Var Term k)
     | BGetField {-# UNPACK #-}!(GetField k)
@@ -117,19 +117,19 @@ data Term (k :: Knot)
 Lens.makePrisms ''Term
 Lens.makeLenses ''GetField
 Lens.makeLenses ''Inject
-makeKTraversableAndBases ''GetField
-makeKTraversableAndBases ''Inject
-makeKTraversableAndBases ''Term
+makeHTraversableAndBases ''GetField
+makeHTraversableAndBases ''Inject
+makeHTraversableAndBases ''Term
 makeZipMatch ''GetField
 makeZipMatch ''Inject
 makeZipMatch ''Term
-makeKHasPlain [''Term]
+makeHasHPlain [''Term]
 
 instance RNodes Term
 instance c Term => Recursively c Term
 instance RTraversable Term
 
-instance IsString (KPlain Term) where
+instance IsString (HPlain Term) where
     fromString = BLeafP . LVar . fromString
 
 instance Pretty (f # Term) => Pretty (Term f) where
@@ -169,31 +169,31 @@ instance Pretty (f # Term) => Pretty (Term f) where
 
 data Scope v = Scope
     { _scopeNominals :: Map T.NominalId (LoadedNominalDecl T.Type v)
-    , _scopeVarTypes :: Map Var (Tree (G.GTerm (GetKnot v)) T.Type)
+    , _scopeVarTypes :: Map Var (Tree (G.GTerm (GetHyperType v)) T.Type)
     , _scopeLevel :: ScopeLevel
     } deriving Generic
 Lens.makeLenses ''Scope
 
-instance KNodes Scope where
-    data KWitness Scope n where
-        KW_Scope_E0 :: KWitness (LoadedNominalDecl T.Type) n -> KWitness Scope n
-        KW_Scope_E1 :: KWitness (Flip G.GTerm T.Type) n -> KWitness Scope n
-    type KNodesConstraint Scope c = (Recursive c, c T.Type, c T.Row)
+instance HNodes Scope where
+    data HWitness Scope n where
+        KW_Scope_E0 :: HWitness (LoadedNominalDecl T.Type) n -> HWitness Scope n
+        KW_Scope_E1 :: HWitness (Flip G.GTerm T.Type) n -> HWitness Scope n
+    type HNodesConstraint Scope c = (Recursive c, c T.Type, c T.Row)
     kLiftConstraint (KW_Scope_E0 w) = kLiftConstraint w
     kLiftConstraint (KW_Scope_E1 w) = kLiftConstraint w
 
-instance KFunctor Scope where
+instance HFunctor Scope where
     mapK f (Scope n v l) =
         Scope
         (n <&> mapK (f . KW_Scope_E0))
         (v <&> Lens.from _Flip %~ mapK (f . KW_Scope_E1)) l
 
-instance KFoldable Scope where
+instance HFoldable Scope where
     foldMapK f (Scope n v _) =
         (n ^. Lens.folded . Lens.to (foldMapK (f . KW_Scope_E0))) <>
         (v ^. Lens.folded . Lens.from _Flip . Lens.to (foldMapK (f . KW_Scope_E1)))
 
-instance KTraversable Scope where
+instance HTraversable Scope where
     sequenceK (Scope n v l) =
         Scope
         <$> traverse sequenceK n
@@ -209,9 +209,9 @@ data IResult v = IResult
     , _iType :: v # T.Type
     }
 Lens.makeLenses ''IResult
-makeKTraversableAndBases ''IResult
+makeHTraversableAndBases ''IResult
 
-instance KPointed IResult where
+instance HPointed IResult where
     pureK f = IResult emptyScope (f W_IResult_Type)
 
 type instance TermVar.ScopeOf Term = Scope

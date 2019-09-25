@@ -1,10 +1,10 @@
 {-# LANGUAGE NoImplicitPrelude, OverloadedStrings, ScopedTypeVariables, FlexibleContexts #-}
 
-import           AST
-import           AST.Knot.Ann (addAnnotations)
-import           AST.Infer
-import           AST.Unify
-import           AST.Unify.Apply
+import           Hyper
+import           Hyper.Type.Ann (addAnnotations)
+import           Hyper.Infer
+import           Hyper.Unify
+import           Hyper.Unify.Apply
 import           Control.DeepSeq (rnf)
 import           Control.Exception (evaluate)
 import           Control.Lens (ASetter', _Right)
@@ -34,10 +34,10 @@ localInitEnv inferEnv e action =
         addScope <- loadDeps (pruneDeps e allDeps)
         local (inferEnv %~ addScope) action
 
-toAnn :: KPlain Term -> Tree (Ann ()) Term
+toAnn :: HPlain Term -> Tree (Ann ()) Term
 toAnn = addAnnotations (const (const ())) . (^. kPlain)
 
-benchInferPure :: KPlain Term -> Benchmarkable
+benchInferPure :: HPlain Term -> Benchmarkable
 benchInferPure e =
     infer x
     <&> (^. iRes . iType)
@@ -51,7 +51,7 @@ benchInferPure e =
     where
         x = toAnn e
 
-benchInferST :: KPlain Term -> Benchmarkable
+benchInferST :: HPlain Term -> Benchmarkable
 benchInferST e =
     do
         vg <- newSTRef varGen

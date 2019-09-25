@@ -41,7 +41,7 @@ library
                      , monad-st
                      , mtl
                      , pretty >=1.1.2
-                     , syntax-tree
+                     , hypertypes
                      , transformers
                      , QuickCheck
   default-language:    Haskell2010
@@ -69,6 +69,6 @@ benchmark bench-builder-all
                , monad-st
                , mtl
                , pretty
-               , syntax-tree
+               , hypertypes
                , transformers
   default-language:    Haskell2010

@@ -10,10 +10,10 @@ module TestVals
     , listTypePair, boolTypePair
     ) where
 
-import           AST
-import           AST.Term.Nominal
-import           AST.Term.Row
-import           AST.Term.Scheme
+import           Hyper
+import           Hyper.Type.AST.Nominal
+import           Hyper.Type.AST.Row
+import           Hyper.Type.AST.Scheme
 import qualified Control.Lens as Lens
 import           Control.Lens.Operators
 import qualified Data.ByteString.Char8 as BS8
@@ -154,19 +154,19 @@ allDeps =
         ]
     }
 
-litInt :: Integer -> KPlain Term
+litInt :: Integer -> HPlain Term
 litInt = BLeafP . LLiteral . PrimVal "Int" . BS8.pack . show
 
-record :: [(T.Tag, KPlain Term)] -> KPlain Term
+record :: [(T.Tag, HPlain Term)] -> HPlain Term
 record = foldr (uncurry BRecExtendP) (BLeafP LRecEmpty)
 
-($$:) :: KPlain Term -> [(T.Tag, KPlain Term)] -> KPlain Term
+($$:) :: HPlain Term -> [(T.Tag, HPlain Term)] -> HPlain Term
 f $$: args = BAppP f (record args)
 
-inf :: KPlain Term -> KPlain Term -> KPlain Term -> KPlain Term
+inf :: HPlain Term -> HPlain Term -> HPlain Term -> HPlain Term
 inf l f r = f $$: [("l", l), ("r", r)]
 
-factorialVal :: KPlain Term
+factorialVal :: HPlain Term
 factorialVal =
     BAppP "fix" $
     BLamP "loop" $
@@ -177,7 +177,7 @@ factorialVal =
     , ("else", inf "x" "*" (BAppP "loop" $ inf "x" "-" (litInt 1)))
     ]
 
-euler1Val :: KPlain Term
+euler1Val :: HPlain Term
 euler1Val =
     BAppP "sum" $
     "filter" $$:
@@ -191,16 +191,16 @@ euler1Val =
         )
     ]
 
-let_ :: Var -> KPlain Term -> KPlain Term -> KPlain Term
+let_ :: Var -> HPlain Term -> HPlain Term -> HPlain Term
 let_ k v r = BAppP (BLamP k r) v
 
-cons :: KPlain Term -> KPlain Term -> KPlain Term
+cons :: HPlain Term -> HPlain Term -> HPlain Term
 cons h t = BToNomP "List" $ BInjectP ":" $ record [("head", h), ("tail", t)]
 
-list :: [KPlain Term] -> KPlain Term
+list :: [HPlain Term] -> HPlain Term
 list = foldr cons (BToNomP "List" (BInjectP "[]" (BLeafP LRecEmpty)))
 
-solveDepressedQuarticVal :: KPlain Term
+solveDepressedQuarticVal :: HPlain Term
 solveDepressedQuarticVal =
     BLamP "params" $
     let_ "solvePoly" "id" $
@@ -243,7 +243,7 @@ solveDepressedQuarticVal =
         d = BGetFieldP "params" "d"
         e = BGetFieldP "params" "e"
 
-(%+), (%-), (%*), (%/), (%//), (%>), (%%), (%==) :: KPlain Term -> KPlain Term -> KPlain Term
+(%+), (%-), (%*), (%/), (%//), (%>), (%%), (%==) :: HPlain Term -> HPlain Term -> HPlain Term
 x %+ y = inf x "+" y
 x %- y = inf x "-" y
 x %* y = inf x "*" y
@@ -253,7 +253,7 @@ x %> y = inf x ">" y
 x %% y = inf x "%" y
 x %== y = inf x "==" y
 
-factorsVal :: KPlain Term
+factorsVal :: HPlain Term
 factorsVal =
     BAppP "fix" $
     BLamP "loop" $

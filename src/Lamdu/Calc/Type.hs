@@ -40,19 +40,10 @@ module Lamdu.Calc.Type
 
     , flatRow
 
-    , KWitness(..), KPlain(..)
+    , HWitness(..), HPlain(..)
     ) where
 
-import           AST
-import           AST.Class.Has
-import           AST.Infer
-import           AST.Term.FuncType
-import           AST.Term.Nominal
-import           AST.Term.Row
-import qualified AST.Term.Scheme as S
-import           AST.Unify
-import           AST.Unify.QuantifiedVar
-import           AST.Unify.Term
+import qualified Hyper.Type.AST.Scheme as S
 import           Algebra.PartialOrd
 import           Control.DeepSeq (NFData(..))
 import qualified Control.Lens as Lens
@@ -62,10 +53,19 @@ import           Data.Hashable (Hashable)
 import           Data.Semigroup ((<>))
 import           Data.Set (Set)
 import           Data.String (IsString(..))
-import           Generic.Data (Generically(..))
-import           Generics.Constraints (makeDerivings, makeInstances)
 import           GHC.Exts (Constraint)
 import           GHC.Generics (Generic)
+import           Generic.Data (Generically(..))
+import           Generics.Constraints (makeDerivings, makeInstances)
+import           Hyper
+import           Hyper.Class.Has
+import           Hyper.Infer
+import           Hyper.Type.AST.FuncType
+import           Hyper.Type.AST.Nominal
+import           Hyper.Type.AST.Row
+import           Hyper.Unify
+import           Hyper.Unify.QuantifiedVar
+import           Hyper.Unify.Term
 import           Lamdu.Calc.Identifier (Identifier)
 import           Text.PrettyPrint ((<+>))
 import qualified Text.PrettyPrint as PP
@@ -74,7 +74,7 @@ import           Text.PrettyPrint.HughesPJClass (Pretty(..), maybeParens)
 import           Prelude.Compat
 
 -- | A type varible of some kind ('Var' 'Type', 'Var' 'Variant', or 'Var' 'Record')
-newtype Var (t :: Knot -> *) = Var { tvName :: Identifier }
+newtype Var (t :: AHyperType -> *) = Var { tvName :: Identifier }
     deriving stock Show
     deriving newtype (Eq, Ord, NFData, IsString, Pretty, Binary, Hashable)
 
@@ -100,7 +100,7 @@ type TypeVar = Var Type
 -- example: RExtend "a" int (RExtend "b" bool (RVar "c")) represents
 -- the composite type:
 -- > { a : int, b : bool | c }
-data Row (k :: Knot)
+data Row (k :: AHyperType)
     = RExtend (RowExtend Tag Type Row k)
       -- ^ Extend a row type with an extra component (field /
       -- data constructor).
@@ -111,7 +111,7 @@ data Row (k :: Knot)
     deriving Generic
 
 -- | The AST for any Lamdu Calculus type
-data Type (k :: Knot)
+data Type (k :: AHyperType)
     = TVar TypeVar
       -- ^ A type variable
     | TFun (FuncType Type k)
@@ -148,9 +148,9 @@ Lens.makePrisms ''Row
 Lens.makePrisms ''Type
 Lens.makePrisms ''TypeError
 
-makeKTraversableApplyAndBases ''Types
-makeKTraversableAndBases ''Row
-makeKTraversableAndBases ''Type
+makeHTraversableApplyAndBases ''Types
+makeHTraversableAndBases ''Row
+makeHTraversableAndBases ''Type
 makeZipMatch ''Row
 makeZipMatch ''Type
 makeZipMatch ''Types
@@ -298,7 +298,7 @@ flatRow =
 makeDerivings [''Eq, ''Ord, ''Show] [''Row, ''Type, ''Types, ''TypeError]
 makeInstances [''Binary, ''NFData] [''Row, ''Type, ''Types, ''TypeError]
 
-makeKHasPlain [''Type, ''Row, ''Types]
+makeHasHPlain [''Type, ''Row, ''Types]
 
 instance NFData RConstraints
 instance Binary RConstraints

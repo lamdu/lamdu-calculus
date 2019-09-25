@@ -4,8 +4,8 @@ module Lamdu.Calc.Term.Eq
     ( couldEq
     ) where
 
-import           AST
-import           AST.Class.ZipMatch
+import           Hyper
+import           Hyper.Class.ZipMatch
 import qualified Control.Lens as Lens
 import           Control.Lens.Operators
 import           Control.Monad (guard, join)

@@ -13,20 +13,20 @@ module Lamdu.Calc.Infer
     , alphaEq
     ) where
 
-import           AST
-import           AST.Infer
-import           AST.Term.Nominal
-import qualified AST.Term.Var as TermVar
-import qualified AST.Term.Scheme as S
-import qualified AST.Term.Scheme.AlphaEq as S
-import           AST.Unify
-import           AST.Unify.Apply (applyBindings)
-import           AST.Unify.Binding
-import           AST.Unify.Binding.ST
-import           AST.Unify.Generalize
-import           AST.Unify.Lookup (semiPruneLookup)
-import           AST.Unify.QuantifiedVar
-import           AST.Unify.Term (UTerm, UTermBody)
+import           Hyper
+import           Hyper.Infer
+import           Hyper.Type.AST.Nominal
+import qualified Hyper.Type.AST.Var as TermVar
+import qualified Hyper.Type.AST.Scheme as S
+import qualified Hyper.Type.AST.Scheme.AlphaEq as S
+import           Hyper.Unify
+import           Hyper.Unify.Apply (applyBindings)
+import           Hyper.Unify.Binding
+import           Hyper.Unify.Binding.ST
+import           Hyper.Unify.Generalize
+import           Hyper.Unify.Lookup (semiPruneLookup)
+import           Hyper.Unify.QuantifiedVar
+import           Hyper.Unify.Term (UTerm, UTermBody)
 import           Control.Applicative (Alternative(..))
 import qualified Control.Lens as Lens
 import           Control.Lens (LensLike')
@@ -227,7 +227,7 @@ alphaEq x y =
             & runMaybeT
     <&> Lens.has Lens._Just
 
-{-# SPECIALIZE inferH :: Tree (Ann a) Term -> Tree (InferChild PureInfer (ITerm a UVar)) Term #-}
+{-# SPECIALIZE inferH :: Tree (Ann a) Term -> Tree (InferChild PureInfer (Inferred a UVar)) Term #-}
 {-# SPECIALIZE unify :: Tree UVar T.Row -> Tree UVar T.Row -> PureInfer (Tree UVar T.Row) #-}
 {-# SPECIALIZE unify :: Tree (STUVar s) T.Row -> Tree (STUVar s) T.Row -> STInfer s (Tree (STUVar s) T.Row) #-}
 {-# SPECIALIZE updateConstraints :: ScopeLevel -> Tree (STUVar s) T.Type -> Tree (UTerm (STUVar s)) T.Type -> STInfer s () #-}

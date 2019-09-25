@@ -15,8 +15,8 @@ Run the benchmark while dumping GHC core:
 The type applications may look like:
 
 * `pruneDeps1 @ ()`
-* `emptyScope @ ('Knot UVar)`
-* `$fNFDataTypeError_$crnf @ ('Knot Pure)`
+* `emptyScope @ ('AHyperType UVar)`
+* `$fNFDataTypeError_$crnf @ ('AHyperType Pure)`
 
 Now we need to see which of those are benign.
 If the type of the definition, does not have class constraints on these variables, such as

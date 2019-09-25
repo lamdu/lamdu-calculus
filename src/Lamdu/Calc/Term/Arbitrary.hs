@@ -2,10 +2,10 @@
 {-# OPTIONS -fno-warn-orphans #-} -- Arbitrary instances
 module Lamdu.Calc.Term.Arbitrary () where
 
-import           AST (Tree)
-import           AST.Knot.Ann.Arbitrary (ArbitraryWithContext(..), ArbitraryWithContextOf)
-import           AST.Term.Nominal (ToNom(..))
-import           AST.Term.Row (RowExtend(..))
+import           Hyper (Tree)
+import           Hyper.Type.Ann.Arbitrary (ArbitraryWithContext(..), ArbitraryWithContextOf)
+import           Hyper.Type.AST.Nominal (ToNom(..))
+import           Hyper.Type.AST.Row (RowExtend(..))
 import qualified Control.Lens as Lens
 import           Control.Lens.Operators
 import           Control.Monad (replicateM)

@@ -7,8 +7,8 @@ module Lamdu.Calc.Definition
     , pruneDeps
     ) where
 
-import           AST (Ann, Tree, Pure)
-import           AST.Term.Nominal (NominalDecl)
+import           Hyper (Ann, Tree, Pure)
+import           Hyper.Type.AST.Nominal (NominalDecl)
 import           Control.DeepSeq (NFData)
 import qualified Control.Lens as Lens
 import           Control.Lens.Operators

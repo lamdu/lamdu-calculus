@@ -27,13 +27,13 @@ module Lamdu.Calc.Lens
     , itermAnn
     ) where
 
-import           AST
-import           AST.Infer (ITerm(..))
-import           AST.Knot.Ann (Ann(..), annotations, val)
-import           AST.Recurse
-import           AST.Term.Nominal (ToNom(..), NominalInst(..), NominalDecl, nScheme)
-import           AST.Term.Row (RowExtend(..))
-import           AST.Term.Scheme (Scheme, _QVarInstances, sTyp)
+import           Hyper
+import           Hyper.Infer (Inferred(..))
+import           Hyper.Type.Ann (Ann(..), annotations, val)
+import           Hyper.Recurse
+import           Hyper.Type.AST.Nominal (ToNom(..), NominalInst(..), NominalDecl, nScheme)
+import           Hyper.Type.AST.Row (RowExtend(..))
+import           Hyper.Type.AST.Scheme (Scheme, _QVarInstances, sTyp)
 import           Control.Lens (Traversal', Prism', Iso', iso)
 import qualified Control.Lens as Lens
 import           Control.Lens.Operators
@@ -226,17 +226,17 @@ valNominals f (Ann pl body) =
     <&> Ann pl
 
 -- Lamdu-calculus uses a uniform type for all subexpression types, so
--- ITerm yields unnecessary power compared to Ann, and is less usable
+-- Inferred yields unnecessary power compared to Ann, and is less usable
 itermAnn ::
     Lens.Iso
-    (Tree (ITerm a n) V.Term)
-    (Tree (ITerm b m) V.Term)
+    (Tree (Inferred a n) V.Term)
+    (Tree (Inferred b m) V.Term)
     (Tree (Ann (a, Tree V.IResult n)) V.Term)
     (Tree (Ann (b, Tree V.IResult m)) V.Term)
 itermAnn =
     Lens.iso toAnn fromAnn
     where
         fromAnn (Ann (pl, ires) term) =
-            term & traverseK1 %~ fromAnn & ITerm pl ires
-        toAnn (ITerm pl ires term) =
+            term & traverseK1 %~ fromAnn & Inferred pl ires
+        toAnn (Inferred pl ires term) =
             term & traverseK1 %~ toAnn & Ann (pl, ires)
