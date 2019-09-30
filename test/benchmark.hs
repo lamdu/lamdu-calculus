@@ -35,7 +35,7 @@ localInitEnv inferEnv e action =
         local (inferEnv %~ addScope) action
 
 toAnn :: HPlain Term -> Tree (Ann ()) Term
-toAnn = addAnnotations (const (const ())) . (^. kPlain)
+toAnn = addAnnotations (const (const ())) . (^. hPlain)
 
 benchInferPure :: HPlain Term -> Benchmarkable
 benchInferPure e =

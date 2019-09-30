@@ -238,7 +238,7 @@ instance HasTypeConstraints Type where
     type instance TypeConstraintsOf Type = ScopeLevel
     {-# INLINE verifyConstraints #-}
     verifyConstraints _ (TVar x) = TVar x & Just
-    verifyConstraints c (TFun x) = x & mappedK1 %~ WithConstraint c & TFun & Just
+    verifyConstraints c (TFun x) = x & hmapped1 %~ WithConstraint c & TFun & Just
     verifyConstraints c (TRecord x) =
         WithConstraint (RowConstraints mempty c) x & TRecord & Just
     verifyConstraints c (TVariant x) =

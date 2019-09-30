@@ -53,7 +53,7 @@ tIds ::
     Traversal' (Tree k expr) T.NominalId
 tIds f =
     withDict (recurse (Proxy @(RTraversable k))) $
-    traverseK (Proxy @RTraversable #> bodyTIds f)
+    htraverse (Proxy @RTraversable #> bodyTIds f)
 
 class HasTIds expr where
     bodyTIds :: RTraversable k => Traversal' (Tree expr k) T.NominalId
@@ -63,14 +63,14 @@ instance HasTIds T.Type where
     bodyTIds f (T.TInst (NominalInst tId args)) =
         NominalInst
         <$> f tId
-        <*> traverseK (Proxy @HasTIds #> _QVarInstances %%~ traverse (tIds f))
+        <*> htraverse (Proxy @HasTIds #> _QVarInstances %%~ traverse (tIds f))
             args
         <&> T.TInst
-    bodyTIds f x = traverseK (Proxy @HasTIds #> tIds f) x
+    bodyTIds f x = htraverse (Proxy @HasTIds #> tIds f) x
 
 instance HasTIds T.Row where
     {-# INLINE bodyTIds #-}
-    bodyTIds f = traverseK (Proxy @HasTIds #> tIds f)
+    bodyTIds f = htraverse (Proxy @HasTIds #> tIds f)
 
 instance HasTIds (Scheme T.Types T.Type) where
     bodyTIds = sTyp . tIds
@@ -135,7 +135,7 @@ valLeafs :: Lens.IndexedTraversal' a (Val a) V.Leaf
 valLeafs f (Ann pl body) =
     case body of
     V.BLeaf l -> Lens.indexed f pl l <&> V.BLeaf
-    _ -> traverseK1 (valLeafs f) body
+    _ -> htraverse1 (valLeafs f) body
     <&> Ann pl
 
 {-# INLINE subExprPayloads #-}
@@ -143,7 +143,7 @@ subExprPayloads :: Lens.IndexedTraversal (Val ()) (Val a) (Val b) a b
 subExprPayloads f x@(Ann pl body) =
     Ann
     <$> Lens.indexed f (x & annotations .~ ()) pl
-    <*> (traverseK1 .> subExprPayloads) f body
+    <*> (htraverse1 .> subExprPayloads) f body
 
 {-# INLINE payloadsIndexedByPath #-}
 payloadsIndexedByPath ::
@@ -162,7 +162,7 @@ payloadsIndexedByPath f =
         go g path x@(Ann pl body) =
             Ann
             <$> Lens.indexed g newPath pl
-            <*> traverseK1 (go g newPath) body
+            <*> htraverse1 (go g newPath) body
             where
                 newPath = (x & annotations .~ ()) : path
 
@@ -189,7 +189,7 @@ biTraverseBodyTags onTag onChild body =
         V.BCase <$> (RowExtend <$> onTag t <*> onChild v <*> onChild r)
     V.BRecExtend (RowExtend t v r) ->
         V.BRecExtend <$> (RowExtend <$> onTag t <*> onChild v <*> onChild r)
-    _ -> traverseK1 onChild body
+    _ -> htraverse1 onChild body
 
 {-# INLINE bodyTags #-}
 bodyTags :: Lens.Traversal' (Tree V.Term (Ann a)) T.Tag
@@ -209,7 +209,7 @@ valGlobals scope f (Ann pl body) =
     V.BLam (V.Lam var lamBody) ->
         valGlobals (Set.insert var scope) f lamBody
         <&> V.Lam var <&> V.BLam
-    _ -> (traverseK1 . valGlobals scope) f body
+    _ -> (htraverse1 . valGlobals scope) f body
     <&> Ann pl
 
 {-# INLINE valNominals #-}
@@ -222,7 +222,7 @@ valNominals f (Ann pl body) =
         <$> f nomId
         <*> valNominals f x
         <&> V.BToNom
-    _ -> body & traverseK1 . valNominals %%~ f
+    _ -> body & htraverse1 . valNominals %%~ f
     <&> Ann pl
 
 -- Lamdu-calculus uses a uniform type for all subexpression types, so
@@ -237,6 +237,6 @@ itermAnn =
     Lens.iso toAnn fromAnn
     where
         fromAnn (Ann (pl, ires) term) =
-            term & traverseK1 %~ fromAnn & Inferred pl ires
+            term & htraverse1 %~ fromAnn & Inferred pl ires
         toAnn (Inferred pl ires term) =
-            term & traverseK1 %~ toAnn & Ann (pl, ires)
+            term & htraverse1 %~ toAnn & Ann (pl, ires)

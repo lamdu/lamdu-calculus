@@ -33,8 +33,8 @@ import           Prelude.Compat
 recExtends :: Tree Pure T.Row -> [(T.Tag, Tree Pure Type)] -> Tree Pure Type
 recExtends recTail fields =
     foldr
-    (\(tag, typ) -> (&# T.RExtend) . RowExtend tag typ) recTail fields
-    &# T.TRecord
+    (\(tag, typ) -> Pure . T.RExtend . RowExtend tag typ) recTail fields
+    & T.TRecord & Pure
 
 recordType :: [(T.Tag, Tree Pure Type)] -> Tree Pure Type
 recordType = recExtends (_Pure # T.REmpty)
@@ -43,15 +43,15 @@ forAll ::
     [T.TypeVar] -> ([Tree Pure Type] -> Tree Pure Type) -> Tree Pure T.Scheme
 forAll tvs mkType =
     tvs <&> T.TVar <&> (_Pure #) & mkType
-    &# Scheme T.Types
+    & Scheme T.Types
     { T._tType = QVars (Map.fromList [(tv, mempty) | tv <- tvs])
     , T._tRow = mempty
-    }
+    } & Pure
 
 stOf :: Tree Pure Type -> Tree Pure Type -> Tree Pure Type
 stOf s a =
     T.Types (QVarInstances (mempty & Lens.at "res" ?~ a & Lens.at "s" ?~ s)) (QVarInstances mempty)
-    & NominalInst "ST" &# T.TInst
+    & NominalInst "ST" & T.TInst & Pure
 
 listTypePair :: (T.NominalId, Tree Pure (NominalDecl Type))
 listTypePair =
@@ -64,10 +64,10 @@ listTypePair =
             }
         , _nScheme =
             _Pure # T.REmpty
-            & RowExtend "[]" (recordType []) &# T.RExtend
+            & RowExtend "[]" (recordType []) & T.RExtend & Pure
             & RowExtend ":" (recordType [("head", tv), ("tail", listOf tv)])
-            &# T.RExtend
-            &# T.TVariant
+            & T.RExtend & Pure
+            & T.TVariant & Pure
             & Scheme (T.Types mempty mempty)
         }
     )
@@ -77,17 +77,17 @@ listTypePair =
 listOf :: Tree Pure Type -> Tree Pure Type
 listOf x =
     T.Types (QVarInstances (mempty & Lens.at "elem" ?~ x)) (QVarInstances mempty)
-    & NominalInst (fst listTypePair) &# T.TInst
+    & NominalInst (fst listTypePair) & T.TInst & Pure
 
 boolType :: Tree Pure Type
 boolType =
     T.Types (QVarInstances mempty) (QVarInstances mempty)
-    & NominalInst (fst boolTypePair) &# T.TInst
+    & NominalInst (fst boolTypePair) & T.TInst & Pure
 
 intType :: Tree Pure Type
 intType =
     T.Types (QVarInstances mempty) (QVarInstances mempty)
-    & NominalInst "Int" &# T.TInst
+    & NominalInst "Int" & T.TInst & Pure
 
 boolTypePair :: (T.NominalId, Tree Pure (NominalDecl Type))
 boolTypePair =
@@ -96,9 +96,9 @@ boolTypePair =
         { _nParams = T.Types mempty mempty
         , _nScheme =
             _Pure # T.REmpty
-            & RowExtend "True" (recordType []) &# T.RExtend
-            & RowExtend "False" (recordType []) &# T.RExtend
-            &# T.TVariant
+            & RowExtend "True" (recordType []) & T.RExtend & Pure
+            & RowExtend "False" (recordType []) & T.RExtend & Pure
+            & T.TVariant & Pure
             & Scheme (T.Types mempty mempty)
         }
     )
@@ -106,9 +106,9 @@ boolTypePair =
 maybeOf :: Tree Pure Type -> Tree Pure Type
 maybeOf t =
     _Pure # T.REmpty
-    & RowExtend "Just" t &# T.RExtend
-    & RowExtend "Nothing" (recordType []) &# T.RExtend
-    &# T.TVariant
+    & RowExtend "Just" t & T.RExtend & Pure
+    & RowExtend "Nothing" (recordType []) & T.RExtend & Pure
+    & T.TVariant & Pure
 
 infixType :: Tree Pure Type -> Tree Pure Type -> Tree Pure Type -> Tree Pure Type
 infixType a b c = recordType [("l", a), ("r", b)] ~> c

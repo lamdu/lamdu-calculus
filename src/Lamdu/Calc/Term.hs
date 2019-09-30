@@ -29,7 +29,6 @@ import           Hyper
 import           Hyper.Type.Combinator.Flip (Flip, _Flip)
 import           Hyper.Infer
 import           Hyper.Infer.Blame (Blame(..))
-import           Hyper.Recurse
 import           Hyper.Type.AST.App (App(..), appFunc, appArg)
 import           Hyper.Type.AST.FuncType (FuncType(..))
 import           Hyper.Type.AST.Lam (Lam(..), lamIn, lamOut)
@@ -169,36 +168,12 @@ instance Pretty (f # Term) => Pretty (Term f) where
 
 data Scope v = Scope
     { _scopeNominals :: Map T.NominalId (LoadedNominalDecl T.Type v)
-    , _scopeVarTypes :: Map Var (Tree (G.GTerm (GetHyperType v)) T.Type)
+    , _scopeVarTypes :: Map Var (Flip G.GTerm T.Type v)
     , _scopeLevel :: ScopeLevel
     } deriving Generic
 Lens.makeLenses ''Scope
 
-instance HNodes Scope where
-    data HWitness Scope n where
-        KW_Scope_E0 :: HWitness (LoadedNominalDecl T.Type) n -> HWitness Scope n
-        KW_Scope_E1 :: HWitness (Flip G.GTerm T.Type) n -> HWitness Scope n
-    type HNodesConstraint Scope c = (Recursive c, c T.Type, c T.Row)
-    kLiftConstraint (KW_Scope_E0 w) = kLiftConstraint w
-    kLiftConstraint (KW_Scope_E1 w) = kLiftConstraint w
-
-instance HFunctor Scope where
-    mapK f (Scope n v l) =
-        Scope
-        (n <&> mapK (f . KW_Scope_E0))
-        (v <&> Lens.from _Flip %~ mapK (f . KW_Scope_E1)) l
-
-instance HFoldable Scope where
-    foldMapK f (Scope n v _) =
-        (n ^. Lens.folded . Lens.to (foldMapK (f . KW_Scope_E0))) <>
-        (v ^. Lens.folded . Lens.from _Flip . Lens.to (foldMapK (f . KW_Scope_E1)))
-
-instance HTraversable Scope where
-    sequenceK (Scope n v l) =
-        Scope
-        <$> traverse sequenceK n
-        <*> (traverse . Lens.from _Flip) sequenceK v
-        ?? l
+makeHTraversableAndBases ''Scope
 
 {-# INLINE emptyScope #-}
 emptyScope :: Scope v
@@ -212,7 +187,7 @@ Lens.makeLenses ''IResult
 makeHTraversableAndBases ''IResult
 
 instance HPointed IResult where
-    pureK f = IResult emptyScope (f W_IResult_Type)
+    hpure f = IResult emptyScope (f (HWitness W_IResult_Type))
 
 type instance TermVar.ScopeOf Term = Scope
 type instance InferOf Term = IResult
@@ -225,7 +200,7 @@ makeInstances [''Binary, ''NFData, ''Hashable] [''Term, ''Scope, ''GetField, ''I
 
 instance TermVar.VarType Var Term where
     {-# INLINE varType #-}
-    varType _ v x = x ^?! scopeVarTypes . Lens.ix v & G.instantiate
+    varType _ v x = x ^?! scopeVarTypes . Lens.ix v . _Flip & G.instantiate
 
 mkResult ::
     (Functor m, TermVar.HasScope m Scope) =>
@@ -253,7 +228,7 @@ instance
         do
             (xI, xT) <- inferBody x
             mkResult
-                <*> newTerm (T.TFun xT)
+                ?? xT ^. _ANode
                 <&> (BLam xI, )
     inferBody (BToNom x) =
         do

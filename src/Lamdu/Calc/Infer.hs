@@ -19,6 +19,7 @@ import           Hyper.Type.AST.Nominal
 import qualified Hyper.Type.AST.Var as TermVar
 import qualified Hyper.Type.AST.Scheme as S
 import qualified Hyper.Type.AST.Scheme.AlphaEq as S
+import           Hyper.Type.Combinator.Flip
 import           Hyper.Unify
 import           Hyper.Unify.Apply (applyBindings)
 import           Hyper.Unify.Binding
@@ -92,7 +93,7 @@ loadDeps deps =
         loadedSchemes <- deps ^. depsGlobalTypes & traverse S.loadScheme
         pure $ \env ->
             env
-            & scopeVarTypes <>~ loadedSchemes
+            & scopeVarTypes <>~ (loadedSchemes <&> MkFlip)
             & scopeNominals <>~ loadedNoms
 
 instance MonadScopeLevel PureInfer where
@@ -110,7 +111,7 @@ instance TermVar.HasScope PureInfer Scope where
 
 instance LocalScopeType Var (Tree UVar T.Type) PureInfer where
     {-# INLINE localScopeType #-}
-    localScopeType k v = local (scopeVarTypes . Lens.at k ?~ GMono v)
+    localScopeType k v = local (scopeVarTypes . Lens.at k ?~ MkFlip (GMono v))
 
 instance MonadScopeConstraints ScopeLevel PureInfer where
     {-# INLINE scopeConstraints #-}
@@ -136,15 +137,15 @@ instance Unify PureInfer T.Type where
     {-# INLINE binding #-}
     binding = bindingDict (isBinding . T.tType)
     unifyError e =
-        traverseK (Proxy @(Unify PureInfer) #> applyBindings) e
-        >>= throwError . (&# T.TypeError)
+        htraverse (Proxy @(Unify PureInfer) #> applyBindings) e
+        >>= throwError . Pure . T.TypeError
 
 instance Unify PureInfer T.Row where
     {-# INLINE binding #-}
     binding = bindingDict (isBinding . T.tRow)
     unifyError e =
-        traverseK (Proxy @(Unify PureInfer) #> applyBindings) e
-        >>= throwError . (&# T.RowError)
+        htraverse (Proxy @(Unify PureInfer) #> applyBindings) e
+        >>= throwError . Pure . T.RowError
     {-# INLINE structureMismatch #-}
     structureMismatch = T.rStructureMismatch
 
@@ -176,7 +177,7 @@ instance TermVar.HasScope (STInfer s) Scope where
 instance LocalScopeType Var (Tree (STUVar s) T.Type) (STInfer s) where
     {-# INLINE localScopeType #-}
     localScopeType k v =
-        local (Lens._1 . scopeVarTypes . Lens.at k ?~ GMono v)
+        local (Lens._1 . scopeVarTypes . Lens.at k ?~ MkFlip (GMono v))
 
 instance MonadScopeConstraints ScopeLevel (STInfer s) where
     {-# INLINE scopeConstraints #-}
