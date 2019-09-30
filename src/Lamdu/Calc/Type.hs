@@ -26,7 +26,7 @@ module Lamdu.Calc.Type
     -- * Row Prisms
     , _RExtend, _REmpty, _RVar
     -- * Type AST
-    , Type(..)
+    , Type(..), W_Type(..)
     , Scheme, Nominal
     , (~>)
     -- * Type Prisms
@@ -40,7 +40,7 @@ module Lamdu.Calc.Type
 
     , flatRow
 
-    , HWitness(..), HPlain(..)
+    , HPlain(..)
     ) where
 
 import qualified Hyper.Type.AST.Scheme as S

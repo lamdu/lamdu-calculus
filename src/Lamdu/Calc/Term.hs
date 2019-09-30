@@ -13,6 +13,7 @@ module Lamdu.Calc.Term
     , Term(..)
         , _BApp, _BLam, _BGetField, _BRecExtend
         , _BInject, _BCase, _BToNom, _BLeaf
+        , W_Term(..)
     , App(..), appFunc, appArg
     , GetField(..), getFieldRecord, getFieldTag
     , Inject(..), injectVal, injectTag
@@ -22,7 +23,7 @@ module Lamdu.Calc.Term
     , emptyScope
     , IResult(..), iType, iScope
     , ToNom(..), FromNom(..), RowExtend(..)
-    , HWitness(..), HPlain(..)
+    , HPlain(..)
     ) where
 
 import           Hyper
