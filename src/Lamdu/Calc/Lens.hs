@@ -29,7 +29,7 @@ module Lamdu.Calc.Lens
 
 import           Hyper
 import           Hyper.Infer (Inferred(..))
-import           Hyper.Type.Ann (Ann(..), annotations, val)
+import           Hyper.Type.Ann (val)
 import           Hyper.Recurse
 import           Hyper.Type.AST.Nominal (ToNom(..), NominalInst(..), NominalDecl, nScheme)
 import           Hyper.Type.AST.Row (RowExtend(..))

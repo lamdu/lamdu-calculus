@@ -49,7 +49,6 @@ import           Data.ByteString (ByteString)
 import qualified Data.ByteString.Char8 as BS8
 import           Data.Hashable (Hashable(..))
 import           Data.Map (Map)
-import           Data.Semigroup ((<>))
 import           Data.String (IsString(..))
 import           Generics.Constraints (makeDerivings, makeInstances)
 import           GHC.Generics (Generic)
@@ -101,7 +100,7 @@ data Inject k = Inject
     , _injectVal :: k # Term
     } deriving Generic
 
-data Term (k :: AHyperType)
+data Term k
     = BApp {-# UNPACK #-}!(App Term k)
     | BLam {-# UNPACK #-}!(Lam Var Term k)
     | BGetField {-# UNPACK #-}!(GetField k)

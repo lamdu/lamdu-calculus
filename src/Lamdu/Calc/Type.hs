@@ -50,7 +50,6 @@ import qualified Control.Lens as Lens
 import           Control.Lens.Operators
 import           Data.Binary (Binary)
 import           Data.Hashable (Hashable)
-import           Data.Semigroup ((<>))
 import           Data.Set (Set)
 import           Data.String (IsString(..))
 import           GHC.Exts (Constraint)
@@ -74,7 +73,7 @@ import           Text.PrettyPrint.HughesPJClass (Pretty(..), maybeParens)
 import           Prelude.Compat
 
 -- | A type varible of some kind ('Var' 'Type', 'Var' 'Variant', or 'Var' 'Record')
-newtype Var (t :: AHyperType -> *) = Var { tvName :: Identifier }
+newtype Var (t :: HyperType) = Var { tvName :: Identifier }
     deriving stock Show
     deriving newtype (Eq, Ord, NFData, IsString, Pretty, Binary, Hashable)
 
@@ -100,7 +99,7 @@ type TypeVar = Var Type
 -- example: RExtend "a" int (RExtend "b" bool (RVar "c")) represents
 -- the composite type:
 -- > { a : int, b : bool | c }
-data Row (k :: AHyperType)
+data Row k
     = RExtend (RowExtend Tag Type Row k)
       -- ^ Extend a row type with an extra component (field /
       -- data constructor).
@@ -111,7 +110,7 @@ data Row (k :: AHyperType)
     deriving Generic
 
 -- | The AST for any Lamdu Calculus type
-data Type (k :: AHyperType)
+data Type k
     = TVar TypeVar
       -- ^ A type variable
     | TFun (FuncType Type k)

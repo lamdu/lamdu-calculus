@@ -4,8 +4,6 @@ module Lamdu.Calc.Term.Arbitrary () where
 
 import           Hyper (Tree)
 import           Hyper.Type.Ann.Arbitrary (ArbitraryWithContext(..), ArbitraryWithContextOf)
-import           Hyper.Type.AST.Nominal (ToNom(..))
-import           Hyper.Type.AST.Row (RowExtend(..))
 import qualified Control.Lens as Lens
 import           Control.Lens.Operators
 import           Control.Monad (replicateM)
