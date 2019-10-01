@@ -21,7 +21,6 @@ module Lamdu.Calc.Lens
     , valNominals
     -- Subexpressions:
     , subExprPayloads
-    , payloadsIndexedByPath
     , payloadsOf
     , HasTIds(..), tIds
     , itermAnn
@@ -144,27 +143,6 @@ subExprPayloads f x@(Ann pl body) =
     Ann
     <$> Lens.indexed f (x & annotations .~ ()) pl
     <*> (htraverse1 .> subExprPayloads) f body
-
-{-# INLINE payloadsIndexedByPath #-}
-payloadsIndexedByPath ::
-    Lens.IndexedTraversal
-    [Val ()]
-    (Val a)
-    (Val b)
-    a b
-payloadsIndexedByPath f =
-    go f []
-    where
-        go ::
-            ( Lens.Indexable [Tree (Ann ()) V.Term] p, Applicative f
-            ) =>
-            p a (f b) -> [Tree (Ann ()) V.Term] -> Val a -> f (Val b)
-        go g path x@(Ann pl body) =
-            Ann
-            <$> Lens.indexed g newPath pl
-            <*> htraverse1 (go g newPath) body
-            where
-                newPath = (x & annotations .~ ()) : path
 
 {-# INLINE payloadsOf #-}
 payloadsOf ::
