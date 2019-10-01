@@ -152,26 +152,20 @@ payloadsOf body =
     where
         predicate idx _ = Lens.has (val . body) idx
 
-{-# INLINE biTraverseBodyTags #-}
-biTraverseBodyTags ::
-    Applicative f =>
-    (T.Tag -> f T.Tag) -> (Val a -> f (Val b)) ->
-    Tree V.Term (Ann a) -> f (Tree V.Term (Ann b))
-biTraverseBodyTags onTag onChild body =
-    case body of
-    V.BInject (V.Inject t v) ->
-        V.BInject <$> (V.Inject <$> onTag t <*> onChild v)
-    V.BGetField (V.GetField r t) ->
-        V.BGetField <$> (V.GetField <$> onChild r <*> onTag t)
-    V.BCase (RowExtend t v r) ->
-        V.BCase <$> (RowExtend <$> onTag t <*> onChild v <*> onChild r)
-    V.BRecExtend (RowExtend t v r) ->
-        V.BRecExtend <$> (RowExtend <$> onTag t <*> onChild v <*> onChild r)
-    _ -> htraverse1 onChild body
-
 {-# INLINE valTags #-}
 valTags :: Lens.Traversal' (Val a) T.Tag
-valTags f = val $ biTraverseBodyTags f (valTags f)
+valTags f (Ann a body) =
+    case body of
+    V.BInject (V.Inject t v) ->
+        V.Inject <$> f t <*> valTags f v <&> V.BInject
+    V.BGetField (V.GetField r t) ->
+        V.GetField <$> valTags f r <*> f t <&> V.BGetField
+    V.BCase (RowExtend t v r) ->
+        RowExtend <$> f t <*> valTags f v <*> valTags f r <&> V.BCase
+    V.BRecExtend (RowExtend t v r) ->
+        RowExtend <$> f t <*> valTags f v <*> valTags f r <&> V.BRecExtend
+    _ -> htraverse1 (valTags f) body
+    <&> Ann a
 
 {-# INLINE valGlobals #-}
 valGlobals :: Set V.Var -> Lens.IndexedFold a (Val a) V.Var
