@@ -1,6 +1,6 @@
 {-# LANGUAGE NoImplicitPrelude, RankNTypes, NoMonomorphismRestriction #-}
 {-# LANGUAGE FlexibleContexts, TypeFamilies, TypeApplications, FlexibleInstances #-}
-{-# LANGUAGE DataKinds, ScopedTypeVariables #-}
+{-# LANGUAGE DataKinds, ScopedTypeVariables, LambdaCase #-}
 module Lamdu.Calc.Lens
     ( -- Leafs
       valHole    , valBodyHole
@@ -154,8 +154,10 @@ payloadsOf body =
 
 {-# INLINE valTags #-}
 valTags :: Lens.Traversal' (Val a) T.Tag
-valTags f (Ann a body) =
-    case body of
+valTags =
+    val .
+    \f ->
+    \case
     V.BInject (V.Inject t v) ->
         V.Inject <$> f t <*> valTags f v <&> V.BInject
     V.BGetField (V.GetField r t) ->
@@ -164,8 +166,7 @@ valTags f (Ann a body) =
         RowExtend <$> f t <*> valTags f v <*> valTags f r <&> V.BCase
     V.BRecExtend (RowExtend t v r) ->
         RowExtend <$> f t <*> valTags f v <*> valTags f r <&> V.BRecExtend
-    _ -> htraverse1 (valTags f) body
-    <&> Ann a
+    body -> htraverse1 (valTags f) body
 
 {-# INLINE valGlobals #-}
 valGlobals :: Set V.Var -> Lens.IndexedFold a (Val a) V.Var
@@ -182,16 +183,17 @@ valGlobals scope f (Ann pl body) =
 
 {-# INLINE valNominals #-}
 valNominals :: Lens.Traversal' (Val a) T.NominalId
-valNominals f (Ann pl body) =
-    case body of
+valNominals =
+    val .
+    \f ->
+    \case
     V.BLeaf (V.LFromNom nomId) -> f nomId <&> V.LFromNom <&> V.BLeaf
     V.BToNom (ToNom nomId x) ->
         ToNom
         <$> f nomId
         <*> valNominals f x
         <&> V.BToNom
-    _ -> body & htraverse1 . valNominals %%~ f
-    <&> Ann pl
+    body -> body & htraverse1 . valNominals %%~ f
 
 -- Lamdu-calculus uses a uniform type for all subexpression types, so
 -- Inferred yields unnecessary power compared to Ann, and is less usable
