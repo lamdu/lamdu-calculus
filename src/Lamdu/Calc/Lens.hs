@@ -16,7 +16,7 @@ module Lamdu.Calc.Lens
     , pureValBody
     , pureValApply
     --
-    , valTags, bodyTags, biTraverseBodyTags
+    , valTags
     , valGlobals
     , valNominals
     -- Subexpressions:
@@ -168,10 +168,6 @@ biTraverseBodyTags onTag onChild body =
     V.BRecExtend (RowExtend t v r) ->
         V.BRecExtend <$> (RowExtend <$> onTag t <*> onChild v <*> onChild r)
     _ -> htraverse1 onChild body
-
-{-# INLINE bodyTags #-}
-bodyTags :: Lens.Traversal' (Tree V.Term (Ann a)) T.Tag
-bodyTags f = biTraverseBodyTags f pure
 
 {-# INLINE valTags #-}
 valTags :: Lens.Traversal' (Val a) T.Tag
