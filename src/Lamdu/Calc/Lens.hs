@@ -126,19 +126,19 @@ valLeafs f (Ann pl body) =
     <&> Ann pl
 
 {-# INLINE subExprPayloads #-}
-subExprPayloads :: Lens.IndexedTraversal (Val ()) (Val a) (Val b) a b
+subExprPayloads :: Lens.IndexedTraversal (Tree Pure V.Term) (Val a) (Val b) a b
 subExprPayloads f x@(Ann pl body) =
     Ann
-    <$> Lens.indexed f (x & annotations .~ ()) pl
+    <$> Lens.indexed f (unwrap (const (^. val)) x) pl
     <*> (htraverse1 .> subExprPayloads) f body
 
 {-# INLINE payloadsOf #-}
 payloadsOf ::
-    Lens.Fold (Tree V.Term (Ann ())) a -> Lens.IndexedTraversal' (Val ()) (Val b) b
-payloadsOf body =
+    Lens.Fold (Tree Pure V.Term) a -> Lens.IndexedTraversal' (Tree Pure V.Term) (Val b) b
+payloadsOf l =
     subExprPayloads . Lens.ifiltered predicate
     where
-        predicate idx _ = Lens.has (val . body) idx
+        predicate idx _ = Lens.has l idx
 
 {-# INLINE valTags #-}
 valTags :: Lens.Traversal' (Val a) T.Tag
