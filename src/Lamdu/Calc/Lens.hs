@@ -12,10 +12,6 @@ module Lamdu.Calc.Lens
     , valGetField
     , valApply
     , valAbs
-    -- Pure vals:
-    , pureValBody
-    , pureValApply
-    --
     , valTags
     , valGlobals
     , valNominals
@@ -33,7 +29,7 @@ import           Hyper.Recurse
 import           Hyper.Type.AST.Nominal (ToNom(..), NominalInst(..), NominalDecl, nScheme)
 import           Hyper.Type.AST.Row (RowExtend(..))
 import           Hyper.Type.AST.Scheme (Scheme, _QVarInstances, sTyp)
-import           Control.Lens (Traversal', Prism', Iso', iso)
+import           Control.Lens (Traversal', Prism')
 import qualified Control.Lens as Lens
 import           Control.Lens.Operators
 import           Data.Constraint (withDict)
@@ -84,14 +80,6 @@ valApply = val . V._BApp
 {-# INLINE valAbs #-}
 valAbs :: Traversal' (Val a) (Tree (V.Lam V.Var V.Term) (Ann a))
 valAbs = val . V._BLam
-
-{-# INLINE pureValBody #-}
-pureValBody :: Iso' (Val ()) (Tree V.Term (Ann ()))
-pureValBody = iso (^. val) (Ann ())
-
-{-# INLINE pureValApply #-}
-pureValApply :: Prism' (Val ()) (Tree (V.App V.Term) (Ann ()))
-pureValApply = pureValBody . V._BApp
 
 {-# INLINE valHole #-}
 valHole :: Traversal' (Val a) ()
