@@ -19,12 +19,10 @@ module Lamdu.Calc.Lens
     , subExprPayloads
     , payloadsOf
     , HasTIds(..), tIds
-    , itermAnn
     ) where
 
 import           Hyper
-import           Hyper.Infer (Inferred(..))
-import           Hyper.Type.Ann (val)
+import           Hyper.Type.Combinator.Ann (val)
 import           Hyper.Recurse
 import           Hyper.Type.AST.Nominal (ToNom(..), NominalInst(..), NominalDecl, nScheme)
 import           Hyper.Type.AST.Row (RowExtend(..))
@@ -74,11 +72,11 @@ instance HasTIds (NominalDecl T.Type) where
     bodyTIds = nScheme . bodyTIds
 
 {-# INLINE valApply #-}
-valApply :: Traversal' (Val a) (Tree (V.App V.Term) (Ann a))
+valApply :: Traversal' (Tree (Ann a) V.Term) (Tree (V.App V.Term) (Ann a))
 valApply = val . V._BApp
 
 {-# INLINE valAbs #-}
-valAbs :: Traversal' (Val a) (Tree (V.Lam V.Var V.Term) (Ann a))
+valAbs :: Traversal' (Tree (Ann a) V.Term) (Tree (V.Lam V.Var V.Term) (Ann a))
 valAbs = val . V._BLam
 
 {-# INLINE valHole #-}
@@ -98,7 +96,7 @@ valLiteral :: Traversal' (Val a) V.PrimVal
 valLiteral = val . valBodyLiteral
 
 {-# INLINE valGetField #-}
-valGetField  :: Traversal' (Val a) (Tree V.GetField (Ann a))
+valGetField  :: Traversal' (Tree (Ann a) V.Term) (Tree V.GetField (Ann a))
 valGetField = val . V._BGetField
 
 {-# INLINE valBodyHole #-}
@@ -119,17 +117,17 @@ valBodyLiteral = V._BLeaf . V._LLiteral
 
 {-# INLINE valLeafs #-}
 valLeafs :: Lens.IndexedTraversal' a (Val a) V.Leaf
-valLeafs f (Ann pl body) =
+valLeafs f (Ann (Const pl) body) =
     case body of
     V.BLeaf l -> Lens.indexed f pl l <&> V.BLeaf
     _ -> htraverse1 (valLeafs f) body
-    <&> Ann pl
+    <&> Ann (Const pl)
 
 {-# INLINE subExprPayloads #-}
 subExprPayloads :: Lens.IndexedTraversal (Tree Pure V.Term) (Val a) (Val b) a b
-subExprPayloads f x@(Ann pl body) =
+subExprPayloads f x@(Ann (Const pl) body) =
     Ann
-    <$> Lens.indexed f (unwrap (const (^. val)) x) pl
+    <$> (Lens.indexed f (unwrap (const (^. val)) x) pl <&> Const)
     <*> (htraverse1 .> subExprPayloads) f body
 
 {-# INLINE payloadsOf #-}
@@ -157,12 +155,15 @@ valTags =
     body -> htraverse1 (valTags f) body
 
 {-# INLINE valGlobals #-}
-valGlobals :: Set V.Var -> Lens.IndexedFold a (Val a) V.Var
+valGlobals ::
+    HFunctor a =>
+    Set V.Var ->
+    Lens.IndexedFold (Tree a (Const ())) (Tree (Ann a) V.Term) V.Var
 valGlobals scope f (Ann pl body) =
     case body of
     V.BLeaf (V.LVar v)
         | scope ^. Lens.contains v -> V.LVar v & V.BLeaf & pure
-        | otherwise -> Lens.indexed f pl v <&> V.LVar <&> V.BLeaf
+        | otherwise -> Lens.indexed f (hmap (\_ _ -> Const ()) pl) v <&> V.LVar <&> V.BLeaf
     V.BLam (V.Lam var lamBody) ->
         valGlobals (Set.insert var scope) f lamBody
         <&> V.Lam var <&> V.BLam
@@ -170,7 +171,7 @@ valGlobals scope f (Ann pl body) =
     <&> Ann pl
 
 {-# INLINE valNominals #-}
-valNominals :: Lens.Traversal' (Val a) T.NominalId
+valNominals :: Lens.Traversal' (Tree (Ann a) V.Term) T.NominalId
 valNominals =
     val .
     \f ->
@@ -182,19 +183,3 @@ valNominals =
         <*> valNominals f x
         <&> V.BToNom
     body -> body & htraverse1 . valNominals %%~ f
-
--- Lamdu-calculus uses a uniform type for all subexpression types, so
--- Inferred yields unnecessary power compared to Ann, and is less usable
-itermAnn ::
-    Lens.Iso
-    (Tree (Inferred a n) V.Term)
-    (Tree (Inferred b m) V.Term)
-    (Tree (Ann (a, Tree V.IResult n)) V.Term)
-    (Tree (Ann (b, Tree V.IResult m)) V.Term)
-itermAnn =
-    Lens.iso toAnn fromAnn
-    where
-        fromAnn (Ann (pl, ires) term) =
-            term & htraverse1 %~ fromAnn & Inferred pl ires
-        toAnn (Inferred pl ires term) =
-            term & htraverse1 %~ toAnn & Ann (pl, ires)

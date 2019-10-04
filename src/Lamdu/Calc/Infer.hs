@@ -1,7 +1,7 @@
 {-# LANGUAGE NoImplicitPrelude, TemplateHaskell, GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE UndecidableInstances, MultiParamTypeClasses, TypeFamilies #-}
 {-# LANGUAGE FlexibleInstances, LambdaCase, DataKinds, FlexibleContexts #-}
-{-# LANGUAGE TypeApplications, RankNTypes, DerivingStrategies #-}
+{-# LANGUAGE TypeApplications, RankNTypes, DerivingStrategies, TypeOperators #-}
 
 module Lamdu.Calc.Infer
     ( InferState(..), isBinding, isQVarGen
@@ -228,7 +228,7 @@ alphaEq x y =
             & runMaybeT
     <&> Lens.has Lens._Just
 
-{-# SPECIALIZE inferH :: Tree (Ann a) Term -> Tree (InferChild PureInfer (Inferred a UVar)) Term #-}
+{-# SPECIALIZE inferH :: Tree (Ann a) Term -> Tree (InferChild PureInfer (Ann (a :*: InferResult UVar))) Term #-}
 {-# SPECIALIZE unify :: Tree UVar T.Row -> Tree UVar T.Row -> PureInfer (Tree UVar T.Row) #-}
 {-# SPECIALIZE unify :: Tree (STUVar s) T.Row -> Tree (STUVar s) T.Row -> STInfer s (Tree (STUVar s) T.Row) #-}
 {-# SPECIALIZE updateConstraints :: ScopeLevel -> Tree (STUVar s) T.Type -> Tree (UTerm (STUVar s)) T.Type -> STInfer s () #-}

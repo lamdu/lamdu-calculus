@@ -321,4 +321,4 @@ instance
 
 -- Type synonym to ease the transition
 
-type Val a = Tree (Ann a) Term
+type Val a = Tree (Ann (Const a)) Term

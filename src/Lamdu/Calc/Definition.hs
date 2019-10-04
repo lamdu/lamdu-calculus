@@ -7,7 +7,7 @@ module Lamdu.Calc.Definition
     , pruneDeps
     ) where
 
-import           Hyper (Ann, Tree, Pure)
+import           Hyper (Ann, Tree, Pure, HFunctor)
 import           Hyper.Type.AST.Nominal (NominalDecl)
 import           Control.DeepSeq (NFData)
 import qualified Control.Lens as Lens
@@ -39,7 +39,9 @@ instance Monoid Deps where
     mempty = Deps mempty mempty
     mappend = (<>)
 
-pruneDeps :: Tree (Ann a) V.Term -> Deps -> Deps
+pruneDeps ::
+    HFunctor a =>
+    Tree (Ann a) V.Term -> Deps -> Deps
 pruneDeps e deps =
     deps
     & depsGlobalTypes %~ prune (valGlobals mempty)

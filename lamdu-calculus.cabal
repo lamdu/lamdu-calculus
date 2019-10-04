@@ -22,7 +22,6 @@ library
                      , Lamdu.Calc.Infer
                      , Lamdu.Calc.Lens
                      , Lamdu.Calc.Term
-                     , Lamdu.Calc.Term.Arbitrary
                      , Lamdu.Calc.Term.Eq
                      , Lamdu.Calc.Type
   build-depends:       base >= 4.7
