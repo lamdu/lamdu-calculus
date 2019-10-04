@@ -46,9 +46,3 @@ pruneDeps e deps =
     & depsNominals %~ prune valNominals
     where
         prune f = Map.filterWithKey (const . (`Set.member` Set.fromList (e ^.. f)))
-
--- depSchemes :: Lens.Traversal' Deps (Tree T.Scheme Pure)
--- depSchemes f (Deps globals nominals) =
---     Deps
---     <$> traverse f globals
---     <*> (traverse . nScheme) f nominals
