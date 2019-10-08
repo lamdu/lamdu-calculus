@@ -30,6 +30,7 @@ import           Hyper
 import           Hyper.Type.Combinator.Flip (Flip, _Flip)
 import           Hyper.Infer
 import           Hyper.Infer.Blame (Blame(..))
+import           Hyper.Recurse
 import           Hyper.Type.AST.App (App(..), appFunc, appArg)
 import           Hyper.Type.AST.FuncType (FuncType(..))
 import           Hyper.Type.AST.Lam (Lam(..), lamIn, lamOut)
@@ -48,6 +49,7 @@ import           Control.Lens.Operators
 import           Data.Binary (Binary)
 import           Data.ByteString (ByteString)
 import qualified Data.ByteString.Char8 as BS8
+import           Data.Constraint
 import           Data.Hashable (Hashable(..))
 import           Data.Map (Map)
 import           Data.String (IsString(..))
@@ -127,6 +129,9 @@ makeHasHPlain [''Term]
 instance RNodes Term
 instance c Term => Recursively c Term
 instance RTraversable Term
+
+instance Recursive ((~) Term) where
+    recurse _ = Dict
 
 instance IsString (HPlain Term) where
     fromString = BLeafP . LVar . fromString
