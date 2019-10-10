@@ -22,7 +22,7 @@ module Lamdu.Calc.Lens
     ) where
 
 import           Hyper
-import           Hyper.Type.Combinator.Ann (val)
+import           Hyper.Combinator.Ann (val)
 import           Hyper.Recurse
 import           Hyper.Type.AST.Nominal (ToNom(..), NominalInst(..), NominalDecl, nScheme)
 import           Hyper.Type.AST.Row (RowExtend(..))

@@ -27,7 +27,6 @@ module Lamdu.Calc.Term
     ) where
 
 import           Hyper
-import           Hyper.Type.Combinator.Flip (Flip, _Flip)
 import           Hyper.Infer
 import           Hyper.Infer.Blame (Blame(..))
 import           Hyper.Recurse
@@ -173,7 +172,7 @@ instance Pretty (f # Term) => Pretty (Term f) where
 
 data Scope v = Scope
     { _scopeNominals :: Map T.NominalId (LoadedNominalDecl T.Type v)
-    , _scopeVarTypes :: Map Var (Flip G.GTerm T.Type v)
+    , _scopeVarTypes :: Map Var (HFlip G.GTerm T.Type v)
     , _scopeLevel :: ScopeLevel
     } deriving Generic
 Lens.makeLenses ''Scope
@@ -205,7 +204,7 @@ makeInstances [''Binary, ''NFData, ''Hashable] [''Term, ''Scope, ''GetField, ''I
 
 instance TermVar.VarType Var Term where
     {-# INLINE varType #-}
-    varType _ v x = x ^?! scopeVarTypes . Lens.ix v . _Flip & G.instantiate
+    varType _ v x = x ^?! scopeVarTypes . Lens.ix v . _HFlip & G.instantiate
 
 mkResult ::
     (Functor m, TermVar.HasScope m Scope) =>

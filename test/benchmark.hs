@@ -1,9 +1,9 @@
 {-# LANGUAGE NoImplicitPrelude, OverloadedStrings, ScopedTypeVariables, FlexibleContexts #-}
 
 import           Hyper
+import           Hyper.Combinator.Ann (ann)
 import           Hyper.Infer
 import           Hyper.Recurse
-import           Hyper.Type.Combinator.Ann (ann)
 import           Hyper.Unify
 import           Hyper.Unify.Apply
 import           Control.DeepSeq (rnf)
