@@ -22,7 +22,6 @@ module Lamdu.Calc.Lens
     ) where
 
 import           Hyper
-import           Hyper.Combinator.Ann (val)
 import           Hyper.Recurse
 import           Hyper.Type.AST.Nominal (ToNom(..), NominalInst(..), NominalDecl, nScheme)
 import           Hyper.Type.AST.Row (RowExtend(..))
@@ -73,31 +72,31 @@ instance HasTIds (NominalDecl T.Type) where
 
 {-# INLINE valApply #-}
 valApply :: Traversal' (Tree (Ann a) V.Term) (Tree (V.App V.Term) (Ann a))
-valApply = val . V._BApp
+valApply = hVal . V._BApp
 
 {-# INLINE valAbs #-}
 valAbs :: Traversal' (Tree (Ann a) V.Term) (Tree (V.Lam V.Var V.Term) (Ann a))
-valAbs = val . V._BLam
+valAbs = hVal . V._BLam
 
 {-# INLINE valHole #-}
 valHole :: Traversal' (Val a) ()
-valHole = val . valBodyHole
+valHole = hVal . valBodyHole
 
 {-# INLINE valVar #-}
 valVar :: Traversal' (Val a) V.Var
-valVar = val . valBodyVar
+valVar = hVal . valBodyVar
 
 {-# INLINE valRecEmpty #-}
 valRecEmpty :: Traversal' (Val a) ()
-valRecEmpty = val . valBodyRecEmpty
+valRecEmpty = hVal . valBodyRecEmpty
 
 {-# INLINE valLiteral #-}
 valLiteral :: Traversal' (Val a) V.PrimVal
-valLiteral = val . valBodyLiteral
+valLiteral = hVal . valBodyLiteral
 
 {-# INLINE valGetField #-}
 valGetField  :: Traversal' (Tree (Ann a) V.Term) (Tree V.GetField (Ann a))
-valGetField = val . V._BGetField
+valGetField = hVal . V._BGetField
 
 {-# INLINE valBodyHole #-}
 valBodyHole :: Prism' (V.Term expr) ()
@@ -127,7 +126,7 @@ valLeafs f (Ann (Const pl) body) =
 subExprPayloads :: Lens.IndexedTraversal (Tree Pure V.Term) (Val a) (Val b) a b
 subExprPayloads f x@(Ann (Const pl) body) =
     Ann
-    <$> (Lens.indexed f (unwrap (const (^. val)) x) pl <&> Const)
+    <$> (Lens.indexed f (unwrap (const (^. hVal)) x) pl <&> Const)
     <*> (htraverse1 .> subExprPayloads) f body
 
 {-# INLINE payloadsOf #-}
@@ -141,7 +140,7 @@ payloadsOf l =
 {-# INLINE valTags #-}
 valTags :: Lens.Traversal' (Val a) T.Tag
 valTags =
-    val .
+    hVal .
     \f ->
     \case
     V.BInject (V.Inject t v) ->
@@ -173,7 +172,7 @@ valGlobals scope f (Ann pl body) =
 {-# INLINE valNominals #-}
 valNominals :: Lens.Traversal' (Tree (Ann a) V.Term) T.NominalId
 valNominals =
-    val .
+    hVal .
     \f ->
     \case
     V.BLeaf (V.LFromNom nomId) -> f nomId <&> V.LFromNom <&> V.BLeaf
