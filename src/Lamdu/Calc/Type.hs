@@ -10,9 +10,9 @@
 --
 -- * The AST for types: Nominal types, structural composite types,
 --   function types.
-{-# LANGUAGE NoImplicitPrelude, DeriveGeneric, GeneralizedNewtypeDeriving #-}
+{-# LANGUAGE NoImplicitPrelude, DeriveGeneric, GeneralizedNewtypeDeriving, TypeApplications #-}
 {-# LANGUAGE TemplateHaskell, DataKinds, StandaloneDeriving, DerivingVia, TypeOperators #-}
-{-# LANGUAGE UndecidableInstances, ConstraintKinds, FlexibleContexts, GADTs #-}
+{-# LANGUAGE UndecidableInstances, ConstraintKinds, FlexibleContexts, GADTs, TupleSections #-}
 {-# LANGUAGE FlexibleInstances, TypeFamilies, MultiParamTypeClasses, RankNTypes #-}
 
 module Lamdu.Calc.Type
@@ -22,7 +22,7 @@ module Lamdu.Calc.Type
     -- * Typed identifiers of the Type AST
     , Var(..), NominalId(..), Tag(..)
     -- * Rows
-    , Row(..)
+    , Row(..), W_Row(..)
     -- * Row Prisms
     , _RExtend, _REmpty, _RVar
     -- * Type AST
@@ -32,7 +32,7 @@ module Lamdu.Calc.Type
     -- * Type Prisms
     , _TVar, _TFun, _TInst, _TRecord, _TVariant
     -- TODO: describe
-    , Types(..), tType, tRow
+    , Types(..), W_Types(..), tType, tRow
     , RConstraints(..), rForbiddenFields, rScope
     , rStructureMismatch
 
@@ -43,13 +43,13 @@ module Lamdu.Calc.Type
     , HPlain(..)
     ) where
 
-import qualified Hyper.Type.AST.Scheme as S
 import           Algebra.PartialOrd
 import           Control.DeepSeq (NFData(..))
 import qualified Control.Lens as Lens
 import           Control.Lens.Operators
 import           Data.Binary (Binary)
 import           Data.Hashable (Hashable)
+import           Data.Proxy (Proxy(..))
 import           Data.Set (Set)
 import           Data.String (IsString(..))
 import           GHC.Exts (Constraint)
@@ -58,10 +58,15 @@ import           Generics.Constraints (makeDerivings, makeInstances)
 import           Hyper
 import           Hyper.Class.Has
 import           Hyper.Infer
+import           Hyper.Infer.Blame (Blame(..))
 import           Hyper.Type.AST.FuncType
 import           Hyper.Type.AST.Nominal
 import           Hyper.Type.AST.Row
+import qualified Hyper.Type.AST.Scheme as S
+import           Hyper.Type.Prune (Prune)
 import           Hyper.Unify
+import           Hyper.Unify.New (newTerm)
+import           Hyper.Unify.Lookup (semiPruneLookup)
 import           Hyper.Unify.QuantifiedVar
 import           Hyper.Unify.Term
 import           Lamdu.Calc.Identifier (Identifier)
@@ -270,6 +275,46 @@ instance RowConstraints RConstraints where
 instance PartialOrd RConstraints where
     {-# INLINE leq #-}
     RowConstraints f0 s0 `leq` RowConstraints f1 s1 = f0 `leq` f1 && s0 `leq` s1
+
+type instance InferOf Type = ANode Type
+type instance InferOf Row = ANode Row
+instance HasInferredValue Type where inferredValue = _ANode
+instance HasInferredValue Row where inferredValue = _ANode
+
+instance RTraversableInferOf Type
+instance RTraversableInferOf Row
+instance RTraversableInferOf (HCompose Prune Type)
+instance RTraversableInferOf (HCompose Prune Row)
+
+instance (Monad m, UnifyGen m Type, UnifyGen m Row) => Infer m Type where
+    inferBody x =
+        do
+            xI <- htraverse (const inferChild) x
+            hmap (Proxy @HasInferredValue #> (^. inType . inferredValue)) xI
+                & newTerm
+                <&> (hmap (const (^. inRep)) xI, ) . MkANode
+
+instance (Monad m, UnifyGen m Type, UnifyGen m Row) => Infer m Row where
+    inferBody x =
+        do
+            xI <- htraverse (const inferChild) x
+            hmap (Proxy @HasInferredValue #> (^. inType . inferredValue)) xI
+                & newTerm
+                <&> (hmap (const (^. inRep)) xI, ) . MkANode
+
+instance (UnifyGen m Type, UnifyGen m Row) => Blame m Row where
+    inferOfUnify _ x y = () <$ unify (x ^. _ANode) (y ^. _ANode)
+    inferOfMatches _ x y =
+        (==)
+        <$> (semiPruneLookup (x ^. _ANode) <&> fst)
+        <*> (semiPruneLookup (y ^. _ANode) <&> fst)
+
+instance (UnifyGen m Type, UnifyGen m Row) => Blame m Type where
+    inferOfUnify _ x y = () <$ unify (x ^. _ANode) (y ^. _ANode)
+    inferOfMatches _ x y =
+        (==)
+        <$> (semiPruneLookup (x ^. _ANode) <&> fst)
+        <*> (semiPruneLookup (y ^. _ANode) <&> fst)
 
 {-# INLINE rStructureMismatch #-}
 rStructureMismatch ::

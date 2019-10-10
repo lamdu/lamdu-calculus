@@ -7,7 +7,7 @@ module Lamdu.Calc.Definition
     , pruneDeps
     ) where
 
-import           Hyper (Ann, Pure, Const(..), Generic, hflipped, hmapped1, type (#))
+import           Hyper (Ann, Pure, Const(..), Generic, HFunctor(..), hflipped, type (#))
 import           Hyper.Type.AST.Nominal (NominalDecl)
 import           Control.DeepSeq (NFData)
 import qualified Control.Lens as Lens
@@ -45,5 +45,5 @@ pruneDeps e deps =
     & depsGlobalTypes %~ prune (valGlobals mempty)
     & depsNominals %~ prune valNominals
     where
-        ev = e & hflipped . hmapped1 .~ Const ()
+        ev = e & hflipped %~ hmap (\_ _ -> Const ())
         prune f = Map.filterWithKey (const . (`Set.member` Set.fromList (ev ^.. f)))

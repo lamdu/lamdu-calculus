@@ -23,6 +23,7 @@ import           Hyper.Recurse
 import           Hyper.Type.AST.Nominal (ToNom(..), NominalInst(..), NominalDecl, nScheme)
 import           Hyper.Type.AST.Row (RowExtend(..))
 import           Hyper.Type.AST.Scheme (Scheme, _QVarInstances, sTyp)
+import           Hyper.Type.Prune (Prune, _Unpruned)
 import           Control.Lens (Traversal', Prism')
 import qualified Control.Lens as Lens
 import           Control.Lens.Operators
@@ -93,20 +94,28 @@ valBodyVar = V._BLeaf . V._LVar
 valBodyLiteral :: Prism' (V.Term expr) V.PrimVal
 valBodyLiteral = V._BLeaf . V._LLiteral
 
+subTerms :: Lens.Traversal' (V.Term # k) (k # V.Term)
+subTerms f =
+    htraverse
+    ( \case
+        HWitness V.W_Term_Term -> f
+        HWitness V.W_Term_HCompose_Prune_Type -> pure
+    )
+
 {-# INLINE valLeafs #-}
 valLeafs :: Lens.IndexedTraversal' (a # V.Term) (Ann a # V.Term) V.Leaf
 valLeafs f (Ann pl body) =
     case body of
     V.BLeaf l -> Lens.indexed f pl l <&> V.BLeaf
-    _ -> htraverse1 (valLeafs f) body
+    _ -> subTerms (valLeafs f) body
     <&> Ann pl
 
 {-# INLINE subExprPayloads #-}
-subExprPayloads :: Lens.IndexedTraversal (Pure # V.Term) (Val a) (Val b) a b
+subExprPayloads :: Lens.IndexedTraversal' (Pure # V.Term) (Val a) a
 subExprPayloads f x@(Ann (Const pl) body) =
     Ann
     <$> (Lens.indexed f (unwrap (const (^. hVal)) x) pl <&> Const)
-    <*> (htraverse1 .> subExprPayloads) f body
+    <*> (subTerms .> subExprPayloads) f body
 
 {-# INLINE payloadsOf #-}
 payloadsOf ::
@@ -130,7 +139,34 @@ valTags =
         RowExtend <$> f t <*> valTags f v <*> valTags f r <&> V.BCase
     V.BRecExtend (RowExtend t v r) ->
         RowExtend <$> f t <*> valTags f v <*> valTags f r <&> V.BRecExtend
-    body -> htraverse1 (valTags f) body
+    body ->
+        htraverse
+        ( \case
+            HWitness V.W_Term_Term -> valTags f
+            HWitness V.W_Term_HCompose_Prune_Type -> typeTags f
+        ) body
+
+typeTags :: Lens.Traversal' (Ann a # HCompose Prune T.Type) T.Tag
+typeTags f =
+    (hVal . _HCompose . _Unpruned . _HCompose)
+    ( htraverse
+        ( \case
+            HWitness T.W_Type_Type -> (_HCompose . typeTags) f
+            HWitness T.W_Type_Row -> (_HCompose . rowTags) f
+            HWitness (T.E_Type_NominalInst_NominalId_Types (HWitness T.W_Types_Type)) -> (_HCompose . typeTags) f
+            HWitness (T.E_Type_NominalInst_NominalId_Types (HWitness T.W_Types_Row)) -> (_HCompose . rowTags) f
+        )
+    )
+
+rowTags :: Lens.Traversal' (Ann a # HCompose Prune T.Row) T.Tag
+rowTags =
+    hVal . _HCompose . _Unpruned . _HCompose . T._RExtend . onRExtend
+    where
+        onRExtend f (RowExtend tag val rest) =
+            RowExtend
+            <$> f tag
+            <*> (_HCompose . typeTags) f val
+            <*> (_HCompose . rowTags) f rest
 
 {-# INLINE valGlobals #-}
 valGlobals ::
@@ -142,10 +178,15 @@ valGlobals scope f (Ann pl body) =
     V.BLeaf (V.LVar v)
         | scope ^. Lens.contains v -> V.LVar v & V.BLeaf & pure
         | otherwise -> Lens.indexed f (hmap (\_ _ -> Const ()) pl) v <&> V.LVar <&> V.BLeaf
-    V.BLam (V.Lam var lamBody) ->
+    V.BLam (V.TypedLam var typ lamBody) ->
         valGlobals (Set.insert var scope) f lamBody
-        <&> V.Lam var <&> V.BLam
-    _ -> (htraverse1 . valGlobals scope) f body
+        <&> V.TypedLam var typ <&> V.BLam
+    _ ->
+        htraverse
+        ( \case
+            HWitness V.W_Term_Term -> valGlobals scope f
+            HWitness V.W_Term_HCompose_Prune_Type -> pure
+        ) body
     <&> Ann pl
 
 {-# INLINE valNominals #-}
@@ -160,4 +201,44 @@ valNominals =
         <$> f nomId
         <*> valNominals f x
         <&> V.BToNom
-    body -> body & htraverse1 . valNominals %%~ f
+    body ->
+        htraverse
+        ( \case
+            HWitness V.W_Term_Term -> valNominals f
+            HWitness V.W_Term_HCompose_Prune_Type -> typeNominals f
+        ) body
+
+{-# INLINE typeNominals #-}
+typeNominals :: Lens.Traversal' (Ann a # HCompose Prune T.Type) T.NominalId
+typeNominals =
+    hVal . _HCompose . _Unpruned . _HCompose .
+    \f ->
+    \case
+    T.TInst (NominalInst nomId args) ->
+        NominalInst
+        <$> f nomId
+        <*> htraverse
+            ( \case
+                HWitness T.W_Types_Type -> (_QVarInstances . traverse . _HCompose . typeNominals) f
+                HWitness T.W_Types_Row -> (_QVarInstances . traverse . _HCompose . rowNominals) f
+            ) args
+        <&> T.TInst
+    body ->
+        htraverse
+        ( \case
+            HWitness T.W_Type_Type -> (_HCompose . typeNominals) f
+            HWitness T.W_Type_Row -> (_HCompose . rowNominals) f
+            HWitness (T.E_Type_NominalInst_NominalId_Types (HWitness T.W_Types_Type)) -> (_HCompose . typeNominals) f
+            HWitness (T.E_Type_NominalInst_NominalId_Types (HWitness T.W_Types_Row)) -> (_HCompose . rowNominals) f
+        ) body
+
+{-# INLINE rowNominals #-}
+rowNominals :: Lens.Traversal' (Ann a # HCompose Prune T.Row) T.NominalId
+rowNominals =
+    hVal . _HCompose . _Unpruned . _HCompose .
+    \f ->
+    htraverse
+    ( \case
+        HWitness T.W_Row_Type -> (_HCompose . typeNominals) f
+        HWitness T.W_Row_Row -> (_HCompose . rowNominals) f
+    )

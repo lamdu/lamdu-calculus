@@ -14,6 +14,7 @@ import           Hyper
 import           Hyper.Type.AST.Nominal
 import           Hyper.Type.AST.Row
 import           Hyper.Type.AST.Scheme
+import           Hyper.Type.Prune
 import qualified Control.Lens as Lens
 import           Control.Lens.Operators
 import qualified Data.ByteString.Char8 as BS8
@@ -169,8 +170,8 @@ inf l f r = f $$: [("l", l), ("r", r)]
 factorialVal :: HPlain Term
 factorialVal =
     BAppP "fix" $
-    BLamP "loop" $
-    BLamP "x" $
+    BLamP "loop" Pruned $
+    BLamP "x" Pruned $
     "if" $$:
     [ ("condition", inf "x" "==" (litInt 0))
     , ("then", litInt 1)
@@ -183,7 +184,7 @@ euler1Val =
     "filter" $$:
     [ ("from", inf (litInt 1) ".." (litInt 1000))
     , ("predicate",
-        BLamP "x" $
+        BLamP "x" Pruned $
         inf
         (inf (litInt 0) "==" (inf "x" "%" (litInt 3)))
         "||"
@@ -192,7 +193,7 @@ euler1Val =
     ]
 
 let_ :: Var -> HPlain Term -> HPlain Term -> HPlain Term
-let_ k v r = BAppP (BLamP k r) v
+let_ k v r = BAppP (BLamP k Pruned r) v
 
 cons :: HPlain Term -> HPlain Term -> HPlain Term
 cons h t = BToNomP "List" $ BInjectP ":" $ record [("head", h), ("tail", t)]
@@ -202,10 +203,10 @@ list = foldr cons (BToNomP "List" (BInjectP "[]" (BLeafP LRecEmpty)))
 
 solveDepressedQuarticVal :: HPlain Term
 solveDepressedQuarticVal =
-    BLamP "params" $
+    BLamP "params" Pruned $
     let_ "solvePoly" "id" $
     let_ "sqrts"
-    ( BLamP "x" $
+    ( BLamP "x" Pruned $
         let_ "r" (BAppP "sqrt" "x") $
         list ["r", BAppP "negate" "r"]
     ) $
@@ -229,7 +230,7 @@ solveDepressedQuarticVal =
             , litInt 1
             ])
         , ( "mapping",
-            BLamP "x" $
+            BLamP "x" Pruned $
             BAppP "solvePoly" $
             list
             [ (c %+ ("x" %* "x")) %- (d %/ "x")
@@ -256,8 +257,8 @@ x %== y = inf x "==" y
 factorsVal :: HPlain Term
 factorsVal =
     BAppP "fix" $
-    BLamP "loop" $
-    BLamP "params" $
+    BLamP "loop" Pruned $
+    BLamP "params" Pruned $
     if_ ((m %* m) %> n) (list [n]) $
     if_ ((n %% m) %== litInt 0)
     (cons m $ "loop" $$: [("n", n %// m), ("min", m)]) $
@@ -266,5 +267,5 @@ factorsVal =
         n = BGetFieldP "params" "n"
         m = BGetFieldP "params" "min"
         if_ b t f =
-            BCaseP "False" (BLamP "_" f) (BCaseP "True" (BLamP "_" t) (BLeafP LAbsurd))
+            BCaseP "False" (BLamP "_" Pruned f) (BCaseP "True" (BLamP "_" Pruned t) (BLeafP LAbsurd))
             `BAppP` (BLeafP (LFromNom "Bool") `BAppP` b)

@@ -16,8 +16,8 @@ module Lamdu.Calc.Term
         , W_Term(..)
     , App(..), appFunc, appArg
     , GetField(..), getFieldRecord, getFieldTag
+    , module Hyper.Type.AST.TypedLam
     , Inject(..), injectVal, injectTag
-    , Lam(..), lamIn, lamOut
     , Var(..)
     , Scope(..), scopeNominals, scopeVarTypes, scopeLevel
     , emptyScope
@@ -35,18 +35,18 @@ import           Data.Hashable (Hashable(..))
 import           Data.Map (Map)
 import           Data.String (IsString(..))
 import           Generics.Constraints (makeDerivings, makeInstances)
+import           GHC.Generics (Generic)
 import           Hyper
 import           Hyper.Class.Infer.InferOf (RTraversableInferOf)
-import           Hyper.Class.Nodes (HNodesHaveConstraint)
 import           Hyper.Infer
 import           Hyper.Infer.Blame (Blame(..))
-import           Hyper.Recurse
+import           Hyper.Type.Prune
 import           Hyper.Type.AST.App (App(..), appFunc, appArg)
 import           Hyper.Type.AST.FuncType (FuncType(..))
-import           Hyper.Type.AST.Lam (Lam(..), lamIn, lamOut)
 import           Hyper.Type.AST.Nominal (ToNom(..), FromNom(..), NominalInst(..), MonadNominals, LoadedNominalDecl)
 import           Hyper.Type.AST.Row (RowExtend(..), rowElementInfer)
 import           Hyper.Type.AST.Scheme (QVarInstances(..))
+import           Hyper.Type.AST.TypedLam (TypedLam(..), tlIn, tlInType, tlOut)
 import qualified Hyper.Type.AST.Var as TermVar
 import           Hyper.Unify
 import qualified Hyper.Unify.Generalize as G
@@ -103,7 +103,7 @@ data Inject k = Inject
 
 data Term k
     = BApp {-# UNPACK #-}!(App Term k)
-    | BLam {-# UNPACK #-}!(Lam Var Term k)
+    | BLam {-# UNPACK #-}!(TypedLam Var (HCompose Prune T.Type) Term k)
     | BGetField {-# UNPACK #-}!(GetField k)
     | BRecExtend {-# UNPACK #-}!(RowExtend T.Tag Term Term k)
     | BInject {-# UNPACK #-}!(Inject k)
@@ -128,16 +128,17 @@ makeHContext ''Term
 makeHasHPlain [''Term]
 
 instance RNodes Term
-instance c Term => Recursively c Term
+instance
+    (c Term, c (HCompose Prune T.Type), c (HCompose Prune T.Row)) =>
+    Recursively c Term
 instance RTraversable Term
-
-instance Recursive ((~) Term) where
-    recurse _ = Dict
 
 instance IsString (HPlain Term) where
     fromString = BLeafP . LVar . fromString
 
-instance Pretty (f :# Term) => Pretty (Term f) where
+instance
+    (Pretty (f :# Term), Pretty (f :# HCompose Prune T.Type)) =>
+    Pretty (Term f) where
     pPrintPrec lvl prec b =
         case b of
         BLeaf (LVar var)          -> pPrint var
@@ -147,8 +148,9 @@ instance Pretty (f :# Term) => Pretty (Term f) where
         BLeaf (LFromNom ident)    -> PP.text "[" <+> PP.text "unpack" <+> pPrint ident <+> PP.text "]"
         BApp (App e1 e2)          -> maybeParens (10 < prec) $
                                      pPrintPrec lvl 10 e1 <+> pPrintPrec lvl 11 e2
-        BLam (Lam n e)            -> maybeParens (0 < prec) $
-                                     PP.char '\\' PP.<> pPrint n <+>
+        BLam (TypedLam n t e)     -> maybeParens (0 < prec) $
+                                     PP.char '\\' PP.<> pPrint n PP.<>
+                                     PP.char ':' PP.<> pPrint t <+>
                                      PP.text "->" <+>
                                      pPrint e
         BGetField (GetField e n)  -> maybeParens (12 < prec) $
@@ -296,8 +298,6 @@ instance
         (==)
         <$> (semiPruneLookup (x ^. _ANode) <&> fst)
         <*> (semiPruneLookup (y ^. _ANode) <&> fst)
-
-instance c T.Type => InferOfConstraint (HNodesHaveConstraint c) Term
 
 -- Type synonym to ease the transition
 
