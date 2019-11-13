@@ -72,15 +72,15 @@ valApply :: Traversal' (Tree (Ann a) V.Term) (Tree (V.App V.Term) (Ann a))
 valApply = hVal . V._BApp
 
 {-# INLINE valHole #-}
-valHole :: Traversal' (Val a) ()
+valHole :: Traversal' (Tree (Ann a) V.Term) ()
 valHole = hVal . valBodyHole
 
 {-# INLINE valVar #-}
-valVar :: Traversal' (Val a) V.Var
+valVar :: Traversal' (Tree (Ann a) V.Term) V.Var
 valVar = hVal . valBodyVar
 
 {-# INLINE valLiteral #-}
-valLiteral :: Traversal' (Val a) V.PrimVal
+valLiteral :: Traversal' (Tree (Ann a) V.Term) V.PrimVal
 valLiteral = hVal . valBodyLiteral
 
 {-# INLINE valBodyHole #-}
@@ -96,12 +96,12 @@ valBodyLiteral :: Prism' (V.Term expr) V.PrimVal
 valBodyLiteral = V._BLeaf . V._LLiteral
 
 {-# INLINE valLeafs #-}
-valLeafs :: Lens.IndexedTraversal' a (Val a) V.Leaf
-valLeafs f (Ann (Const pl) body) =
+valLeafs :: Lens.IndexedTraversal' (Tree a V.Term) (Tree (Ann a) V.Term) V.Leaf
+valLeafs f (Ann pl body) =
     case body of
     V.BLeaf l -> Lens.indexed f pl l <&> V.BLeaf
     _ -> htraverse1 (valLeafs f) body
-    <&> Ann (Const pl)
+    <&> Ann pl
 
 {-# INLINE subExprPayloads #-}
 subExprPayloads :: Lens.IndexedTraversal (Tree Pure V.Term) (Val a) (Val b) a b
@@ -119,7 +119,7 @@ payloadsOf l =
         predicate idx _ = Lens.has l idx
 
 {-# INLINE valTags #-}
-valTags :: Lens.Traversal' (Val a) T.Tag
+valTags :: Lens.Traversal' (Tree (Ann a) V.Term) T.Tag
 valTags =
     hVal .
     \f ->
