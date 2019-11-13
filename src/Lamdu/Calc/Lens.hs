@@ -4,14 +4,11 @@
 module Lamdu.Calc.Lens
     ( -- Leafs
       valHole    , valBodyHole
-    , valVar     , valBodyVar
-    , valRecEmpty, valBodyRecEmpty
+    , valVar
     , valLiteral , valBodyLiteral
     , valLeafs
     -- Non-leafs
-    , valGetField
     , valApply
-    , valAbs
     , valTags
     , valGlobals
     , valNominals
@@ -74,10 +71,6 @@ instance HasTIds (NominalDecl T.Type) where
 valApply :: Traversal' (Tree (Ann a) V.Term) (Tree (V.App V.Term) (Ann a))
 valApply = hVal . V._BApp
 
-{-# INLINE valAbs #-}
-valAbs :: Traversal' (Tree (Ann a) V.Term) (Tree (V.Lam V.Var V.Term) (Ann a))
-valAbs = hVal . V._BLam
-
 {-# INLINE valHole #-}
 valHole :: Traversal' (Val a) ()
 valHole = hVal . valBodyHole
@@ -86,17 +79,9 @@ valHole = hVal . valBodyHole
 valVar :: Traversal' (Val a) V.Var
 valVar = hVal . valBodyVar
 
-{-# INLINE valRecEmpty #-}
-valRecEmpty :: Traversal' (Val a) ()
-valRecEmpty = hVal . valBodyRecEmpty
-
 {-# INLINE valLiteral #-}
 valLiteral :: Traversal' (Val a) V.PrimVal
 valLiteral = hVal . valBodyLiteral
-
-{-# INLINE valGetField #-}
-valGetField  :: Traversal' (Tree (Ann a) V.Term) (Tree V.GetField (Ann a))
-valGetField = hVal . V._BGetField
 
 {-# INLINE valBodyHole #-}
 valBodyHole :: Prism' (V.Term expr) ()
@@ -105,10 +90,6 @@ valBodyHole = V._BLeaf . V._LHole
 {-# INLINE valBodyVar #-}
 valBodyVar :: Prism' (V.Term expr) V.Var
 valBodyVar = V._BLeaf . V._LVar
-
-{-# INLINE valBodyRecEmpty #-}
-valBodyRecEmpty :: Prism' (V.Term expr) ()
-valBodyRecEmpty = V._BLeaf . V._LRecEmpty
 
 {-# INLINE valBodyLiteral #-}
 valBodyLiteral :: Prism' (V.Term expr) V.PrimVal
