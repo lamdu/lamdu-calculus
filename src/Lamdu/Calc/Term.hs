@@ -123,6 +123,9 @@ makeHTraversableAndBases ''Term
 makeZipMatch ''GetField
 makeZipMatch ''Inject
 makeZipMatch ''Term
+makeHContext ''GetField
+makeHContext ''Inject
+makeHContext ''Term
 makeHasHPlain [''Term]
 
 instance RNodes Term

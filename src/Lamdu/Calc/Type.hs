@@ -153,6 +153,8 @@ makeHTraversableAndBases ''Type
 makeZipMatch ''Row
 makeZipMatch ''Type
 makeZipMatch ''Types
+makeHContext ''Row
+makeHContext ''Type
 instance RNodes Row
 instance RNodes Type
 instance (c Type, c Row) => Recursively c Type
