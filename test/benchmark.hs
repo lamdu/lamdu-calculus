@@ -42,7 +42,7 @@ toAnn = wrap (\_ x -> Ann (Const ()) x) . (^. hPlain)
 benchInferPure :: HPlain Term -> Benchmarkable
 benchInferPure e =
     infer x
-    <&> (^. hAnn . Lens._2 . _InferResult . iType)
+    <&> (^. hAnn . Lens._2 . _InferResult . _ANode)
     >>= applyBindings
     & localInitEnv id x
     & runPureInfer emptyScope (InferState emptyPureInferState varGen)
@@ -58,7 +58,7 @@ benchInferST e =
     do
         vg <- newSTRef varGen
         localInitEnv Lens._1 x
-            (infer x <&> (^. hAnn . Lens._2 . _InferResult . iType) >>= applyBindings) ^. _STInfer
+            (infer x <&> (^. hAnn . Lens._2 . _InferResult . _ANode) >>= applyBindings) ^. _STInfer
             & (`runReaderT` (emptyScope, vg))
             & runMaybeT
     & liftST >>= evaluate . rnf & whnfIO
