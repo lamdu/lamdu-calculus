@@ -209,14 +209,8 @@ instance
     Infer m Term where
 
     {-# INLINE inferBody #-}
-    inferBody (BApp x) =
-        do
-            (xI, xT) <- inferBody x
-            pure (BApp xI, xT)
-    inferBody (BLam x) =
-        do
-            (xI, xT) <- inferBody x
-            pure (BLam xI, xT)
+    inferBody (BApp x) = inferBody x <&> Lens._1 %~ BApp
+    inferBody (BLam x) = inferBody x <&> Lens._1 %~ BLam
     inferBody (BToNom x) =
         do
             (xI, xT) <- inferBody x
