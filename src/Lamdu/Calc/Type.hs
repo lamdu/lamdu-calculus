@@ -174,8 +174,8 @@ instance HasChild Types Row where
     {-# INLINE getChild #-}
     getChild = tRow
 
-instance (Unify m Type, Unify m Row) => S.HasScheme Types m Type
-instance (Unify m Type, Unify m Row) => S.HasScheme Types m Row
+instance (UnifyGen m Type, UnifyGen m Row) => S.HasScheme Types m Type
+instance (UnifyGen m Type, UnifyGen m Row) => S.HasScheme Types m Row
 
 -- | A convenience infix alias for 'TFun'
 infixr 2 ~>
@@ -279,8 +279,8 @@ rStructureMismatch ::
     Tree (UTermBody (UVarOf m)) Row ->
     Tree (UTermBody (UVarOf m)) Row ->
     m ()
-rStructureMismatch f (UTermBody c0 (RExtend r0)) (UTermBody c1 (RExtend r1)) =
-    rowExtendStructureMismatch f _RExtend (c0, r0) (c1, r1)
+rStructureMismatch f (UTermBody _c0 (RExtend r0)) (UTermBody _c1 (RExtend r1)) =
+    rowExtendStructureMismatch f _RExtend r0 r1
 rStructureMismatch _ x y = unifyError (Mismatch (x ^. uBody) (y ^. uBody))
 
 flatRow ::

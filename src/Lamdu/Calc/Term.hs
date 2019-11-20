@@ -4,7 +4,7 @@
 {-# LANGUAGE UndecidableInstances, StandaloneDeriving, TypeFamilies, TypeOperators #-}
 {-# LANGUAGE MultiParamTypeClasses, FlexibleInstances, ConstraintKinds #-}
 {-# LANGUAGE TupleSections, ScopedTypeVariables, DerivingStrategies, DataKinds #-}
-{-# LANGUAGE PolyKinds #-}
+{-# LANGUAGE PolyKinds, TypeApplications #-}
 
 module Lamdu.Calc.Term
     ( Val
@@ -26,6 +26,19 @@ module Lamdu.Calc.Term
     , HPlain(..)
     ) where
 
+import           Control.DeepSeq (NFData(..))
+import qualified Control.Lens as Lens
+import           Control.Lens.Operators
+import           Data.Binary (Binary)
+import           Data.ByteString (ByteString)
+import qualified Data.ByteString.Char8 as BS8
+import           Data.Constraint
+import           Data.Hashable (Hashable(..))
+import           Data.Map (Map)
+import           Data.Proxy (Proxy(..))
+import           Data.String (IsString(..))
+import           GHC.Generics (Generic)
+import           Generics.Constraints (makeDerivings, makeInstances)
 import           Hyper
 import           Hyper.Infer
 import           Hyper.Infer.Blame (Blame(..))
@@ -42,18 +55,6 @@ import qualified Hyper.Unify.Generalize as G
 import           Hyper.Unify.Lookup (semiPruneLookup)
 import           Hyper.Unify.New (newTerm, newUnbound)
 import           Hyper.Unify.Term (UTerm(..))
-import           Control.DeepSeq (NFData(..))
-import qualified Control.Lens as Lens
-import           Control.Lens.Operators
-import           Data.Binary (Binary)
-import           Data.ByteString (ByteString)
-import qualified Data.ByteString.Char8 as BS8
-import           Data.Constraint
-import           Data.Hashable (Hashable(..))
-import           Data.Map (Map)
-import           Data.String (IsString(..))
-import           Generics.Constraints (makeDerivings, makeInstances)
-import           GHC.Generics (Generic)
 import           Lamdu.Calc.Identifier (Identifier)
 import qualified Lamdu.Calc.Type as T
 import           Text.PrettyPrint ((<+>))
@@ -219,7 +220,7 @@ instance
     ( MonadNominals T.NominalId T.Type m
     , MonadScopeLevel m
     , TermVar.HasScope m Scope
-    , Unify m T.Type, Unify m T.Row
+    , UnifyGen m T.Type, UnifyGen m T.Row
     , LocalScopeType Var (Tree (UVarOf m) T.Type) m
     ) =>
     Infer m Term where
@@ -286,7 +287,7 @@ instance
             InferredChild vI vR <- inferChild v
             InferredChild rI rR <- inferChild r
             restR <-
-                scopeConstraints <&> T.rForbiddenFields . Lens.contains k .~ True
+                scopeConstraints (Proxy @T.Row) <&> T.rForbiddenFields . Lens.contains k .~ True
                 >>= newVar binding . UUnbound
             _ <- T.TRecord restR & newTerm >>= unify (rR ^. iType)
             mkResult
@@ -316,7 +317,7 @@ instance
     ( MonadNominals T.NominalId T.Type m
     , MonadScopeLevel m
     , TermVar.HasScope m Scope
-    , Unify m T.Type, Unify m T.Row
+    , UnifyGen m T.Type, UnifyGen m T.Row
     , LocalScopeType Var (Tree (UVarOf m) T.Type) m
     ) =>
     Blame m Term where
