@@ -184,7 +184,7 @@ Lens.makeLenses ''Scope
 makeHTraversableAndBases ''Scope
 
 {-# INLINE emptyScope #-}
-emptyScope :: Scope v
+emptyScope :: Tree Scope v
 emptyScope = Scope mempty mempty (ScopeLevel 0)
 
 data IResult v = IResult
