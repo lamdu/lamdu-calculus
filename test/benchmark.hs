@@ -28,7 +28,6 @@ localInitEnv ::
     ( MonadReader env m
     , UnifyGen m T.Type
     , UnifyGen m T.Row
-    , HFunctor z
     ) =>
     ASetter' env (Tree Scope (UVarOf m)) -> Tree (Ann z) Term -> m a -> m a
 localInitEnv inferEnv e action =
