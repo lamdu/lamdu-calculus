@@ -41,7 +41,6 @@ import           Control.Monad.Trans.Maybe
 import           Control.Monad.Trans.RWS (RWST(..))
 import           Control.Monad.Trans.Reader (ReaderT(..))
 import           Control.Monad.Trans.Writer (WriterT)
-import           Data.Proxy (Proxy(..))
 import           Data.STRef
 import           Data.String (IsString(..))
 import           Lamdu.Calc.Definition (Deps, depsNominals, depsGlobalTypes)

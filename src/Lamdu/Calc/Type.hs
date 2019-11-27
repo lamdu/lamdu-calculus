@@ -53,7 +53,6 @@ import           Data.Hashable (Hashable)
 import           Data.Set (Set)
 import           Data.String (IsString(..))
 import           GHC.Exts (Constraint)
-import           GHC.Generics (Generic)
 import           Generic.Data (Generically(..))
 import           Generics.Constraints (makeDerivings, makeInstances)
 import           Hyper

@@ -7,7 +7,7 @@ module Lamdu.Calc.Definition
     , pruneDeps
     ) where
 
-import           Hyper (Ann, Pure, Const(..), hflipped, hmapped1, type (#))
+import           Hyper (Ann, Pure, Const(..), Generic, hflipped, hmapped1, type (#))
 import           Hyper.Type.AST.Nominal (NominalDecl)
 import           Control.DeepSeq (NFData)
 import qualified Control.Lens as Lens
@@ -16,7 +16,6 @@ import           Data.Binary (Binary)
 import           Data.Map (Map)
 import qualified Data.Map as Map
 import qualified Data.Set as Set
-import           GHC.Generics (Generic)
 import           Lamdu.Calc.Lens (valGlobals, valNominals)
 import qualified Lamdu.Calc.Term as V
 import           Lamdu.Calc.Type (Type)

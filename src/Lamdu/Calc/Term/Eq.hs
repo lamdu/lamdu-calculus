@@ -11,7 +11,6 @@ import           Control.Lens.Operators
 import           Control.Monad (guard, join)
 import           Data.Map (Map)
 import qualified Data.Map as Map
-import           Data.Proxy (Proxy(..))
 import           Lamdu.Calc.Term
 
 import           Prelude.Compat

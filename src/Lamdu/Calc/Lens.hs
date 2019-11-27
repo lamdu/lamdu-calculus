@@ -26,8 +26,6 @@ import           Hyper.Type.AST.Scheme (Scheme, _QVarInstances, sTyp)
 import           Control.Lens (Traversal', Prism')
 import qualified Control.Lens as Lens
 import           Control.Lens.Operators
-import           Data.Constraint (withDict)
-import           Data.Proxy (Proxy(..))
 import           Data.Set (Set)
 import qualified Data.Set as Set
 import           Lamdu.Calc.Term (Val)

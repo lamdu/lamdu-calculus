@@ -31,12 +31,9 @@ import           Control.Lens.Operators
 import           Data.Binary (Binary)
 import           Data.ByteString (ByteString)
 import qualified Data.ByteString.Char8 as BS8
-import           Data.Constraint
 import           Data.Hashable (Hashable(..))
 import           Data.Map (Map)
-import           Data.Proxy (Proxy(..))
 import           Data.String (IsString(..))
-import           GHC.Generics (Generic)
 import           Generics.Constraints (makeDerivings, makeInstances)
 import           Hyper
 import           Hyper.Infer
