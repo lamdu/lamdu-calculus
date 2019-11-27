@@ -93,13 +93,13 @@ instance Hashable Leaf
 Lens.makePrisms ''Leaf
 
 data GetField k = GetField
-    { _getFieldRecord :: k # Term
+    { _getFieldRecord :: k :# Term
     , _getFieldTag :: T.Tag
     } deriving Generic
 
 data Inject k = Inject
     { _injectTag :: T.Tag
-    , _injectVal :: k # Term
+    , _injectVal :: k :# Term
     } deriving Generic
 
 data Term k
@@ -138,7 +138,7 @@ instance Recursive ((~) Term) where
 instance IsString (HPlain Term) where
     fromString = BLeafP . LVar . fromString
 
-instance Pretty (f # Term) => Pretty (Term f) where
+instance Pretty (f :# Term) => Pretty (Term f) where
     pPrintPrec lvl prec b =
         case b of
         BLeaf (LVar var)          -> pPrint var
