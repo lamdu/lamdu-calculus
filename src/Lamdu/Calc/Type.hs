@@ -179,7 +179,7 @@ instance (UnifyGen m Type, UnifyGen m Row) => S.HasScheme Types m Row
 
 -- | A convenience infix alias for 'TFun'
 infixr 2 ~>
-(~>) :: Tree Pure Type -> Tree Pure Type -> Tree Pure Type
+(~>) :: Pure # Type -> Pure # Type -> Pure # Type
 x ~> y = _Pure # TFun (FuncType x y)
 
 type Deps c k = ((c (k :# Type), c (k :# Row)) :: Constraint)
@@ -195,7 +195,7 @@ instance Deps Pretty k => Pretty (Type k) where
         TRecord r -> PP.text "*" <> pPrint r
         TVariant s -> PP.text "+" <> pPrint s
 
-instance Pretty (Tree Row Pure) where
+instance Pretty (Row # Pure) where
     pPrint REmpty = PP.text "{}"
     pPrint x =
         PP.text "{" <+> go PP.empty x <+> PP.text "}"
@@ -213,7 +213,7 @@ instance Pretty RConstraints where
         pPrint (tags ^.. Lens.folded) <+>
         (PP.text "(" <> pPrint level <> PP.text ")")
 
-instance Pretty (Tree TypeError Pure) where
+instance Pretty (TypeError # Pure) where
     pPrint (TypeError x) = pPrint x
     pPrint (RowError x) = pPrint x
     pPrint (NominalNotFound x) = PP.text "Nominal not found:" <+> pPrint x
@@ -275,18 +275,15 @@ instance PartialOrd RConstraints where
 {-# INLINE rStructureMismatch #-}
 rStructureMismatch ::
     (Unify m Type, Unify m Row) =>
-    (forall c. Unify m c => Tree (UVarOf m) c -> Tree (UVarOf m) c -> m (Tree (UVarOf m) c)) ->
-    Tree (UTermBody (UVarOf m)) Row ->
-    Tree (UTermBody (UVarOf m)) Row ->
+    (forall c. Unify m c => UVarOf m # c -> UVarOf m # c -> m (UVarOf m # c)) ->
+    UTermBody (UVarOf m) # Row ->
+    UTermBody (UVarOf m) # Row ->
     m ()
 rStructureMismatch f (UTermBody _c0 (RExtend r0)) (UTermBody _c1 (RExtend r1)) =
     rowExtendStructureMismatch f _RExtend r0 r1
 rStructureMismatch _ x y = unifyError (Mismatch (x ^. uBody) (y ^. uBody))
 
-flatRow ::
-    Lens.Iso'
-    (Tree Pure Row)
-    (Tree (FlatRowExtends Tag Type Row) Pure)
+flatRow :: Lens.Iso' (Pure # Row) (FlatRowExtends Tag Type Row # Pure)
 flatRow =
     Lens.iso flatten unflatten
     where

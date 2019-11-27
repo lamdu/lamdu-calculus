@@ -1,4 +1,4 @@
-{-# LANGUAGE NoImplicitPrelude, TypeApplications #-}
+{-# LANGUAGE NoImplicitPrelude, TypeApplications, TypeOperators #-}
 
 module Lamdu.Calc.Term.Eq
     ( couldEq
@@ -17,7 +17,7 @@ import           Lamdu.Calc.Term
 import           Prelude.Compat
 
 class CouldEq e where
-    go :: Map Var Var -> Tree Pure e -> Tree Pure e -> Bool
+    go :: Map Var Var -> Pure # e -> Pure # e -> Bool
 
 instance CouldEq Term where
     go xToY (Pure (BLam (Lam xvar xresult))) (Pure (BLam (Lam yvar yresult))) =
@@ -32,5 +32,5 @@ instance CouldEq Term where
             (BLeaf (LVar x), BLeaf (LVar y)) -> xToY ^. Lens.at x == Just y
             _ -> False
 
-couldEq :: Tree Pure Term -> Tree Pure Term -> Bool
+couldEq :: Pure # Term -> Pure # Term -> Bool
 couldEq = go Map.empty

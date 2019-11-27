@@ -60,25 +60,25 @@ varGen :: QVarGen
 varGen = QVarGen 0 0
 
 data InferState = InferState
-    { _isBinding :: Tree T.Types Binding
+    { _isBinding :: T.Types # Binding
     , _isQVarGen :: QVarGen
     } deriving (Eq, Ord, Show)
 Lens.makeLenses ''InferState
 
 newtype PureInfer env a =
     PureInfer
-    (RWST env () InferState (Either (Tree Pure T.TypeError)) a)
+    (RWST env () InferState (Either (Pure # T.TypeError)) a)
     deriving newtype
     ( Functor, Applicative, Monad
     , MonadReader env
-    , MonadError (Tree Pure T.TypeError)
+    , MonadError (Pure # T.TypeError)
     , MonadState InferState
     )
 Lens.makePrisms ''PureInfer
 
 runPureInfer ::
     env -> InferState -> PureInfer env a ->
-    Either (Tree Pure T.TypeError) (a, InferState)
+    Either (Pure # T.TypeError) (a, InferState)
 runPureInfer env st (PureInfer act) =
     runRWST act env st <&> \(x, s, ~()) -> (x, s)
 
@@ -86,7 +86,7 @@ type instance UVarOf (PureInfer env) = UVar
 
 loadDeps ::
     (UnifyGen m T.Row, S.HasScheme T.Types m T.Type) =>
-    Deps -> m (Tree Scope (UVarOf m) -> Tree Scope (UVarOf m))
+    Deps -> m (Scope # UVarOf m -> Scope # UVarOf m)
 loadDeps deps =
     do
         loadedNoms <- deps ^. depsNominals & traverse loadNominalDecl
@@ -96,24 +96,24 @@ loadDeps deps =
             & scopeVarTypes <>~ (loadedSchemes <&> MkHFlip)
             & scopeNominals <>~ loadedNoms
 
-instance MonadScopeLevel (PureInfer (Tree Scope UVar)) where
+instance MonadScopeLevel (PureInfer (Scope # UVar)) where
     localLevel = local (scopeLevel . _ScopeLevel +~ 1)
 
-instance MonadNominals T.NominalId T.Type (PureInfer (Tree Scope UVar)) where
+instance MonadNominals T.NominalId T.Type (PureInfer (Scope # UVar)) where
     {-# INLINE getNominalDecl #-}
     getNominalDecl n =
         Lens.view (scopeNominals . Lens.at n)
         >>= maybe (throwError (_Pure # T.NominalNotFound n)) pure
 
-instance TermVar.HasScope (PureInfer (Tree Scope UVar)) Scope where
+instance TermVar.HasScope (PureInfer (Scope # UVar)) Scope where
     {-# INLINE getScope #-}
     getScope = Lens.view id
 
-instance LocalScopeType Var (Tree UVar T.Type) (PureInfer (Tree Scope UVar)) where
+instance LocalScopeType Var (UVar # T.Type) (PureInfer (Scope # UVar)) where
     {-# INLINE localScopeType #-}
     localScopeType k v = local (scopeVarTypes . Lens.at k ?~ MkHFlip (GMono v))
 
-instance UnifyGen (PureInfer (Tree Scope UVar)) T.Type where
+instance UnifyGen (PureInfer (Scope # UVar)) T.Type where
     {-# INLINE scopeConstraints #-}
     scopeConstraints _ = Lens.view scopeLevel
 
@@ -126,7 +126,7 @@ nextTVNamePure prefix lens =
 instance MonadQuantify ScopeLevel T.TypeVar (PureInfer env) where
     newQuantifiedVariable _ = nextTVNamePure 't' nextTV
 
-instance UnifyGen (PureInfer (Tree Scope UVar)) T.Row where
+instance UnifyGen (PureInfer (Scope # UVar)) T.Row where
     {-# INLINE scopeConstraints #-}
     scopeConstraints _ = scopeConstraints (Proxy @T.Type) <&> T.RowConstraints mempty
 
@@ -149,14 +149,14 @@ instance Unify (PureInfer env) T.Row where
     {-# INLINE structureMismatch #-}
     structureMismatch = T.rStructureMismatch
 
-emptyPureInferState :: Tree T.Types Binding
+emptyPureInferState :: T.Types # Binding
 emptyPureInferState = T.Types emptyBinding emptyBinding
 
 newtype STInfer s a = STInfer
-    (ReaderT (Tree Scope (STUVar s), STRef s QVarGen) (MaybeT (ST s)) a)
+    (ReaderT (Scope # STUVar s, STRef s QVarGen) (MaybeT (ST s)) a)
     deriving newtype
     ( Functor, Alternative, Applicative, Monad, MonadST
-    , MonadReader (Tree Scope (STUVar s), STRef s QVarGen)
+    , MonadReader (Scope # STUVar s, STRef s QVarGen)
     )
 Lens.makePrisms ''STInfer
 
@@ -174,7 +174,7 @@ instance TermVar.HasScope (STInfer s) Scope where
     {-# INLINE getScope #-}
     getScope = Lens.view Lens._1
 
-instance LocalScopeType Var (Tree (STUVar s) T.Type) (STInfer s) where
+instance LocalScopeType Var (STUVar s # T.Type) (STInfer s) where
     {-# INLINE localScopeType #-}
     localScopeType k v =
         local (Lens._1 . scopeVarTypes . Lens.at k ?~ MkHFlip (GMono v))
@@ -215,8 +215,8 @@ instance Unify (STInfer s) T.Row where
     structureMismatch = T.rStructureMismatch
 
 alphaEq ::
-    Tree Pure (S.Scheme T.Types T.Type) ->
-    Tree Pure (S.Scheme T.Types T.Type) ->
+    Pure # S.Scheme T.Types T.Type ->
+    Pure # S.Scheme T.Types T.Type ->
     Bool
 alphaEq x y =
     runST $
@@ -228,15 +228,15 @@ alphaEq x y =
             & runMaybeT
     <&> Lens.has Lens._Just
 
-{-# SPECIALIZE inferH :: Tree (Ann a) Term -> Tree (InferChild (PureInfer (Tree Scope UVar)) (Ann (a :*: InferResult UVar))) Term #-}
-{-# SPECIALIZE unify :: Tree UVar T.Row -> Tree UVar T.Row -> (PureInfer env) (Tree UVar T.Row) #-}
-{-# SPECIALIZE unify :: Tree (STUVar s) T.Row -> Tree (STUVar s) T.Row -> STInfer s (Tree (STUVar s) T.Row) #-}
-{-# SPECIALIZE updateConstraints :: ScopeLevel -> Tree (STUVar s) T.Type -> Tree (UTerm (STUVar s)) T.Type -> STInfer s () #-}
-{-# SPECIALIZE updateConstraints :: T.RConstraints -> Tree (STUVar s) T.Row -> Tree (UTerm (STUVar s)) T.Row -> STInfer s () #-}
-{-# SPECIALIZE updateTermConstraints :: Tree UVar T.Row -> Tree (UTermBody UVar) T.Row -> T.RConstraints -> (PureInfer env) () #-}
-{-# SPECIALIZE updateTermConstraints :: Tree (STUVar s) T.Row -> Tree (UTermBody (STUVar s)) T.Row -> T.RConstraints -> STInfer s () #-}
-{-# SPECIALIZE instantiateH :: (forall n. TypeConstraintsOf n -> Tree (UTerm UVar) n) -> Tree (GTerm UVar) T.Row -> WriterT [PureInfer (Tree Scope UVar) ()] (PureInfer (Tree Scope UVar)) (Tree UVar T.Row) #-}
-{-# SPECIALIZE instantiateH :: (forall n. TypeConstraintsOf n -> Tree (UTerm (STUVar s)) n) -> Tree (GTerm (STUVar s)) T.Row -> WriterT [STInfer s ()] (STInfer s) (Tree (STUVar s) T.Row) #-}
-{-# SPECIALIZE semiPruneLookup :: Tree (STUVar s) T.Type -> STInfer s (Tree (STUVar s) T.Type, Tree (UTerm (STUVar s)) T.Type) #-}
-{-# SPECIALIZE semiPruneLookup :: Tree (STUVar s) T.Row -> STInfer s (Tree (STUVar s) T.Row, Tree (UTerm (STUVar s)) T.Row) #-}
-{-# SPECIALIZE unifyUTerms :: Tree (STUVar s) T.Row -> Tree (UTerm (STUVar s)) T.Row -> Tree (STUVar s) T.Row -> Tree (UTerm (STUVar s)) T.Row -> STInfer s (Tree (STUVar s) T.Row) #-}
+{-# SPECIALIZE inferH :: Ann a # Term -> InferChild (PureInfer (Scope # UVar)) (Ann (a :*: InferResult UVar)) # Term #-}
+{-# SPECIALIZE unify :: UVar # T.Row -> UVar # T.Row -> (PureInfer env) (UVar # T.Row) #-}
+{-# SPECIALIZE unify :: STUVar s # T.Row -> STUVar s # T.Row -> STInfer s (STUVar s # T.Row) #-}
+{-# SPECIALIZE updateConstraints :: ScopeLevel -> STUVar s # T.Type -> UTerm (STUVar s) # T.Type -> STInfer s () #-}
+{-# SPECIALIZE updateConstraints :: T.RConstraints -> STUVar s # T.Row -> UTerm (STUVar s) # T.Row -> STInfer s () #-}
+{-# SPECIALIZE updateTermConstraints :: UVar # T.Row -> UTermBody UVar # T.Row -> T.RConstraints -> (PureInfer env) () #-}
+{-# SPECIALIZE updateTermConstraints :: STUVar s # T.Row -> UTermBody (STUVar s) # T.Row -> T.RConstraints -> STInfer s () #-}
+{-# SPECIALIZE instantiateH :: (forall n. TypeConstraintsOf n -> UTerm UVar # n) -> GTerm UVar # T.Row -> WriterT [PureInfer (Scope # UVar) ()] (PureInfer (Scope # UVar)) (UVar # T.Row) #-}
+{-# SPECIALIZE instantiateH :: (forall n. TypeConstraintsOf n -> UTerm (STUVar s) # n) -> GTerm (STUVar s) # T.Row -> WriterT [STInfer s ()] (STInfer s) (STUVar s # T.Row) #-}
+{-# SPECIALIZE semiPruneLookup :: STUVar s # T.Type -> STInfer s (STUVar s # T.Type, UTerm (STUVar s) # T.Type) #-}
+{-# SPECIALIZE semiPruneLookup :: STUVar s # T.Row -> STInfer s (STUVar s # T.Row, UTerm (STUVar s) # T.Row) #-}
+{-# SPECIALIZE unifyUTerms :: STUVar s # T.Row -> UTerm (STUVar s) # T.Row -> STUVar s # T.Row -> UTerm (STUVar s) # T.Row -> STInfer s (STUVar s # T.Row) #-}

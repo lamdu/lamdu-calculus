@@ -1,5 +1,5 @@
 {-# OPTIONS_GHC -fno-warn-incomplete-uni-patterns #-}
-{-# LANGUAGE NoImplicitPrelude, OverloadedStrings #-}
+{-# LANGUAGE NoImplicitPrelude, OverloadedStrings, TypeOperators #-}
 
 module TestVals
     ( allDeps
@@ -30,17 +30,17 @@ import           Prelude.Compat
 -- TODO: $$ to be type-classed for TApp vs BApp
 -- TODO: TCon "->" instead of TFun
 
-recExtends :: Tree Pure T.Row -> [(T.Tag, Tree Pure Type)] -> Tree Pure Type
+recExtends :: Pure # T.Row -> [(T.Tag, Pure # Type)] -> Pure # Type
 recExtends recTail fields =
     foldr
     (\(tag, typ) -> Pure . T.RExtend . RowExtend tag typ) recTail fields
     & T.TRecord & Pure
 
-recordType :: [(T.Tag, Tree Pure Type)] -> Tree Pure Type
+recordType :: [(T.Tag, Pure # Type)] -> Pure # Type
 recordType = recExtends (_Pure # T.REmpty)
 
 forAll ::
-    [T.TypeVar] -> ([Tree Pure Type] -> Tree Pure Type) -> Tree Pure T.Scheme
+    [T.TypeVar] -> ([Pure # Type] -> Pure # Type) -> Pure # T.Scheme
 forAll tvs mkType =
     tvs <&> T.TVar <&> (_Pure #) & mkType
     & Scheme T.Types
@@ -48,12 +48,12 @@ forAll tvs mkType =
     , T._tRow = mempty
     } & Pure
 
-stOf :: Tree Pure Type -> Tree Pure Type -> Tree Pure Type
+stOf :: Pure # Type -> Pure # Type -> Pure # Type
 stOf s a =
     T.Types (QVarInstances (mempty & Lens.at "res" ?~ a & Lens.at "s" ?~ s)) (QVarInstances mempty)
     & NominalInst "ST" & T.TInst & Pure
 
-listTypePair :: (T.NominalId, Tree Pure (NominalDecl Type))
+listTypePair :: (T.NominalId, Pure # NominalDecl Type)
 listTypePair =
     ( "List"
     , _Pure # NominalDecl
@@ -74,22 +74,22 @@ listTypePair =
     where
         tv = _Pure # T.TVar "a"
 
-listOf :: Tree Pure Type -> Tree Pure Type
+listOf :: Pure # Type -> Pure # Type
 listOf x =
     T.Types (QVarInstances (mempty & Lens.at "elem" ?~ x)) (QVarInstances mempty)
     & NominalInst (fst listTypePair) & T.TInst & Pure
 
-boolType :: Tree Pure Type
+boolType :: Pure # Type
 boolType =
     T.Types (QVarInstances mempty) (QVarInstances mempty)
     & NominalInst (fst boolTypePair) & T.TInst & Pure
 
-intType :: Tree Pure Type
+intType :: Pure # Type
 intType =
     T.Types (QVarInstances mempty) (QVarInstances mempty)
     & NominalInst "Int" & T.TInst & Pure
 
-boolTypePair :: (T.NominalId, Tree Pure (NominalDecl Type))
+boolTypePair :: (T.NominalId, Pure # NominalDecl Type)
 boolTypePair =
     ( "Bool"
     , _Pure # NominalDecl
@@ -103,14 +103,14 @@ boolTypePair =
         }
     )
 
-maybeOf :: Tree Pure Type -> Tree Pure Type
+maybeOf :: Pure # Type -> Pure # Type
 maybeOf t =
     _Pure # T.REmpty
     & RowExtend "Just" t & T.RExtend & Pure
     & RowExtend "Nothing" (recordType []) & T.RExtend & Pure
     & T.TVariant & Pure
 
-infixType :: Tree Pure Type -> Tree Pure Type -> Tree Pure Type -> Tree Pure Type
+infixType :: Pure # Type -> Pure # Type -> Pure # Type -> Pure # Type
 infixType a b c = recordType [("l", a), ("r", b)] ~> c
 
 allDeps :: Deps

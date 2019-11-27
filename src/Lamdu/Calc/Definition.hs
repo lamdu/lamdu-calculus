@@ -1,13 +1,13 @@
 -- | A lamdu-calculus `Definition` is a top-level definition of a
 -- value along with the types of all free variables/nominals it uses
-{-# LANGUAGE NoImplicitPrelude, TemplateHaskell, DeriveGeneric #-}
+{-# LANGUAGE NoImplicitPrelude, TemplateHaskell, DeriveGeneric, TypeOperators #-}
 
 module Lamdu.Calc.Definition
     ( Deps(..), depsGlobalTypes, depsNominals
     , pruneDeps
     ) where
 
-import           Hyper (Ann, Tree, Pure, Const(..), hflipped, hmapped1)
+import           Hyper (Ann, Pure, Const(..), hflipped, hmapped1, type (#))
 import           Hyper.Type.AST.Nominal (NominalDecl)
 import           Control.DeepSeq (NFData)
 import qualified Control.Lens as Lens
@@ -25,8 +25,8 @@ import qualified Lamdu.Calc.Type as T
 import           Prelude.Compat
 
 data Deps = Deps
-    { _depsGlobalTypes :: !(Map V.Var (Tree Pure T.Scheme))
-    , _depsNominals :: !(Map T.NominalId (Tree Pure (NominalDecl Type)))
+    { _depsGlobalTypes :: !(Map V.Var (Pure # T.Scheme))
+    , _depsNominals :: !(Map T.NominalId (Pure # NominalDecl Type))
     } deriving (Generic, Show, Eq, Ord)
 instance NFData Deps
 instance Binary Deps
@@ -40,7 +40,7 @@ instance Monoid Deps where
     mappend = (<>)
 
 pruneDeps ::
-    Tree (Ann a) V.Term -> Deps -> Deps
+    Ann a # V.Term -> Deps -> Deps
 pruneDeps e deps =
     deps
     & depsGlobalTypes %~ prune (valGlobals mempty)

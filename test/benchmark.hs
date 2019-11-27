@@ -1,4 +1,4 @@
-{-# LANGUAGE NoImplicitPrelude, OverloadedStrings, ScopedTypeVariables, FlexibleContexts #-}
+{-# LANGUAGE NoImplicitPrelude, OverloadedStrings, ScopedTypeVariables, FlexibleContexts, TypeOperators #-}
 
 import           Hyper
 import           Hyper.Infer
@@ -29,13 +29,13 @@ localInitEnv ::
     , UnifyGen m T.Type
     , UnifyGen m T.Row
     ) =>
-    ASetter' env (Tree Scope (UVarOf m)) -> Tree (Ann z) Term -> m a -> m a
+    ASetter' env (Scope # UVarOf m) -> Ann z # Term -> m a -> m a
 localInitEnv inferEnv e action =
     do
         addScope <- loadDeps (pruneDeps e allDeps)
         local (inferEnv %~ addScope) action
 
-toAnn :: HPlain Term -> Tree (Ann (Const ())) Term
+toAnn :: HPlain Term -> Ann (Const ()) # Term
 toAnn = wrap (\_ x -> Ann (Const ()) x) . (^. hPlain)
 
 benchInferPure :: HPlain Term -> Benchmarkable

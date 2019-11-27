@@ -183,7 +183,7 @@ Lens.makeLenses ''Scope
 makeHTraversableAndBases ''Scope
 
 {-# INLINE emptyScope #-}
-emptyScope :: Tree Scope v
+emptyScope :: Scope # v
 emptyScope = Scope mempty mempty (ScopeLevel 0)
 
 type instance TermVar.ScopeOf Term = Scope
@@ -204,7 +204,7 @@ instance
     , MonadScopeLevel m
     , TermVar.HasScope m Scope
     , UnifyGen m T.Type, UnifyGen m T.Row
-    , LocalScopeType Var (Tree (UVarOf m) T.Type) m
+    , LocalScopeType Var (UVarOf m # T.Type) m
     ) =>
     Infer m Term where
 
@@ -229,10 +229,10 @@ instance
             & NominalInst t
             & T.TInst & newTerm
         LVar x ->
-            inferBody (TermVar.Var x :: Tree (TermVar.Var Var Term) (InferChild k w))
+            inferBody (TermVar.Var x :: TermVar.Var Var Term # InferChild k w)
             <&> (^. Lens._2 . _ANode)
         LFromNom x ->
-            inferBody (FromNom x :: Tree (FromNom T.NominalId Term) (InferChild k w))
+            inferBody (FromNom x :: FromNom T.NominalId Term # InferChild k w)
             <&> (^. Lens._2)
             >>= newTerm . T.TFun
         <&> MkANode
@@ -287,7 +287,7 @@ instance
     , MonadScopeLevel m
     , TermVar.HasScope m Scope
     , UnifyGen m T.Type, UnifyGen m T.Row
-    , LocalScopeType Var (Tree (UVarOf m) T.Type) m
+    , LocalScopeType Var (UVarOf m # T.Type) m
     ) =>
     Blame m Term where
     inferOfUnify _ x y = () <$ unify (x ^. _ANode) (y ^. _ANode)
@@ -298,4 +298,4 @@ instance
 
 -- Type synonym to ease the transition
 
-type Val a = Tree (Ann (Const a)) Term
+type Val a = Ann (Const a) # Term

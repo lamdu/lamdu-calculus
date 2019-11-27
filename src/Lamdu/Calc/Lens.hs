@@ -1,6 +1,6 @@
 {-# LANGUAGE NoImplicitPrelude, RankNTypes, NoMonomorphismRestriction #-}
 {-# LANGUAGE FlexibleContexts, TypeFamilies, TypeApplications, FlexibleInstances #-}
-{-# LANGUAGE DataKinds, ScopedTypeVariables, LambdaCase #-}
+{-# LANGUAGE DataKinds, ScopedTypeVariables, LambdaCase, TypeOperators #-}
 module Lamdu.Calc.Lens
     ( -- Leafs
       valHole    , valBodyHole
@@ -39,13 +39,13 @@ import           Prelude.Compat
 tIds ::
     forall k expr.
     (RTraversable k, HasTIds expr) =>
-    Traversal' (Tree k expr) T.NominalId
+    Traversal' (k # expr) T.NominalId
 tIds f =
     withDict (recurse (Proxy @(RTraversable k))) $
     htraverse (Proxy @RTraversable #> bodyTIds f)
 
 class HasTIds expr where
-    bodyTIds :: RTraversable k => Traversal' (Tree expr k) T.NominalId
+    bodyTIds :: RTraversable k => Traversal' (expr # k) T.NominalId
 
 instance HasTIds T.Type where
     {-# INLINE bodyTIds #-}
@@ -68,19 +68,19 @@ instance HasTIds (NominalDecl T.Type) where
     bodyTIds = nScheme . bodyTIds
 
 {-# INLINE valApply #-}
-valApply :: Traversal' (Tree (Ann a) V.Term) (Tree (V.App V.Term) (Ann a))
+valApply :: Traversal' (Ann a # V.Term) (V.App V.Term # Ann a)
 valApply = hVal . V._BApp
 
 {-# INLINE valHole #-}
-valHole :: Traversal' (Tree (Ann a) V.Term) ()
+valHole :: Traversal' (Ann a # V.Term) ()
 valHole = hVal . valBodyHole
 
 {-# INLINE valVar #-}
-valVar :: Traversal' (Tree (Ann a) V.Term) V.Var
+valVar :: Traversal' (Ann a # V.Term) V.Var
 valVar = hVal . valBodyVar
 
 {-# INLINE valLiteral #-}
-valLiteral :: Traversal' (Tree (Ann a) V.Term) V.PrimVal
+valLiteral :: Traversal' (Ann a # V.Term) V.PrimVal
 valLiteral = hVal . valBodyLiteral
 
 {-# INLINE valBodyHole #-}
@@ -96,7 +96,7 @@ valBodyLiteral :: Prism' (V.Term expr) V.PrimVal
 valBodyLiteral = V._BLeaf . V._LLiteral
 
 {-# INLINE valLeafs #-}
-valLeafs :: Lens.IndexedTraversal' (Tree a V.Term) (Tree (Ann a) V.Term) V.Leaf
+valLeafs :: Lens.IndexedTraversal' (a # V.Term) (Ann a # V.Term) V.Leaf
 valLeafs f (Ann pl body) =
     case body of
     V.BLeaf l -> Lens.indexed f pl l <&> V.BLeaf
@@ -104,7 +104,7 @@ valLeafs f (Ann pl body) =
     <&> Ann pl
 
 {-# INLINE subExprPayloads #-}
-subExprPayloads :: Lens.IndexedTraversal (Tree Pure V.Term) (Val a) (Val b) a b
+subExprPayloads :: Lens.IndexedTraversal (Pure # V.Term) (Val a) (Val b) a b
 subExprPayloads f x@(Ann (Const pl) body) =
     Ann
     <$> (Lens.indexed f (unwrap (const (^. hVal)) x) pl <&> Const)
@@ -112,14 +112,14 @@ subExprPayloads f x@(Ann (Const pl) body) =
 
 {-# INLINE payloadsOf #-}
 payloadsOf ::
-    Lens.Fold (Tree Pure V.Term) a -> Lens.IndexedTraversal' (Tree Pure V.Term) (Val b) b
+    Lens.Fold (Pure # V.Term) a -> Lens.IndexedTraversal' (Pure # V.Term) (Val b) b
 payloadsOf l =
     subExprPayloads . Lens.ifiltered predicate
     where
         predicate idx _ = Lens.has l idx
 
 {-# INLINE valTags #-}
-valTags :: Lens.Traversal' (Tree (Ann a) V.Term) T.Tag
+valTags :: Lens.Traversal' (Ann a # V.Term) T.Tag
 valTags =
     hVal .
     \f ->
@@ -138,7 +138,7 @@ valTags =
 valGlobals ::
     HFunctor a =>
     Set V.Var ->
-    Lens.IndexedFold (Tree a (Const ())) (Tree (Ann a) V.Term) V.Var
+    Lens.IndexedFold (a # Const ()) (Ann a # V.Term) V.Var
 valGlobals scope f (Ann pl body) =
     case body of
     V.BLeaf (V.LVar v)
@@ -151,7 +151,7 @@ valGlobals scope f (Ann pl body) =
     <&> Ann pl
 
 {-# INLINE valNominals #-}
-valNominals :: Lens.Traversal' (Tree (Ann a) V.Term) T.NominalId
+valNominals :: Lens.Traversal' (Ann a # V.Term) T.NominalId
 valNominals =
     hVal .
     \f ->
