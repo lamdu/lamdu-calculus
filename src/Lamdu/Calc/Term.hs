@@ -36,6 +36,7 @@ import           Data.Map (Map)
 import           Data.String (IsString(..))
 import           Generics.Constraints (makeDerivings, makeInstances)
 import           Hyper
+import           Hyper.Class.Infer.InferOf (RTraversableInferOf)
 import           Hyper.Infer
 import           Hyper.Infer.Blame (Blame(..))
 import           Hyper.Recurse
@@ -188,6 +189,8 @@ type instance InferOf Term = ANode T.Type
 instance HasInferredType Term where
     type instance TypeOf Term = T.Type
     inferredType _ = _ANode
+
+instance RTraversableInferOf Term
 
 makeDerivings [''Eq, ''Ord, ''Show] [''Term, ''Scope, ''GetField, ''Inject]
 makeInstances [''Binary, ''NFData, ''Hashable] [''Term, ''Scope, ''GetField, ''Inject]
