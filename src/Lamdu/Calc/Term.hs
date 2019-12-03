@@ -37,6 +37,7 @@ import           Data.String (IsString(..))
 import           Generics.Constraints (makeDerivings, makeInstances)
 import           Hyper
 import           Hyper.Class.Infer.InferOf (RTraversableInferOf)
+import           Hyper.Class.Nodes (HNodesHaveConstraint)
 import           Hyper.Infer
 import           Hyper.Infer.Blame (Blame(..))
 import           Hyper.Recurse
@@ -295,6 +296,8 @@ instance
         (==)
         <$> (semiPruneLookup (x ^. _ANode) <&> fst)
         <*> (semiPruneLookup (y ^. _ANode) <&> fst)
+
+instance c T.Type => InferOfConstraint (HNodesHaveConstraint c) Term
 
 -- Type synonym to ease the transition
 
