@@ -3,4 +3,4 @@ packages:
 - '.'
 extra-deps:
 - github: lamdu/hypertypes
-  commit: 573f8747cb4ac4f76473912ed39e3cb708535747
+  commit: 473c92a2562a38926ac55b118d04f3bc4948a9dd

@@ -35,15 +35,15 @@ instance CouldEq Term where
             _ -> False
 
 instance CouldEq (HCompose Prune T.Type) where
-    go _ (Pure (MkHCompose Pruned)) _ = True
-    go _ _ (Pure (MkHCompose Pruned)) = True
+    go _ (Pure (HCompose Pruned)) _ = True
+    go _ _ (Pure (HCompose Pruned)) = True
     go xToY (Pure xBody) (Pure yBody) =
         Lens.has Lens._Just
         (join (zipMatch_ (Proxy @CouldEq #> \x -> guard . go xToY x) xBody yBody))
 
 instance CouldEq (HCompose Prune T.Row) where
-    go _ (Pure (MkHCompose Pruned)) _ = True
-    go _ _ (Pure (MkHCompose Pruned)) = True
+    go _ (Pure (HCompose Pruned)) _ = True
+    go _ _ (Pure (HCompose Pruned)) = True
     go xToY (Pure xBody) (Pure yBody) =
         Lens.has Lens._Just
         (join (zipMatch_ (Proxy @CouldEq #> \x -> guard . go xToY x) xBody yBody))

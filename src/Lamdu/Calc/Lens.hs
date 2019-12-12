@@ -148,7 +148,7 @@ valTags =
 
 typeTags :: Lens.Traversal' (Ann a # HCompose Prune T.Type) T.Tag
 typeTags f =
-    (hVal . _HCompose . _Unpruned . _HCompose)
+    (hVal . hcomposed _Unpruned)
     ( htraverse
         ( \case
             HWitness T.W_Type_Type -> (_HCompose . typeTags) f
@@ -160,7 +160,7 @@ typeTags f =
 
 rowTags :: Lens.Traversal' (Ann a # HCompose Prune T.Row) T.Tag
 rowTags =
-    hVal . _HCompose . _Unpruned . _HCompose . T._RExtend . onRExtend
+    hVal . hcomposed _Unpruned . T._RExtend . onRExtend
     where
         onRExtend f (RowExtend tag val rest) =
             RowExtend
@@ -211,7 +211,7 @@ valNominals =
 {-# INLINE typeNominals #-}
 typeNominals :: Lens.Traversal' (Ann a # HCompose Prune T.Type) T.NominalId
 typeNominals =
-    hVal . _HCompose . _Unpruned . _HCompose .
+    hVal . hcomposed _Unpruned .
     \f ->
     \case
     T.TInst (NominalInst nomId args) ->
@@ -235,7 +235,7 @@ typeNominals =
 {-# INLINE rowNominals #-}
 rowNominals :: Lens.Traversal' (Ann a # HCompose Prune T.Row) T.NominalId
 rowNominals =
-    hVal . _HCompose . _Unpruned . _HCompose .
+    hVal . hcomposed _Unpruned .
     \f ->
     htraverse
     ( \case
