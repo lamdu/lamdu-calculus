@@ -68,7 +68,6 @@ import           Hyper.Unify
 import           Hyper.Unify.New (newTerm)
 import           Hyper.Unify.Lookup (semiPruneLookup)
 import           Hyper.Unify.QuantifiedVar
-import           Hyper.Unify.Term
 import           Lamdu.Calc.Identifier (Identifier)
 import           Text.PrettyPrint ((<+>))
 import qualified Text.PrettyPrint as PP
@@ -320,12 +319,12 @@ instance (UnifyGen m Type, UnifyGen m Row) => Blame m Type where
 rStructureMismatch ::
     (Unify m Type, Unify m Row) =>
     (forall c. Unify m c => UVarOf m # c -> UVarOf m # c -> m (UVarOf m # c)) ->
-    UTermBody (UVarOf m) # Row ->
-    UTermBody (UVarOf m) # Row ->
+    Row # UVarOf m ->
+    Row # UVarOf m ->
     m ()
-rStructureMismatch f (UTermBody _c0 (RExtend r0)) (UTermBody _c1 (RExtend r1)) =
+rStructureMismatch f (RExtend r0) (RExtend r1) =
     rowExtendStructureMismatch f _RExtend r0 r1
-rStructureMismatch _ x y = unifyError (Mismatch (x ^. uBody) (y ^. uBody))
+rStructureMismatch _ x y = Mismatch x y & unifyError
 
 flatRow :: Lens.Iso' (Pure # Row) (FlatRowExtends Tag Type Row # Pure)
 flatRow =
