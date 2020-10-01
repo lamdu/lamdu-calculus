@@ -35,12 +35,10 @@ import           Data.Hashable (Hashable(..))
 import           Data.Map (Map)
 import           Data.String (IsString(..))
 import           Generics.Constraints (makeDerivings, makeInstances)
-import           GHC.Generics (Generic)
 import           Hyper
-import           Hyper.Class.Infer.InferOf (RTraversableInferOf)
 import           Hyper.Infer
 import           Hyper.Infer.Blame (Blame(..))
-import           Hyper.Type.Prune
+import           Hyper.Type.Prune (Prune)
 import           Hyper.Type.AST.App (App(..), appFunc, appArg)
 import           Hyper.Type.AST.FuncType (FuncType(..))
 import           Hyper.Type.AST.Nominal (ToNom(..), FromNom(..), NominalInst(..), MonadNominals, LoadedNominalDecl)

@@ -43,20 +43,18 @@ module Lamdu.Calc.Type
     , HPlain(..)
     ) where
 
-import           Algebra.PartialOrd
+import           Algebra.PartialOrd (PartialOrd(..))
 import           Control.DeepSeq (NFData(..))
 import qualified Control.Lens as Lens
 import           Control.Lens.Operators
 import           Data.Binary (Binary)
 import           Data.Hashable (Hashable)
-import           Data.Proxy (Proxy(..))
 import           Data.Set (Set)
 import           Data.String (IsString(..))
-import           GHC.Exts (Constraint)
 import           Generic.Data (Generically(..))
 import           Generics.Constraints (makeDerivings, makeInstances)
 import           Hyper
-import           Hyper.Class.Has
+import           Hyper.Class.Has (HasChild(..))
 import           Hyper.Infer
 import           Hyper.Infer.Blame (Blame(..))
 import           Hyper.Type.AST.FuncType
@@ -67,7 +65,7 @@ import           Hyper.Type.Prune (Prune)
 import           Hyper.Unify
 import           Hyper.Unify.New (newTerm)
 import           Hyper.Unify.Lookup (semiPruneLookup)
-import           Hyper.Unify.QuantifiedVar
+import           Hyper.Unify.QuantifiedVar (HasQuantifiedVar(..))
 import           Lamdu.Calc.Identifier (Identifier)
 import           Text.PrettyPrint ((<+>))
 import qualified Text.PrettyPrint as PP
