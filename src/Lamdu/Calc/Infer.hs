@@ -79,7 +79,7 @@ runPureInfer ::
 runPureInfer env st (PureInfer act) =
     runRWST act env st <&> \(x, s, ~()) -> (x, s)
 
-type instance UVarOf (PureInfer env) = UVar
+type instance UVarOf (PureInfer _) = UVar
 
 loadDeps ::
     (UnifyGen m T.Row, S.HasScheme T.Types m T.Type) =>
