@@ -48,7 +48,6 @@ import           Hyper.Type.AST.TypedLam (TypedLam(..), tlIn, tlInType, tlOut)
 import qualified Hyper.Type.AST.Var as TermVar
 import           Hyper.Unify
 import qualified Hyper.Unify.Generalize as G
-import           Hyper.Unify.Lookup (semiPruneLookup)
 import           Hyper.Unify.New (newTerm, newUnbound)
 import           Hyper.Unify.Term (UTerm(..))
 import           Lamdu.Calc.Identifier (Identifier)

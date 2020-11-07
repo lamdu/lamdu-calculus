@@ -54,7 +54,7 @@ import           Data.String (IsString(..))
 import           Generic.Data (Generically(..))
 import           Generics.Constraints (makeDerivings, makeInstances)
 import           Hyper
-import           Hyper.Class.Has (HasChild(..))
+import           Hyper.Class.Optic (HNodeLens(..), HSubset(..))
 import           Hyper.Infer
 import           Hyper.Infer.Blame (Blame(..))
 import           Hyper.Type.AST.FuncType
@@ -64,7 +64,6 @@ import qualified Hyper.Type.AST.Scheme as S
 import           Hyper.Type.Prune (Prune)
 import           Hyper.Unify
 import           Hyper.Unify.New (newTerm)
-import           Hyper.Unify.Lookup (semiPruneLookup)
 import           Hyper.Unify.QuantifiedVar (HasQuantifiedVar(..))
 import           Lamdu.Calc.Identifier (Identifier)
 import           Text.PrettyPrint ((<+>))
@@ -167,13 +166,13 @@ instance RTraversable Type
 type Nominal = NominalInst NominalId Types
 type Scheme = S.Scheme Types Type
 
-instance HasChild Types Type where
-    {-# INLINE getChild #-}
-    getChild = tType
+instance HNodeLens Types Type where
+    {-# INLINE hNodeLens #-}
+    hNodeLens = tType
 
-instance HasChild Types Row where
-    {-# INLINE getChild #-}
-    getChild = tRow
+instance HNodeLens Types Row where
+    {-# INLINE hNodeLens #-}
+    hNodeLens = tRow
 
 instance (UnifyGen m Type, UnifyGen m Row) => S.HasScheme Types m Type
 instance (UnifyGen m Type, UnifyGen m Row) => S.HasScheme Types m Row
@@ -221,9 +220,9 @@ instance Pretty (TypeError # Pure) where
 
 type instance NomVarTypes Type = Types
 
-instance HasFuncType Type where
-    {-# INLINE funcType #-}
-    funcType = _TFun
+instance HSubset Type Type (FuncType Type) (FuncType Type) where
+    {-# INLINE hSubset #-}
+    hSubset = _TFun
 
 instance HasNominalInst NominalId Type where
     {-# INLINE nominalInst #-}

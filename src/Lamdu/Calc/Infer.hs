@@ -21,11 +21,9 @@ import qualified Hyper.Type.AST.Var as TermVar
 import qualified Hyper.Type.AST.Scheme as S
 import qualified Hyper.Type.AST.Scheme.AlphaEq as S
 import           Hyper.Unify
-import           Hyper.Unify.Apply (applyBindings)
 import           Hyper.Unify.Binding
 import           Hyper.Unify.Binding.ST
 import           Hyper.Unify.Generalize
-import           Hyper.Unify.Lookup (semiPruneLookup)
 import           Hyper.Unify.QuantifiedVar
 import           Hyper.Unify.Term (UTerm, UTermBody)
 import           Control.Applicative (Alternative(..))
