@@ -210,7 +210,7 @@ instance Deps Pretty k => Pretty (Types k) where
 
 instance Pretty RConstraints where
     pPrint (RowConstraints tags level) =
-        pPrint (tags ^.. Lens.folded) <+>
+        pPrint (tags ^.. Lens.folded) PP.<+>
         (PP.text "(" <> pPrint level <> PP.text ")")
 
 instance Pretty (TypeError # Pure) where

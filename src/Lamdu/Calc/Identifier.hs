@@ -57,6 +57,6 @@ identHex (Identifier bs) = Hex.encode bs & BS.unpack
 identFromHex :: String -> Either String Identifier
 identFromHex str
     | BS.null remain = Identifier result & Right
-    | otherwise = "Hex doesnt parse: " ++ show str & Left
+    | otherwise = "Hex doesnt parse: " <> show str & Left
     where
         (result, remain) = BS.pack str & Hex.decode
