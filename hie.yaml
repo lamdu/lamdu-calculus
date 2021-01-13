@@ -1,0 +1,7 @@
+cradle:
+  stack:
+    - path: "./test"
+      component: "lamdu-calculus:test:lamdu-calculus-test"
+
+    - path: "./src"
+      component: "lamdu-calculus:lib"

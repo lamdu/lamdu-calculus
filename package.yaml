@@ -53,12 +53,20 @@ library:
   - hashable
   - QuickCheck
 
+tests:
+  lamdu-calculus-test:
+    main: test.hs
+    source-dirs: test
+    dependencies:
+    - HUnit
+    - lamdu-calculus
+    - test-framework
+    - test-framework-hunit
+
 benchmarks:
   lamdu-calculus-bench:
     main: benchmark.hs
     source-dirs: test
-    other-modules:
-    - TestVals
     ghc-options:
     - -O2
     - -Wall
