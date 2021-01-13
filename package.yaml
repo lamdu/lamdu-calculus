@@ -1,0 +1,72 @@
+name: lamdu-calculus
+version: 0.2.0.0
+github: "lamdu/lamdu-calculus"
+license: BSD3
+author: "Yair Chuchem, Eyal Lotem"
+maintainer: "yairchu@gmail.com"
+copyright: "2021 Yair Chuchem, Eyal Lotem"
+
+extra-source-files:
+- README.md
+
+synopsis: The Lamdu Calculus programming language
+category: Language
+
+description: Please see README.md
+
+dependencies:
+- base >= 4.7
+- base-compat >= 0.8.2
+- binary
+- bytestring
+- containers
+- deepseq
+- hypertypes
+- lattices
+- lens >= 4.1
+- monad-st
+- mtl
+- pretty >= 1.1.2
+- transformers
+
+ghc-options:
+- -fexpose-all-unfoldings
+- -Wall
+- -Wnoncanonical-monad-instances
+- -Wcompat
+- -Wincomplete-record-updates
+- -Wincomplete-uni-patterns
+- -Wredundant-constraints
+- -fdicts-cheap
+- -O2
+
+ghc-prof-options:
+- -O2
+
+library:
+  source-dirs: src
+  dependencies:
+  - base16-bytestring
+  - constraints
+  - generic-constraints
+  - generic-data
+  - hashable
+  - QuickCheck
+
+benchmarks:
+  lamdu-calculus-bench:
+    main: benchmark.hs
+    source-dirs: test
+    other-modules:
+    - TestVals
+    ghc-options:
+    - -O2
+    - -Wall
+    - -Wnoncanonical-monad-instances
+    - -Wcompat
+    - -Wincomplete-record-updates
+    - -Wincomplete-uni-patterns
+    - -Wredundant-constraints
+    dependencies:
+    - criterion
+    - lamdu-calculus
