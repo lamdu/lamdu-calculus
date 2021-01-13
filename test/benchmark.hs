@@ -1,24 +1,23 @@
 {-# LANGUAGE NoImplicitPrelude, OverloadedStrings, ScopedTypeVariables, FlexibleContexts, TypeOperators #-}
 
 import           Hyper
-import           Hyper.Infer
-import           Hyper.Recurse
-import           Hyper.Unify
-import           Hyper.Unify.Apply
+import           Hyper.Infer (infer, inferResult)
+import           Hyper.Recurse (wrap)
+import           Hyper.Unify (UVarOf, UnifyGen, applyBindings)
 import           Control.DeepSeq (rnf)
 import           Control.Exception (evaluate)
 import           Control.Lens (ASetter')
 import qualified Control.Lens as Lens
 import           Control.Lens.Operators
 import           Control.Monad.Reader
-import           Control.Monad.ST.Class
-import           Control.Monad.Trans.Maybe
+import           Control.Monad.ST.Class (MonadST(..))
+import           Control.Monad.Trans.Maybe (MaybeT(..))
 import           Criterion (Benchmarkable, whnfIO)
 import           Criterion.Main (bench, defaultMain)
-import           Data.STRef
+import           Data.STRef (newSTRef)
 import           Lamdu.Calc.Definition (pruneDeps)
 import           Lamdu.Calc.Infer
-import           Lamdu.Calc.Term
+import           Lamdu.Calc.Term (Term, Scope, emptyScope)
 import qualified Lamdu.Calc.Type as T
 import           TestVals
 
@@ -77,4 +76,4 @@ benches =
     ]
 
 main :: IO ()
-main = defaultMain $ map (uncurry bench) benches
+main = benches <&> uncurry bench & defaultMain
