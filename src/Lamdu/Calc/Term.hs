@@ -8,16 +8,11 @@
 
 module Lamdu.Calc.Term
     ( Val
-    , Leaf(..), _LVar, _LHole, _LLiteral, _LRecEmpty, _LAbsurd, _LFromNom
+    , Leaf(..), _LVar, _LHole, _LLiteral, _LRecEmpty, _LAbsurd, _LFromNom, _LGetField, _LInject
     , PrimVal(..), primType, primData
-    , Term(..)
-        , _BApp, _BLam, _BGetField, _BRecExtend
-        , _BInject, _BCase, _BToNom, _BLeaf
-        , W_Term(..)
+    , Term(..), _BApp, _BLam, _BRecExtend, _BCase, _BToNom, _BLeaf, W_Term(..)
     , App(..), appFunc, appArg
-    , GetField(..), getFieldRecord, getFieldTag
     , module Hyper.Type.AST.TypedLam
-    , Inject(..), injectVal, injectTag
     , Var(..)
     , Scope(..), scopeNominals, scopeVarTypes, scopeLevel
     , emptyScope
@@ -75,12 +70,14 @@ instance Hashable PrimVal
 Lens.makeLenses ''PrimVal
 
 data Leaf
-    =  LVar {-# UNPACK #-}!Var
-    |  LHole
-    |  LLiteral {-# UNPACK #-} !PrimVal
-    |  LRecEmpty
-    |  LAbsurd
-    |  LFromNom {-# UNPACK #-} !T.NominalId
+    = LVar {-# UNPACK #-}!Var
+    | LHole
+    | LLiteral {-# UNPACK #-}!PrimVal
+    | LRecEmpty
+    | LAbsurd
+    | LFromNom {-# UNPACK #-}!T.NominalId
+    | LGetField {-# UNPACK #-}!T.Tag
+    | LInject {-# UNPACK #-}!T.Tag
     deriving (Generic, Show, Eq, Ord)
 instance NFData Leaf
 instance Binary Leaf
@@ -88,22 +85,10 @@ instance Hashable Leaf
 
 Lens.makePrisms ''Leaf
 
-data GetField k = GetField
-    { _getFieldRecord :: k :# Term
-    , _getFieldTag :: T.Tag
-    } deriving Generic
-
-data Inject k = Inject
-    { _injectTag :: T.Tag
-    , _injectVal :: k :# Term
-    } deriving Generic
-
 data Term k
     = BApp {-# UNPACK #-}!(App Term k)
     | BLam {-# UNPACK #-}!(TypedLam Var (HCompose Prune T.Type) Term k)
-    | BGetField {-# UNPACK #-}!(GetField k)
     | BRecExtend {-# UNPACK #-}!(RowExtend T.Tag Term Term k)
-    | BInject {-# UNPACK #-}!(Inject k)
     | BCase {-# UNPACK #-}!(RowExtend T.Tag Term Term k)
     | -- Convert to Nominal type
       BToNom {-# UNPACK #-}!(ToNom T.NominalId Term k)
@@ -111,16 +96,8 @@ data Term k
     deriving Generic
 
 Lens.makePrisms ''Term
-Lens.makeLenses ''GetField
-Lens.makeLenses ''Inject
-makeHTraversableAndBases ''GetField
-makeHTraversableAndBases ''Inject
 makeHTraversableAndBases ''Term
-makeZipMatch ''GetField
-makeZipMatch ''Inject
 makeZipMatch ''Term
-makeHContext ''GetField
-makeHContext ''Inject
 makeHContext ''Term
 makeHasHPlain [''Term]
 
@@ -150,10 +127,8 @@ instance
                                      PP.char ':' PP.<> pPrint t <+>
                                      PP.text "->" <+>
                                      pPrint e
-        BGetField (GetField e n)  -> maybeParens (12 < prec) $
-                                     pPrintPrec lvl 12 e <> PP.char '.' <> pPrint n
-        BInject (Inject n e)      -> maybeParens (12 < prec) $
-                                     pPrint n <> PP.char '{' <> pPrintPrec lvl 12 e <> PP.char '}'
+        BLeaf (LGetField x)       -> maybeParens (12 < prec) $ PP.char '.' <> pPrint x
+        BLeaf (LInject x)         -> maybeParens (12 < prec) $ pPrint x <> PP.char ':'
         BCase (RowExtend n m mm)  -> maybeParens (0 < prec) $
                                      PP.vcat
                                      [ PP.text "case of"
@@ -192,8 +167,8 @@ instance HasInferredType Term where
 
 instance RTraversableInferOf Term
 
-makeDerivings [''Eq, ''Ord, ''Show] [''Term, ''Scope, ''GetField, ''Inject]
-makeInstances [''Binary, ''NFData, ''Hashable] [''Term, ''Scope, ''GetField, ''Inject]
+makeDerivings [''Eq, ''Ord, ''Show] [''Term, ''Scope]
+makeInstances [''Binary, ''NFData, ''Hashable] [''Term, ''Scope]
 
 instance TermVar.VarType Var Term where
     {-# INLINE varType #-}
@@ -235,22 +210,18 @@ instance
             inferBody (FromNom x :: FromNom T.NominalId Term # InferChild k w)
             <&> (^. Lens._2)
             >>= newTerm . T.TFun
+        LGetField k ->
+            do
+                (rT, wR) <- rowElementInfer T.RExtend k
+                T.TRecord wR & newTerm
+                    >>= newTerm . T.TFun . (`FuncType` rT)
+        LInject k ->
+            do
+                (rT, wR) <- rowElementInfer T.RExtend k
+                T.TVariant wR & newTerm
+                    >>= newTerm . T.TFun . FuncType rT
         <&> MkANode
         <&> (BLeaf leaf, )
-    inferBody (BGetField (GetField w k)) =
-        do
-            (rT, wR) <- rowElementInfer T.RExtend k
-            InferredChild wI wT <- inferChild w
-            _ <- T.TRecord wR & newTerm >>= unify (wT ^. _ANode)
-            pure (BGetField (GetField wI k), MkANode rT)
-    inferBody (BInject (Inject k p)) =
-        do
-            (rT, wR) <- rowElementInfer T.RExtend k
-            InferredChild pI pT <- inferChild p
-            _ <- unify rT (pT ^. _ANode)
-            newTerm (T.TVariant wR)
-                <&> MkANode
-                <&> (BInject (Inject k pI), )
     inferBody (BRecExtend (RowExtend k v r)) =
         do
             InferredChild vI vR <- inferChild v

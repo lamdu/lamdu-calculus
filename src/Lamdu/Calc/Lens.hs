@@ -125,16 +125,18 @@ payloadsOf l =
     where
         predicate idx _ = Lens.has l idx
 
+leafTags :: Lens.Traversal' V.Leaf T.Tag
+leafTags f (V.LInject t) = f t <&> V.LInject
+leafTags f (V.LGetField t) = f t <&> V.LGetField
+leafTags _ x = pure x
+
 {-# INLINE valTags #-}
 valTags :: Lens.Traversal' (Ann a # V.Term) T.Tag
 valTags =
     hVal .
     \f ->
     \case
-    V.BInject (V.Inject t v) ->
-        V.Inject <$> f t <*> valTags f v <&> V.BInject
-    V.BGetField (V.GetField r t) ->
-        V.GetField <$> valTags f r <*> f t <&> V.BGetField
+    V.BLeaf l -> leafTags f l <&> V.BLeaf
     V.BCase (RowExtend t v r) ->
         RowExtend <$> f t <*> valTags f v <*> valTags f r <&> V.BCase
     V.BRecExtend (RowExtend t v r) ->

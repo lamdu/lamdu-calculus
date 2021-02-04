@@ -196,10 +196,10 @@ let_ :: Var -> HPlain Term -> HPlain Term -> HPlain Term
 let_ k v r = BAppP (BLamP k Pruned r) v
 
 cons :: HPlain Term -> HPlain Term -> HPlain Term
-cons h t = BToNomP "List" $ BInjectP ":" $ record [("head", h), ("tail", t)]
+cons h t = BLeafP (LInject ":") `BAppP` record [("head", h), ("tail", t)] & BToNomP "List"
 
 list :: [HPlain Term] -> HPlain Term
-list = foldr cons (BToNomP "List" (BInjectP "[]" (BLeafP LRecEmpty)))
+list = foldr cons (BToNomP "List" (BLeafP (LInject "[]") `BAppP` BLeafP LRecEmpty))
 
 solveDepressedQuarticVal :: HPlain Term
 solveDepressedQuarticVal =
@@ -240,9 +240,9 @@ solveDepressedQuarticVal =
         ])
     ]
     where
-        c = BGetFieldP "params" "c"
-        d = BGetFieldP "params" "d"
-        e = BGetFieldP "params" "e"
+        c = BLeafP (LGetField "c") `BAppP` "params"
+        d = BLeafP (LGetField "d") `BAppP` "params"
+        e = BLeafP (LGetField "e") `BAppP` "params"
 
 (%+), (%-), (%*), (%/), (%//), (%>), (%%), (%==) :: HPlain Term -> HPlain Term -> HPlain Term
 x %+ y = inf x "+" y
@@ -264,8 +264,8 @@ factorsVal =
     (cons m $ "loop" $$: [("n", n %// m), ("min", m)]) $
     "loop" $$: [("n", n), ("min", m %+ litInt 1)]
     where
-        n = BGetFieldP "params" "n"
-        m = BGetFieldP "params" "min"
+        n = BLeafP (LGetField "n") `BAppP` "params"
+        m = BLeafP (LGetField "min") `BAppP` "params"
         if_ b t f =
             BCaseP "False" (BLamP "_" Pruned f) (BCaseP "True" (BLamP "_" Pruned t) (BLeafP LAbsurd))
             `BAppP` (BLeafP (LFromNom "Bool") `BAppP` b)
