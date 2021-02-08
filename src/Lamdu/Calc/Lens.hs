@@ -170,14 +170,13 @@ rowTags =
 
 {-# INLINE valGlobals #-}
 valGlobals ::
-    HFunctor a =>
     Set V.Var ->
-    Lens.IndexedFold (a # Const ()) (Ann a # V.Term) V.Var
+    Lens.IndexedFold (a # V.Term) (Ann a # V.Term) V.Var
 valGlobals scope f (Ann pl body) =
     case body of
     V.BLeaf (V.LVar v)
         | scope ^. Lens.contains v -> V.LVar v & V.BLeaf & pure
-        | otherwise -> Lens.indexed f (hmap (\_ _ -> Const ()) pl) v <&> V.LVar <&> V.BLeaf
+        | otherwise -> Lens.indexed f pl v <&> V.LVar <&> V.BLeaf
     V.BLam (V.TypedLam var typ lamBody) ->
         valGlobals (Set.insert var scope) f lamBody
         <&> V.TypedLam var typ <&> V.BLam
