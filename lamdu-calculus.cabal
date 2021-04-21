@@ -45,7 +45,7 @@ library
       QuickCheck
     , base >=4.7
     , base-compat >=0.8.2
-    , base16-bytestring
+    , base16-bytestring >=1
     , binary
     , bytestring
     , constraints

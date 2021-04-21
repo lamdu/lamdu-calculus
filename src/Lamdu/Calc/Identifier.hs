@@ -55,8 +55,4 @@ identHex (Identifier bs) = Hex.encode bs & BS.unpack
 -- > > identFromHex (Identifier "6131")
 -- > Right (Identifier "a1")
 identFromHex :: String -> Either String Identifier
-identFromHex str
-    | BS.null remain = Identifier result & Right
-    | otherwise = "Hex doesnt parse: " <> show str & Left
-    where
-        (result, remain) = BS.pack str & Hex.decode
+identFromHex str = BS.pack str & Hex.decode <&> Identifier
