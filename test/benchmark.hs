@@ -32,7 +32,7 @@ localInitEnv ::
 localInitEnv inferEnv e action =
     do
         addScope <- loadDeps (pruneDeps e allDeps)
-        local (inferEnv %~ addScope) action
+        Lens.locally inferEnv addScope action
 
 toAnn :: HPlain Term -> Ann (Const ()) # Term
 toAnn = wrap (\_ x -> Ann (Const ()) x) . (^. hPlain)
