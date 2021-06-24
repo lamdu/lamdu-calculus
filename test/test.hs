@@ -4,7 +4,7 @@ import Control.Lens (at)
 import Control.Lens.Operators
 import Data.Set (fromList)
 import Hyper
-import Hyper.Type.AST.Scheme
+import Hyper.Syntax.Scheme
 import Lamdu.Calc.Infer
 import Lamdu.Calc.Type
 import Test.Framework

@@ -20,9 +20,9 @@ module Lamdu.Calc.Lens
 
 import           Hyper
 import           Hyper.Recurse
-import           Hyper.Type.AST.Nominal (ToNom(..), NominalInst(..), NominalDecl, nScheme)
-import           Hyper.Type.AST.Row (RowExtend(..))
-import           Hyper.Type.AST.Scheme (Scheme, _QVarInstances, sTyp)
+import           Hyper.Syntax.Nominal (ToNom(..), NominalInst(..), NominalDecl, nScheme)
+import           Hyper.Syntax.Row (RowExtend(..))
+import           Hyper.Syntax.Scheme (Scheme, _QVarInstances, sTyp)
 import           Hyper.Type.Prune (Prune, _Unpruned)
 import           Control.Lens (Traversal', Prism')
 import qualified Control.Lens as Lens

@@ -11,9 +11,9 @@ module TestVals
     ) where
 
 import           Hyper
-import           Hyper.Type.AST.Nominal
-import           Hyper.Type.AST.Row
-import           Hyper.Type.AST.Scheme
+import           Hyper.Syntax.Nominal
+import           Hyper.Syntax.Row
+import           Hyper.Syntax.Scheme
 import           Hyper.Type.Prune
 import qualified Control.Lens as Lens
 import           Control.Lens.Operators

@@ -57,10 +57,10 @@ import           Hyper
 import           Hyper.Class.Optic (HNodeLens(..), HSubset(..))
 import           Hyper.Infer
 import           Hyper.Infer.Blame (Blame(..))
-import           Hyper.Type.AST.FuncType
-import           Hyper.Type.AST.Nominal
-import           Hyper.Type.AST.Row
-import qualified Hyper.Type.AST.Scheme as S
+import           Hyper.Syntax hiding (Var)
+import           Hyper.Syntax.Nominal
+import           Hyper.Syntax.Row
+import qualified Hyper.Syntax.Scheme as S
 import           Hyper.Type.Prune (Prune)
 import           Hyper.Unify
 import           Hyper.Unify.New (newTerm)

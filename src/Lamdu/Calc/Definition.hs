@@ -8,7 +8,7 @@ module Lamdu.Calc.Definition
     ) where
 
 import           Hyper (Ann, Pure, Const(..), Generic, HFunctor(..), hflipped, type (#))
-import           Hyper.Type.AST.Nominal (NominalDecl)
+import           Hyper.Syntax.Nominal (NominalDecl)
 import           Control.DeepSeq (NFData)
 import qualified Control.Lens as Lens
 import           Control.Lens.Operators

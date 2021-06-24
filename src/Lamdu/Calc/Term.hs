@@ -12,7 +12,7 @@ module Lamdu.Calc.Term
     , PrimVal(..), primType, primData
     , Term(..), _BApp, _BLam, _BRecExtend, _BCase, _BToNom, _BLeaf, W_Term(..)
     , App(..), appFunc, appArg
-    , module Hyper.Type.AST.TypedLam
+    , TypedLam(..), tlIn, tlInType, tlOut
     , Var(..)
     , Scope(..), scopeNominals, scopeVarTypes, scopeLevel
     , emptyScope
@@ -34,13 +34,11 @@ import           Hyper
 import           Hyper.Infer
 import           Hyper.Infer.Blame (Blame(..))
 import           Hyper.Type.Prune (Prune)
-import           Hyper.Type.AST.App (App(..), appFunc, appArg)
-import           Hyper.Type.AST.FuncType (FuncType(..))
-import           Hyper.Type.AST.Nominal (ToNom(..), FromNom(..), NominalInst(..), MonadNominals, LoadedNominalDecl)
-import           Hyper.Type.AST.Row (RowExtend(..), rowElementInfer)
-import           Hyper.Type.AST.Scheme (QVarInstances(..))
-import           Hyper.Type.AST.TypedLam (TypedLam(..), tlIn, tlInType, tlOut)
-import qualified Hyper.Type.AST.Var as TermVar
+import           Hyper.Syntax hiding (Var)
+import           Hyper.Syntax.Nominal (ToNom(..), FromNom(..), NominalInst(..), MonadNominals, LoadedNominalDecl)
+import           Hyper.Syntax.Row (RowExtend(..), rowElementInfer)
+import           Hyper.Syntax.Scheme (QVarInstances(..))
+import qualified Hyper.Syntax.Var as TermVar
 import           Hyper.Unify
 import qualified Hyper.Unify.Generalize as G
 import           Hyper.Unify.New (newTerm, newUnbound)

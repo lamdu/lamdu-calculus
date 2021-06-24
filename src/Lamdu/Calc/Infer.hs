@@ -16,10 +16,10 @@ module Lamdu.Calc.Infer
 
 import           Hyper
 import           Hyper.Infer
-import           Hyper.Type.AST.Nominal
-import qualified Hyper.Type.AST.Var as TermVar
-import qualified Hyper.Type.AST.Scheme as S
-import qualified Hyper.Type.AST.Scheme.AlphaEq as S
+import           Hyper.Syntax.Nominal
+import qualified Hyper.Syntax.Var as TermVar
+import qualified Hyper.Syntax.Scheme as S
+import qualified Hyper.Syntax.Scheme.AlphaEq as S
 import           Hyper.Unify
 import           Hyper.Unify.Binding
 import           Hyper.Unify.Binding.ST
