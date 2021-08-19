@@ -8,14 +8,11 @@ import           Hyper
 import           Hyper.Class.ZipMatch
 import           Hyper.Type.Prune
 import qualified Control.Lens as Lens
-import           Control.Lens.Operators
-import           Control.Monad (guard, join)
-import           Data.Map (Map)
 import qualified Data.Map as Map
 import           Lamdu.Calc.Term
 import qualified Lamdu.Calc.Type as T
 
-import           Prelude.Compat
+import           Lamdu.Calc.Internal.Prelude
 
 class CouldEq e where
     go :: Map Var Var -> Pure # e -> Pure # e -> Bool

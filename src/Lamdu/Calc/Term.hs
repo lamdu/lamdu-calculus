@@ -20,15 +20,8 @@ module Lamdu.Calc.Term
     , HPlain(..)
     ) where
 
-import           Control.DeepSeq (NFData(..))
 import qualified Control.Lens as Lens
-import           Control.Lens.Operators
-import           Data.Binary (Binary)
-import           Data.ByteString (ByteString)
 import qualified Data.ByteString.Char8 as BS8
-import           Data.Hashable (Hashable(..))
-import           Data.Map (Map)
-import           Data.String (IsString(..))
 import           Generics.Constraints (makeDerivings, makeInstances)
 import           Hyper
 import           Hyper.Infer
@@ -49,7 +42,7 @@ import           Text.PrettyPrint ((<+>))
 import qualified Text.PrettyPrint as PP
 import           Text.PrettyPrint.HughesPJClass (Pretty(..), maybeParens)
 
-import           Prelude.Compat
+import           Lamdu.Calc.Internal.Prelude
 
 {-# ANN module ("HLint: ignore Use const"::String) #-}
 
@@ -259,7 +252,7 @@ instance
     , LocalScopeType Var (UVarOf m # T.Type) m
     ) =>
     Blame m Term where
-    inferOfUnify _ x y = () <$ unify (x ^. _ANode) (y ^. _ANode)
+    inferOfUnify _ x y = unify (x ^. _ANode) (y ^. _ANode) & void
     inferOfMatches _ x y =
         (==)
         <$> (semiPruneLookup (x ^. _ANode) <&> fst)

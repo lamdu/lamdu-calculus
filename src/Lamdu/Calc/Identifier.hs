@@ -13,10 +13,6 @@ module Lamdu.Calc.Identifier
     -- > identFromHex . identHex == Right
     ) where
 
-import           Control.DeepSeq (NFData(..))
-import           Control.Lens.Operators
-import           Data.Binary (Binary)
-import           Data.ByteString (ByteString)
 import qualified Data.ByteString.Base16 as Hex
 import qualified Data.ByteString.Char8 as BS
 import qualified Data.Char as Char
@@ -26,7 +22,7 @@ import           GHC.Generics (Generic)
 import qualified Text.PrettyPrint as PP
 import           Text.PrettyPrint.HughesPJClass (Pretty(..))
 
-import           Prelude.Compat
+import           Lamdu.Calc.Internal.Prelude
 
 -- | A low-level identifier data-type. This is used to identify
 -- variables, type variables, tags and more.

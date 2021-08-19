@@ -45,6 +45,8 @@ ghc-prof-options:
 
 library:
   source-dirs: src
+  other-modules:
+  - Lamdu.Calc.Internal.Prelude
   dependencies:
   - base16-bytestring
   - constraints

@@ -44,13 +44,7 @@ module Lamdu.Calc.Type
     ) where
 
 import           Algebra.PartialOrd (PartialOrd(..))
-import           Control.DeepSeq (NFData(..))
 import qualified Control.Lens as Lens
-import           Control.Lens.Operators
-import           Data.Binary (Binary)
-import           Data.Hashable (Hashable)
-import           Data.Set (Set)
-import           Data.String (IsString(..))
 import           Generic.Data (Generically(..))
 import           Generics.Constraints (makeDerivings, makeInstances)
 import           Hyper
@@ -70,7 +64,7 @@ import           Text.PrettyPrint ((<+>))
 import qualified Text.PrettyPrint as PP
 import           Text.PrettyPrint.HughesPJClass (Pretty(..), maybeParens)
 
-import           Prelude.Compat
+import           Lamdu.Calc.Internal.Prelude
 
 -- | A type varible of some kind ('Var' 'Type', 'Var' 'Variant', or 'Var' 'Record')
 newtype Var (t :: HyperType) = Var { tvName :: Identifier }
@@ -299,14 +293,14 @@ instance (Monad m, UnifyGen m Type, UnifyGen m Row) => Infer m Row where
                 <&> (hmap (const (^. inRep)) xI, ) . MkANode
 
 instance (UnifyGen m Type, UnifyGen m Row) => Blame m Row where
-    inferOfUnify _ x y = () <$ unify (x ^. _ANode) (y ^. _ANode)
+    inferOfUnify _ x y = unify (x ^. _ANode) (y ^. _ANode) & void
     inferOfMatches _ x y =
         (==)
         <$> (semiPruneLookup (x ^. _ANode) <&> fst)
         <*> (semiPruneLookup (y ^. _ANode) <&> fst)
 
 instance (UnifyGen m Type, UnifyGen m Row) => Blame m Type where
-    inferOfUnify _ x y = () <$ unify (x ^. _ANode) (y ^. _ANode)
+    inferOfUnify _ x y = unify (x ^. _ANode) (y ^. _ANode) & void
     inferOfMatches _ x y =
         (==)
         <$> (semiPruneLookup (x ^. _ANode) <&> fst)

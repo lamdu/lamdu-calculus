@@ -9,11 +9,7 @@ module Lamdu.Calc.Definition
 
 import           Hyper (Ann, Pure, Const(..), Generic, HFunctor(..), hflipped, type (#))
 import           Hyper.Syntax.Nominal (NominalDecl)
-import           Control.DeepSeq (NFData)
 import qualified Control.Lens as Lens
-import           Control.Lens.Operators
-import           Data.Binary (Binary)
-import           Data.Map (Map)
 import qualified Data.Map as Map
 import qualified Data.Set as Set
 import           Lamdu.Calc.Lens (valGlobals, valNominals)
@@ -21,7 +17,7 @@ import qualified Lamdu.Calc.Term as V
 import           Lamdu.Calc.Type (Type)
 import qualified Lamdu.Calc.Type as T
 
-import           Prelude.Compat
+import           Lamdu.Calc.Internal.Prelude
 
 data Deps = Deps
     { _depsGlobalTypes :: !(Map V.Var (Pure # T.Scheme))

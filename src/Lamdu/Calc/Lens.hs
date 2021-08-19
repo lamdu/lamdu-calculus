@@ -26,14 +26,12 @@ import           Hyper.Syntax.Scheme (Scheme, _QVarInstances, sTyp)
 import           Hyper.Type.Prune (Prune, _Unpruned)
 import           Control.Lens (Traversal', Prism')
 import qualified Control.Lens as Lens
-import           Control.Lens.Operators
-import           Data.Set (Set)
 import qualified Data.Set as Set
 import           Lamdu.Calc.Term (Val)
 import qualified Lamdu.Calc.Term as V
 import qualified Lamdu.Calc.Type as T
 
-import           Prelude.Compat
+import           Lamdu.Calc.Internal.Prelude
 
 tIds ::
     forall k expr.

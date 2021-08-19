@@ -29,7 +29,6 @@ import           Hyper.Unify.Term (UTerm, UTermBody)
 import           Control.Applicative (Alternative(..))
 import qualified Control.Lens as Lens
 import           Control.Lens (LensLike')
-import           Control.Lens.Operators
 import           Control.Monad.Except
 import           Control.Monad.Reader.Class
 import           Control.Monad.ST
@@ -40,12 +39,11 @@ import           Control.Monad.Trans.RWS (RWST(..))
 import           Control.Monad.Trans.Reader (ReaderT(..))
 import           Control.Monad.Trans.Writer (WriterT)
 import           Data.STRef
-import           Data.String (IsString(..))
 import           Lamdu.Calc.Definition (Deps, depsNominals, depsGlobalTypes)
 import           Lamdu.Calc.Term
 import qualified Lamdu.Calc.Type as T
 
-import           Prelude.Compat
+import           Lamdu.Calc.Internal.Prelude
 
 data QVarGen = QVarGen
     { _nextTV :: !Int
