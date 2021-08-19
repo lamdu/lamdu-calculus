@@ -16,8 +16,6 @@ module Lamdu.Calc.Identifier
 import qualified Data.ByteString.Base16 as Hex
 import qualified Data.ByteString.Char8 as BS
 import qualified Data.Char as Char
-import           Data.Hashable (Hashable)
-import           Data.String (IsString(..))
 import           GHC.Generics (Generic)
 import qualified Text.PrettyPrint as PP
 import           Text.PrettyPrint.HughesPJClass (Pretty(..))
