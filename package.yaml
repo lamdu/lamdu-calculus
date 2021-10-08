@@ -21,7 +21,7 @@ dependencies:
 - bytestring
 - containers
 - deepseq
-- hypertypes
+- hypertypes >= 0.2
 - lattices
 - lens >= 4.1
 - monad-st
