@@ -52,7 +52,7 @@ library
     , generic-constraints
     , generic-data
     , hashable
-    , hypertypes
+    , hypertypes >=0.2
     , lattices
     , lens >=4.1
     , monad-st
