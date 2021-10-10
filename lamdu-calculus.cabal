@@ -1,10 +1,8 @@
 cabal-version: 1.12
 
--- This file has been generated from package.yaml by hpack version 0.33.0.
+-- This file has been generated from package.yaml by hpack version 0.34.4.
 --
 -- see: https://github.com/sol/hpack
---
--- hash: 35db4157515e728b200d0903b5b3bac1a1ec56fcf94a1a3234a44054b291d2bd
 
 name:           lamdu-calculus
 version:        0.2.0.0
@@ -36,7 +34,7 @@ library
       Lamdu.Calc.Term.Eq
       Lamdu.Calc.Type
   other-modules:
-      Paths_lamdu_calculus
+      Lamdu.Calc.Internal.Prelude
   hs-source-dirs:
       src
   ghc-options: -fexpose-all-unfoldings -Wall -Wnoncanonical-monad-instances -Wcompat -Wincomplete-record-updates -Wincomplete-uni-patterns -Wredundant-constraints -fdicts-cheap -O2
@@ -45,7 +43,7 @@ library
       QuickCheck
     , base >=4.7
     , base-compat >=0.8.2
-    , base16-bytestring >=1
+    , base16-bytestring
     , binary
     , bytestring
     , constraints

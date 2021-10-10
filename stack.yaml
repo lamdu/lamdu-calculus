@@ -1,7 +1,6 @@
-resolver: nightly-2021-01-13
+resolver: lts-18.13
 packages:
 - '.'
 extra-deps:
-- base16-bytestring-1.0.1.0
 - github: lamdu/hypertypes
-  commit: 9d1f54b4c5a60c39f08b5559e2f5bdd3efdfe975
+  commit: bb87436874caabe39e08972240438d12d80cd378
