@@ -30,6 +30,7 @@ module Lamdu.Calc.Type
     , Scheme, Nominal
     , (~>)
     -- * Type Prisms
+    , _Var
     , _TVar, _TFun, _TInst, _TRecord, _TVariant
     -- TODO: describe
     , Types(..), W_Types(..), tType, tRow
@@ -51,7 +52,7 @@ import           Hyper
 import           Hyper.Class.Optic (HNodeLens(..), HSubset(..))
 import           Hyper.Infer
 import           Hyper.Infer.Blame (Blame(..))
-import           Hyper.Syntax hiding (Var)
+import           Hyper.Syntax hiding (Var, _Var)
 import           Hyper.Syntax.Nominal
 import           Hyper.Syntax.Row
 import qualified Hyper.Syntax.Scheme as S
@@ -140,6 +141,7 @@ Lens.makeLenses ''Types
 Lens.makePrisms ''Row
 Lens.makePrisms ''Type
 Lens.makePrisms ''TypeError
+Lens.makePrisms ''Var
 
 makeHTraversableApplyAndBases ''Types
 makeHTraversableAndBases ''Row
