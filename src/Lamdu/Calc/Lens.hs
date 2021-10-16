@@ -15,21 +15,26 @@ module Lamdu.Calc.Lens
     -- Subexpressions:
     , subExprPayloads
     , payloadsOf
-    , HasTIds(..), tIds
+    , HasTIds(..), tIds, qVarIds
+    , HasQVarIds(..)
+    , HasQVar(..), qvarsQVarIds
     ) where
 
+import           Control.Lens (Traversal', Prism')
+import qualified Control.Lens as Lens
+import qualified Data.Map as Map
+import qualified Data.Set as Set
 import           Hyper
 import           Hyper.Recurse
 import           Hyper.Syntax.Nominal (ToNom(..), NominalInst(..), NominalDecl, nScheme)
 import           Hyper.Syntax.Row (RowExtend(..))
-import           Hyper.Syntax.Scheme (Scheme, _QVarInstances, sTyp)
+import           Hyper.Syntax.Scheme (Scheme, QVars, _QVars, QVarInstances, _QVarInstances, sTyp)
 import           Hyper.Type.Prune (Prune, _Unpruned)
-import           Control.Lens (Traversal', Prism')
-import qualified Control.Lens as Lens
-import qualified Data.Set as Set
+import           Lamdu.Calc.Identifier (Identifier)
 import           Lamdu.Calc.Term (Val)
 import qualified Lamdu.Calc.Term as V
 import qualified Lamdu.Calc.Type as T
+import           Hyper.Unify.QuantifiedVar (HasQuantifiedVar(..))
 
 import           Lamdu.Calc.Internal.Prelude
 
@@ -41,25 +46,70 @@ tIds f =
     withDict (recurse (Proxy @(RTraversable k))) $
     htraverse (Proxy @RTraversable #> bodyTIds f)
 
+qVarIds ::
+    forall k expr.
+    (RTraversable k, HasQVarIds expr) =>
+    Traversal' (k # expr) Identifier
+qVarIds f =
+    withDict (recurse (Proxy @(RTraversable k))) $
+    htraverse (Proxy @RTraversable #> bodyQVarIds f)
+
 class HasTIds expr where
     bodyTIds :: RTraversable k => Traversal' (expr # k) T.NominalId
+
+class HasQVarIds expr where
+    bodyQVarIds :: RTraversable k => Traversal' (expr # k) Identifier -- only a legal traversal if keys not modified to be duplicates!
+
+unsafeMapList :: Ord k1 => Lens.Iso (Map k0 v0) (Map k1 v1) [(k0, v0)] [(k1, v1)]
+unsafeMapList = Lens.iso Map.toList Map.fromList
+
+-- TODO: Try to use (HasTIds &&& HasQuantifiedVar) from constraints instead of this class
+class (HasQuantifiedVar expr, HasQVarIds expr, Ord (QVar expr)) => HasQVar expr where
+    qvarId :: Proxy expr -> Lens.Iso' (QVar expr) Identifier
+
+instance HasQVar T.Type where qvarId _ = T._Var
+instance HasQVar T.Row where qvarId _ = T._Var
 
 instance HasTIds T.Type where
     {-# INLINE bodyTIds #-}
     bodyTIds f (T.TInst (NominalInst tId args)) =
         NominalInst
         <$> f tId
-        <*> htraverse (Proxy @HasTIds #> _QVarInstances %%~ traverse (tIds f))
+        <*> htraverse (Proxy @HasTIds #> (_QVarInstances . traverse . tIds) f)
             args
         <&> T.TInst
     bodyTIds f x = htraverse (Proxy @HasTIds #> tIds f) x
+
+instance HasQVarIds T.Type where
+    bodyQVarIds f (T.TInst (NominalInst tId args)) =
+        NominalInst tId
+        <$> htraverse (Proxy @HasQVar #> qvarInstancesQVarIds f) args
+        <&> T.TInst
+    bodyQVarIds f (T.TVar v) = T._Var f v <&> T.TVar
+    bodyQVarIds f x = htraverse (Proxy @HasQVar #> qVarIds f) x
+
+qvarInstancesQVarIds :: forall expr h. (HasQVar expr, RTraversable h) => Traversal' (QVarInstances h # expr) Identifier
+qvarInstancesQVarIds f =
+    (_QVarInstances . unsafeMapList . traverse)
+    (\(k, typ) ->
+        (,) <$> qvarId (Proxy @expr) f k <*> qVarIds f typ)
 
 instance HasTIds T.Row where
     {-# INLINE bodyTIds #-}
     bodyTIds f = htraverse (Proxy @HasTIds #> tIds f)
 
+instance HasQVarIds T.Row where
+    bodyQVarIds f = htraverse (Proxy @HasQVarIds #> qVarIds f)
+
 instance HasTIds (Scheme T.Types T.Type) where
     bodyTIds = sTyp . tIds
+
+qvarsQVarIds ::
+    forall expr.
+    HasQVar expr =>
+    Traversal' (QVars # expr) Identifier
+qvarsQVarIds =
+    _QVars . unsafeMapList . traverse . Lens._1 . qvarId (Proxy @expr)
 
 instance HasTIds (NominalDecl T.Type) where
     bodyTIds = nScheme . bodyTIds
