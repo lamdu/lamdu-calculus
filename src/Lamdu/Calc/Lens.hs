@@ -63,8 +63,7 @@ class HasQVarIds expr where
 unsafeMapList :: Ord k1 => Lens.Iso (Map k0 v0) (Map k1 v1) [(k0, v0)] [(k1, v1)]
 unsafeMapList = Lens.iso (^@.. Lens.itraversed) Map.fromList
 
--- TODO: Try to use (HasTIds &&& HasQuantifiedVar) from constraints instead of this class
-class (HasQuantifiedVar expr, HasQVarIds expr, Ord (QVar expr)) => HasQVar expr where
+class (HasQVarIds expr, Ord (QVar expr)) => HasQVar expr where
     qvarId :: Proxy expr -> Lens.Iso' (QVar expr) Identifier
 
 instance HasQVar T.Type where qvarId _ = T._Var
