@@ -61,7 +61,7 @@ class HasQVarIds expr where
     bodyQVarIds :: RTraversable k => Traversal' (expr # k) Identifier -- only a legal traversal if keys not modified to be duplicates!
 
 unsafeMapList :: Ord k1 => Lens.Iso (Map k0 v0) (Map k1 v1) [(k0, v0)] [(k1, v1)]
-unsafeMapList = Lens.iso Map.toList Map.fromList
+unsafeMapList = Lens.iso (^@.. Lens.itraversed) Map.fromList
 
 -- TODO: Try to use (HasTIds &&& HasQuantifiedVar) from constraints instead of this class
 class (HasQuantifiedVar expr, HasQVarIds expr, Ord (QVar expr)) => HasQVar expr where
