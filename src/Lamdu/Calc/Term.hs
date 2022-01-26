@@ -22,6 +22,7 @@ module Lamdu.Calc.Term
 
 import qualified Control.Lens as Lens
 import qualified Data.ByteString.Char8 as BS8
+import           Data.Maybe (fromMaybe)
 import           Generics.Constraints (makeDerivings, makeInstances)
 import           Hyper
 import           Hyper.Infer
@@ -163,7 +164,10 @@ makeInstances [''Binary, ''NFData, ''Hashable] [''Term, ''Scope]
 
 instance TermVar.VarType Var Term where
     {-# INLINE varType #-}
-    varType _ v x = x ^?! scopeVarTypes . Lens.ix v . _HFlip & G.instantiate
+    varType _ v x =
+        x ^? scopeVarTypes . Lens.ix v . _HFlip
+        & fromMaybe (error ("var not in scope: " <> show v))
+        & G.instantiate
 
 instance
     ( MonadNominals T.NominalId T.Type m
