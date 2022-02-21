@@ -1,6 +1,6 @@
-resolver: lts-18.13
+resolver: lts-18.26
 packages:
 - '.'
 extra-deps:
 - github: lamdu/hypertypes
-  commit: bb87436874caabe39e08972240438d12d80cd378
+  commit: 35c2a69c206631eeea7be26cd443cdf2b5be0ccc

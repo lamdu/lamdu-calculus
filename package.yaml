@@ -17,17 +17,10 @@ description: Please see README.md
 dependencies:
 - base >= 4.7
 - base-compat >= 0.8.2
-- binary
 - bytestring
 - containers
-- deepseq
 - hypertypes >= 0.2
-- lattices
 - lens >= 4.1
-- monad-st
-- mtl
-- pretty >= 1.1.2
-- transformers
 
 ghc-options:
 - -fexpose-all-unfoldings
@@ -37,6 +30,7 @@ ghc-options:
 - -Wincomplete-record-updates
 - -Wincomplete-uni-patterns
 - -Wredundant-constraints
+- -Wunused-packages
 - -fdicts-cheap
 - -O2
 
@@ -49,11 +43,17 @@ library:
   - Lamdu.Calc.Internal.Prelude
   dependencies:
   - base16-bytestring
+  - binary
   - constraints
+  - deepseq
   - generic-constraints
   - generic-data
   - hashable
-  - QuickCheck
+  - lattices
+  - monad-st
+  - mtl
+  - pretty >= 1.1.2
+  - transformers
 
 tests:
   lamdu-calculus-test:
