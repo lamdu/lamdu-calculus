@@ -44,7 +44,6 @@ library:
   dependencies:
   - base16-bytestring
   - binary
-  - constraints
   - deepseq
   - generic-constraints
   - generic-data
