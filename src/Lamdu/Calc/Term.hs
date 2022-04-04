@@ -157,8 +157,6 @@ instance HasInferredType Term where
     type instance TypeOf Term = T.Type
     inferredType _ = _ANode
 
-instance RTraversableInferOf Term
-
 makeDerivings [''Eq, ''Ord, ''Show] [''Term, ''Scope]
 makeInstances [''Binary, ''NFData, ''Hashable] [''Term, ''Scope]
 

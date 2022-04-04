@@ -56,7 +56,6 @@ import           Hyper.Syntax hiding (Var, _Var)
 import           Hyper.Syntax.Nominal
 import           Hyper.Syntax.Row
 import qualified Hyper.Syntax.Scheme as S
-import           Hyper.Type.Prune (Prune)
 import           Hyper.Unify
 import           Hyper.Unify.New (newTerm)
 import           Hyper.Unify.QuantifiedVar (HasQuantifiedVar(..))
@@ -272,11 +271,6 @@ type instance InferOf Type = ANode Type
 type instance InferOf Row = ANode Row
 instance HasInferredValue Type where inferredValue = _ANode
 instance HasInferredValue Row where inferredValue = _ANode
-
-instance RTraversableInferOf Type
-instance RTraversableInferOf Row
-instance RTraversableInferOf (HCompose Prune Type)
-instance RTraversableInferOf (HCompose Prune Row)
 
 instance (Monad m, UnifyGen m Type, UnifyGen m Row) => Infer m Type where
     inferBody x =
