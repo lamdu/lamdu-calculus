@@ -78,4 +78,8 @@ benchmarks:
     - -Wredundant-constraints
     dependencies:
     - criterion
+    - deepseq
+    - monad-st
+    - mtl
     - lamdu-calculus
+    - transformers
