@@ -37,7 +37,7 @@ library
       Lamdu.Calc.Internal.Prelude
   hs-source-dirs:
       src
-  ghc-options: -fexpose-all-unfoldings -Wall -Wnoncanonical-monad-instances -Wcompat -Wincomplete-record-updates -Wincomplete-uni-patterns -Wredundant-constraints -Wunused-packages -fdicts-cheap -O2
+  ghc-options: -fexpose-all-unfoldings -Wall -Wnoncanonical-monad-instances -Wcompat -Wincomplete-record-updates -Wincomplete-uni-patterns -Wredundant-constraints -Wunused-packages -fdicts-cheap -O2 -fspecialise-aggressively
   ghc-prof-options: -O2
   build-depends:
       base >=4.7
@@ -67,7 +67,7 @@ test-suite lamdu-calculus-test
       Paths_lamdu_calculus
   hs-source-dirs:
       test
-  ghc-options: -fexpose-all-unfoldings -Wall -Wnoncanonical-monad-instances -Wcompat -Wincomplete-record-updates -Wincomplete-uni-patterns -Wredundant-constraints -Wunused-packages -fdicts-cheap -O2
+  ghc-options: -fexpose-all-unfoldings -Wall -Wnoncanonical-monad-instances -Wcompat -Wincomplete-record-updates -Wincomplete-uni-patterns -Wredundant-constraints -Wunused-packages -fdicts-cheap -O2 -fspecialise-aggressively
   ghc-prof-options: -O2
   build-depends:
       HUnit
@@ -90,7 +90,7 @@ benchmark lamdu-calculus-bench
       Paths_lamdu_calculus
   hs-source-dirs:
       test
-  ghc-options: -fexpose-all-unfoldings -Wall -Wnoncanonical-monad-instances -Wcompat -Wincomplete-record-updates -Wincomplete-uni-patterns -Wredundant-constraints -Wunused-packages -fdicts-cheap -O2 -O2 -Wall -Wnoncanonical-monad-instances -Wcompat -Wincomplete-record-updates -Wincomplete-uni-patterns -Wredundant-constraints
+  ghc-options: -fexpose-all-unfoldings -Wall -Wnoncanonical-monad-instances -Wcompat -Wincomplete-record-updates -Wincomplete-uni-patterns -Wredundant-constraints -Wunused-packages -fdicts-cheap -O2 -fspecialise-aggressively -O2 -Wall -Wnoncanonical-monad-instances -Wcompat -Wincomplete-record-updates -Wincomplete-uni-patterns -Wredundant-constraints
   ghc-prof-options: -O2
   build-depends:
       base >=4.7

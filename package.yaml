@@ -33,6 +33,7 @@ ghc-options:
 - -Wunused-packages
 - -fdicts-cheap
 - -O2
+- -fspecialise-aggressively
 
 ghc-prof-options:
 - -O2

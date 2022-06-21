@@ -223,14 +223,10 @@ alphaEq x y =
             & runMaybeT
     <&> Lens.has Lens._Just
 
-{-# SPECIALIZE inferH :: Ann a # Term -> InferChild (PureInfer (Scope # UVar)) (Ann (a :*: InferResult UVar)) # Term #-}
-{-# SPECIALIZE unify :: UVar # T.Row -> UVar # T.Row -> (PureInfer env) (UVar # T.Row) #-}
 {-# SPECIALIZE unify :: STUVar s # T.Row -> STUVar s # T.Row -> STInfer s (STUVar s # T.Row) #-}
 {-# SPECIALIZE updateConstraints :: ScopeLevel -> STUVar s # T.Type -> UTerm (STUVar s) # T.Type -> STInfer s () #-}
 {-# SPECIALIZE updateConstraints :: T.RConstraints -> STUVar s # T.Row -> UTerm (STUVar s) # T.Row -> STInfer s () #-}
-{-# SPECIALIZE updateTermConstraints :: UVar # T.Row -> UTermBody UVar # T.Row -> T.RConstraints -> (PureInfer env) () #-}
 {-# SPECIALIZE updateTermConstraints :: STUVar s # T.Row -> UTermBody (STUVar s) # T.Row -> T.RConstraints -> STInfer s () #-}
-{-# SPECIALIZE instantiateH :: (forall n. TypeConstraintsOf n -> UTerm UVar # n) -> GTerm UVar # T.Row -> WriterT [PureInfer (Scope # UVar) ()] (PureInfer (Scope # UVar)) (UVar # T.Row) #-}
 {-# SPECIALIZE instantiateH :: (forall n. TypeConstraintsOf n -> UTerm (STUVar s) # n) -> GTerm (STUVar s) # T.Row -> WriterT [STInfer s ()] (STInfer s) (STUVar s # T.Row) #-}
 {-# SPECIALIZE semiPruneLookup :: STUVar s # T.Type -> STInfer s (STUVar s # T.Type, UTerm (STUVar s) # T.Type) #-}
 {-# SPECIALIZE semiPruneLookup :: STUVar s # T.Row -> STInfer s (STUVar s # T.Row, UTerm (STUVar s) # T.Row) #-}
