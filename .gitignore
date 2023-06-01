@@ -12,3 +12,4 @@
 *.prof
 stack.yaml.lock
 /dumps/
+.DS_Store
