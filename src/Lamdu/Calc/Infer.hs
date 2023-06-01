@@ -62,18 +62,18 @@ Lens.makeLenses ''InferState
 
 newtype PureInfer env a =
     PureInfer
-    (RWST env () InferState (Either (T.TypeError # Pure)) a)
+    (RWST env () InferState (Either (T.TypeError # UVar)) a)
     deriving newtype
     ( Functor, Applicative, Monad
     , MonadReader env
-    , MonadError (T.TypeError # Pure)
+    , MonadError (T.TypeError # UVar)
     , MonadState InferState
     )
 Lens.makePrisms ''PureInfer
 
 runPureInfer ::
     env -> InferState -> PureInfer env a ->
-    Either (T.TypeError # Pure) (a, InferState)
+    Either (T.TypeError # UVar) (a, InferState)
 runPureInfer env st (PureInfer act) =
     runRWST act env st <&> \(x, s, ~()) -> (x, s)
 
@@ -131,16 +131,12 @@ instance MonadQuantify T.RConstraints T.RowVar (PureInfer env) where
 instance Unify (PureInfer env) T.Type where
     {-# INLINE binding #-}
     binding = bindingDict (isBinding . T.tType)
-    unifyError e =
-        htraverse (Proxy @(Unify (PureInfer env)) #> applyBindings) e
-        >>= throwError . T.TypeError
+    unifyError = throwError . T.TypeError
 
 instance Unify (PureInfer env) T.Row where
     {-# INLINE binding #-}
     binding = bindingDict (isBinding . T.tRow)
-    unifyError e =
-        htraverse (Proxy @(Unify (PureInfer env)) #> applyBindings) e
-        >>= throwError . T.RowError
+    unifyError = throwError . T.RowError
     {-# INLINE structureMismatch #-}
     structureMismatch = T.rStructureMismatch
 

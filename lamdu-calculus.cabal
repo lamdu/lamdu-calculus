@@ -1,11 +1,11 @@
 cabal-version: 1.12
 
--- This file has been generated from package.yaml by hpack version 0.34.4.
+-- This file has been generated from package.yaml by hpack version 0.35.2.
 --
 -- see: https://github.com/sol/hpack
 
 name:           lamdu-calculus
-version:        0.2.0.0
+version:        0.2.0.1
 synopsis:       The Lamdu Calculus programming language
 description:    Please see README.md
 category:       Language
