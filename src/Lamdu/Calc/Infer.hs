@@ -62,18 +62,18 @@ Lens.makeLenses ''InferState
 
 newtype PureInfer env a =
     PureInfer
-    (RWST env () InferState (Either (Pure # T.TypeError)) a)
+    (RWST env () InferState (Either (T.TypeError # Pure)) a)
     deriving newtype
     ( Functor, Applicative, Monad
     , MonadReader env
-    , MonadError (Pure # T.TypeError)
+    , MonadError (T.TypeError # Pure)
     , MonadState InferState
     )
 Lens.makePrisms ''PureInfer
 
 runPureInfer ::
     env -> InferState -> PureInfer env a ->
-    Either (Pure # T.TypeError) (a, InferState)
+    Either (T.TypeError # Pure) (a, InferState)
 runPureInfer env st (PureInfer act) =
     runRWST act env st <&> \(x, s, ~()) -> (x, s)
 
@@ -98,7 +98,7 @@ instance MonadNominals T.NominalId T.Type (PureInfer (Scope # UVar)) where
     {-# INLINE getNominalDecl #-}
     getNominalDecl n =
         Lens.view (scopeNominals . Lens.at n)
-        >>= maybe (throwError (_Pure # T.NominalNotFound n)) pure
+        >>= maybe (throwError (T.NominalNotFound n)) pure
 
 instance TermVar.HasScope (PureInfer (Scope # UVar)) Scope where
     {-# INLINE getScope #-}
@@ -133,14 +133,14 @@ instance Unify (PureInfer env) T.Type where
     binding = bindingDict (isBinding . T.tType)
     unifyError e =
         htraverse (Proxy @(Unify (PureInfer env)) #> applyBindings) e
-        >>= throwError . Pure . T.TypeError
+        >>= throwError . T.TypeError
 
 instance Unify (PureInfer env) T.Row where
     {-# INLINE binding #-}
     binding = bindingDict (isBinding . T.tRow)
     unifyError e =
         htraverse (Proxy @(Unify (PureInfer env)) #> applyBindings) e
-        >>= throwError . Pure . T.RowError
+        >>= throwError . T.RowError
     {-# INLINE structureMismatch #-}
     structureMismatch = T.rStructureMismatch
 
