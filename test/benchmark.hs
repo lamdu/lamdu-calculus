@@ -4,7 +4,8 @@ import           Hyper
 import           Hyper.Infer (infer, inferResult)
 import           Hyper.Recurse (wrap)
 import           Hyper.Unify (UVarOf, UnifyGen, applyBindings)
-import           Control.DeepSeq (rnf)
+import           Hyper.Unify.Binding (UVar)
+import           Control.DeepSeq (NFData(..))
 import           Control.Exception (evaluate)
 import           Control.Lens (ASetter')
 import qualified Control.Lens as Lens
@@ -22,6 +23,9 @@ import qualified Lamdu.Calc.Type as T
 import           TestVals
 
 import           Prelude.Compat
+
+instance NFData (UVar t) where
+    rnf x = x `seq` ()
 
 localInitEnv ::
     ( MonadReader env m
