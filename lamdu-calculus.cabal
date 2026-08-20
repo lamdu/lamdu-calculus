@@ -1,6 +1,6 @@
 cabal-version: 1.12
 
--- This file has been generated from package.yaml by hpack version 0.35.2.
+-- This file has been generated from package.yaml by hpack version 0.39.6.
 --
 -- see: https://github.com/sol/hpack
 
@@ -51,6 +51,7 @@ library
     , generic-data
     , hashable
     , hypertypes >=0.2
+    , hypertypes-ast
     , lattices
     , lens >=4.1
     , monad-st
@@ -76,6 +77,7 @@ test-suite lamdu-calculus-test
     , bytestring
     , containers
     , hypertypes >=0.2
+    , hypertypes-ast
     , lamdu-calculus
     , lens >=4.1
     , test-framework
@@ -100,6 +102,7 @@ benchmark lamdu-calculus-bench
     , criterion
     , deepseq
     , hypertypes >=0.2
+    , hypertypes-ast
     , lamdu-calculus
     , lens >=4.1
     , monad-st

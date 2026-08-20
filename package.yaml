@@ -20,6 +20,7 @@ dependencies:
 - bytestring
 - containers
 - hypertypes >= 0.2
+- hypertypes-ast
 - lens >= 4.1
 
 ghc-options:
